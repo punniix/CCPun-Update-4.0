@@ -284,7 +284,6 @@
 .calcScope :global(.ccpun-calculator-result-eyebrow):has(+ :is(h2, h3)) { display: none; }
 .calcScope :global(.ccpun-calculator-result-eyebrow + :is(h2, h3)) { margin-top: 0; }
 /* Money Story result screen: the game is a protected source; its result label above the title is not rendered in v5. */
-.msWrap [data-character] + p:has(+ h2) { display: none; }
 
 /*
  * v5 motion round (owner-approved idea #1, UAT prototype): the result comparison explains the gap in

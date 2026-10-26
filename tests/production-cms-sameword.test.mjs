@@ -1,3 +1,4 @@
+import { inverseEyebrowHtml } from "../qa/v5-eyebrow-html.mjs";
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -176,6 +177,7 @@ test('eight original scopes retain exact b871 public HTML, current design and si
     }
     // Website v5 Phase B: tool/legal scopes render the v5 shell; their reviewed v5 digest replaces the b871 golden.
     if (Object.hasOwn(websiteV5PhaseBRenderGoldens.v5, index)) { assert.equal(digest(inverseWebsiteV5C11Header(html, index)), websiteV5PhaseBRenderGoldens.v5[index], `${index}:${scope} (v5)` ); continue; }
+    html = inverseEyebrowHtml(html, index);
     html = inverseCanonicalShellLinks(html, scope);
     assert.equal(digest(html),websiteV5PhaseBRenderGoldens.retained[index] ?? baseline[index],`${index}:${scope}`);
   }
@@ -477,4 +479,17 @@ test('C11 header inverse preserves all old goldens and rejects unknown, duplicat
   const current = await renderFixture('ci', {});
   assert.throws(() => inverseWebsiteV5C11Header(current, 4), /unknown full render/, 'cases cannot borrow a different pin');
   assert.throws(() => inverseWebsiteV5C11Header(current, 5), /unregistered render case/);
+});
+
+// C15 inverse is used solely for approved default goldens; real CMS edits remain observable.
+test('C15 default-only inverse rejects edited copy, moved nodes, duplicates and unrelated markup', async () => {
+  for (const [index,scope,key] of [[1,'home','home.website43Hometitle5'],[3,'ci','ci.landing.heading3'],[4,'fhc','fhc.landing.calculatorHeading.heading']]) {
+    const html=await renderFixture(scope,{});
+    const prior=inverseEyebrowHtml(html,index);
+    assert.notEqual(prior,html);
+    assert.equal(inverseEyebrowHtml(prior,index),prior);
+    const edited=await renderFixture(scope,{}, {overrides:{[key]:'ข้อความเจ้าของ'}});
+    assert.match(edited,/ข้อความเจ้าของ/);
+    for(const mutation of [edited,html+' ',html.replace('</main>','unrelated</main>'),html.replace(/(<h[23][^>]*>[^<]*<\/h[23]>)/,'$1$1')]) assert.throws(()=>inverseEyebrowHtml(mutation,index),/unknown full render/);
+  }
 });

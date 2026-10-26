@@ -1,3 +1,4 @@
+import { eyebrowPredecessor } from "./v5-eyebrow-proof.mjs";
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -243,6 +244,7 @@ export function assertProductionCmsOwner(file, source = read(file)) {
   assert.ok(hasProductionCmsOwner(file), 'Unknown CMS source owner: '+file);
   // Website v5 Phase A (UAT prototype): an exact reviewed v5 route successor, or the
   // exact additive v5 copy keys removed to reconstruct the frozen registry source.
+  source = eyebrowPredecessor(file, source);
   source = cookieBannerTimingPredecessor(file, source);
   if (isWebsiteV5ReviewedSuccessor(file, source)) return true;
   source = websiteV5CopyPredecessor(file, source);

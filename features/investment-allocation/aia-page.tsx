@@ -61,7 +61,8 @@ export default function AiaFundAllocationPage() {
       <V5ToolHero
         id="aia-fund-hero-title"
         breadcrumbs={<V5Breadcrumbs label="เส้นทางของหน้า" items={[{ href: "/", label: "หน้าแรก" }, { href: V5_TOOLS_HUB.href, label: V5_TOOLS_HUB.label }, { label: V5_AIA_FUND_TOOL.label }]} />}
-        title={<>กองทุนของ บลจ. เอไอเอ<br /><span>เลือกเอง แล้วดูว่าเงินอยู่ตรงไหน</span></>}
+        title="กองทุนของ บลจ. เอไอเอ"
+        subtitle={<span className={shell.lead}>เลือกเอง แล้วดูว่าเงินอยู่ตรงไหน</span>}
         lead="ดูข้อมูลกองทุนจาก ก.ล.ต. ทั้งประเภทกอง ระดับความเสี่ยง สัดส่วนสินทรัพย์ และเงื่อนไขการรับเงิน ใช้กองเดียวหรือจัดหลายกองเองก็ได้ โดยไม่มีการจัดอันดับหรือเลือกกองแทนคุณ"
         meta="กองทุนในเครื่องมือนี้เป็นกองทุนรวมที่บริหารโดย บลจ. เอไอเอ ส่วนกองทุนที่เลือกได้ในกรมธรรม์ประกันควบการลงทุน (Unit Linked) เป็นไปตามเอกสารกรมธรรม์ของบริษัทประกัน"
         cta={{ href: "#investment-mode-title", label: "เริ่มเลือกวิธีลงทุน" }}

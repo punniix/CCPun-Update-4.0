@@ -1,3 +1,4 @@
+import "./v5-eyebrow-cleanup.test.mjs";
 // Website v5 Phase A contracts (UAT prototype): internal-linking template items,
 // analytics/consent boundaries and the unchanged public URL layer.
 import assert from "node:assert/strict";
@@ -481,10 +482,10 @@ test("UX: no v5 page renders an eyebrow or a tool-hero kicker", () => {
   for (const css of ["components/layout/v5/V5.module.css", "components/layout/v5/V5Tool.module.css", "features/home/v5/V5Home.module.css"]) {
     assert.doesNotMatch(read(css), /\.(?:eyebrow|heroKicker|heroEyebrow) \{/, `${css}: no eyebrow style`);
   }
-  // Protected calculator and game views keep their markup; the v5 scope stops rendering their heading eyebrows.
+  // Historical calculator fallback guards remain; C15 callers use body/heading nodes and the Money Story body line stays visible.
   const tool = read("components/layout/v5/V5Tool.module.css");
   assert.match(tool, /\.calcScope :global\(\.ccpun-calculator-result-eyebrow\):has\(\+ :is\(h2, h3\)\) \{ display: none; \}/);
-  assert.match(tool, /\.msWrap \[data-character\] \+ p:has\(\+ h2\) \{ display: none; \}/);
+  assert.doesNotMatch(tool, /\.msWrap \[data-character\] \+ p:has\(\+ h2\)/, "C15 normal-colour character result line stays visible");
 });
 
 test("UX: per-mode focus ring and field edge tokens; whole-card links show the ring on the card", () => {

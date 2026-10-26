@@ -99,7 +99,6 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
 
   return <div data-ui="human-centered-ci-result" className="ccpun-calculator-result ccpun-motion-result-reveal">
     <section className="ccpun-calculator-result-lead">
-      <p className="ccpun-calculator-result-eyebrow">{t.node("ci.result.description")}</p>
       <h2
         ref={resultHeadingRef}
         tabIndex={-1}
@@ -150,7 +149,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
     />
 
     <section className="ccpun-calculator-result-panel">
-      <p className="ccpun-calculator-result-eyebrow">{differenceLabel}</p>
+      <h3 className="ccpun-calculator-result-panel-title">{differenceLabel}</h3>
       <p className="ccpun-calculator-result-difference mt-1 font-semibold tabular-nums">{baht(difference)}</p>
       <p className="ccpun-calculator-result-body">
         {t.node("ci.result.description5")}{baht(result.availableResources)} {t.node("ci.result.description6")}</p>
@@ -177,7 +176,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
     </section>
 
     <section className="ccpun-calculator-result-panel" aria-labelledby="ci-recovery-result-title">
-      <p className="ccpun-calculator-result-eyebrow">{t.node("ci.recovery.description")}</p>
+      <p className="ccpun-calculator-result-body">{t.node("ci.recovery.description")}</p>
       <h3 id="ci-recovery-result-title" className="ccpun-calculator-result-panel-title mt-1">
         {t(`ci.recovery.mode.${result.recoveryMode}`)}
       </h3>

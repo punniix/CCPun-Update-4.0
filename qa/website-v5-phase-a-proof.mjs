@@ -1,3 +1,4 @@
+import { eyebrowPredecessor } from "./v5-eyebrow-proof.mjs";
 import { createHash } from 'node:crypto';
 
 // Website v5 Phase A (UAT prototype, branch codex/website-v5-uat-20261025).
@@ -172,7 +173,7 @@ export const websiteV5MotionSources = Object.freeze({
 
 /** Digest the frozen proofs should compare: the reviewed predecessor for an exact v5 successor, else the file's own digest. */
 export function websiteV5PredecessorDigest(file, source) {
-  const restored = websiteV5CopyPredecessor(file, source);
+  const restored = websiteV5CopyPredecessor(file, eyebrowPredecessor(file, source));
   const current = sha(restored);
   const successor = Object.hasOwn(websiteV5ReviewedSuccessors, file) ? websiteV5ReviewedSuccessors[file] : null;
   const digest = successor && current === successor.after ? successor.before : current;
@@ -181,6 +182,7 @@ export function websiteV5PredecessorDigest(file, source) {
 }
 
 export function isWebsiteV5ReviewedSuccessor(file, source) {
+  source = eyebrowPredecessor(file, source);
   const motion = Object.hasOwn(websiteV5MotionSources, file) ? websiteV5MotionSources[file] : null;
   if (motion && motion.before === websiteV5ResultLineSources[file]?.after && sha(source) === motion.after) return true;
   const result = Object.hasOwn(websiteV5ResultLineSources, file) ? websiteV5ResultLineSources[file] : null;
