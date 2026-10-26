@@ -44,7 +44,7 @@
   padding: 20px var(--v5-gutter) calc(24px + env(safe-area-inset-bottom, 0px));
   background: var(--v5-bg); color: var(--v5-text); border: 1px solid var(--v5-border); border-bottom: 0;
   border-radius: var(--v5-radius-lg) var(--v5-radius-lg) 0 0; box-shadow: var(--v5-shadow);
-  /* Entrance only (opacity + transform); closing stays instant so the trigger is usable again at once. */
+  /* Compositor-only entrance; closing releases focus and pointer events before the exit. */
   animation: v5ChatRise var(--v5-motion-base) var(--v5-ease-standard) both;
 }
 @keyframes v5ChatRise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
@@ -95,3 +95,12 @@
 .desktopHint { margin: 0; color: var(--v5-muted); font-size: 14px; line-height: 1.6; }
 .desktopQr { width: 224px; height: 224px; max-width: 100%; justify-self: center; background: #ffffff; color: #000000; }
 .desktopFallback { color: var(--v5-gold-text); text-decoration: underline; text-underline-offset: 3px; }
+
+/* C8: close on the micro token; both layers stop intercepting the dock immediately. */
+.backdrop[data-chat-state="closing"], .panel[data-chat-state="closing"] { pointer-events: none; }
+.backdrop[data-chat-state="closing"] { animation: v5ChatFade var(--v5-motion-micro) var(--v5-ease-standard) reverse both; }
+.panel[data-chat-state="closing"] { animation: v5ChatRise var(--v5-motion-micro) var(--v5-ease-standard) reverse both; }
+@media (min-width: 1024px) { .panel[data-chat-state="closing"] { animation-name: v5ChatPop; } }
+@media (prefers-reduced-motion: reduce) {
+  .backdrop[data-chat-state="closing"], .panel[data-chat-state="closing"] { animation: none; opacity: 0; }
+}

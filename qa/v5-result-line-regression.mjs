@@ -77,8 +77,8 @@ try {
     await page.keyboard.press('Escape');
     await panel.waitFor({state:'detached'});
     await page.waitForTimeout(60);
-    const focus=await cta.evaluate(node=>document.activeElement===node||Boolean(document.activeElement?.closest('[role="dialog"][aria-labelledby^="cookie"]')));
-    assert.equal(focus,true,'close restores the caller or the still-open cookie dialog');
+    const focus=await cta.evaluate(()=>document.activeElement===document.querySelector('[data-v5-chat-dock] > a')||Boolean(document.activeElement?.closest('[role="dialog"][aria-labelledby^="cookie"]')));
+    assert.equal(focus,true,'C8 close restores the dock or the still-open cookie dialog');
     results.push({tool,width,consent,firstTopic:true,privacy:true,singlePanel:true,lineControls,focusRestored:true});
     await context.close();
   }

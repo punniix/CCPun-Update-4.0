@@ -88,7 +88,7 @@ What this system explicitly rejects: the cold institutional aesthetic of Thai st
 - Gold as signal of care, not of wealth
 - Glass reserved for interactive elevation, not decoration
 - Kanit for all type: Thai/Latin parity at one typeface weight range
-- Framer Motion for transitions that feel intentional, not reflexive
+- CSS motion tokens in `components/layout/v5/motion-tokens.ts` and `V5.module.css` for purposeful transitions; the v5 root reduced-motion rule removes animation immediately.
 
 ## 2. Colors: The Compass Palette
 
@@ -195,7 +195,8 @@ The main conversion surface. Dark glass panel, large display headline, body copy
 - **Do** use Warm Gold on at most one primary CTA per viewport. Its scarcity is the point.
 - **Do** apply `text-wrap: balance` to all headlines (h1–h3) to prevent ragged breaks.
 - **Do** use the inset white highlight (`inset 0 1px 0 rgba(255,255,255,0.1)`) on every glass element — it is what makes glass read as glass.
-- **Do** apply Framer Motion's `ease-out` easing (no bounce, no elastic) for all entrance animations.
+- **Do** use the v5 CSS motion tokens from `components/layout/v5/motion-tokens.ts` and `V5.module.css`: micro/fast/base/slow durations with `--v5-ease-standard` or `--v5-ease-emphasized`; reduced motion ends immediately through the v5 root rule. Animate transform/opacity only, with stroke-dashoffset for decorative SVG drawing; no blur, bounce, overshoot, rotation or layout animation.
+- **Toast motion pattern (future UI):** enter with `--v5-motion-base` and an 8px slide, exit with `--v5-motion-micro`, using `--v5-ease-standard`. Use `role="status"` and `aria-live="polite"`; no blur or scale. Reduced motion shows the final state immediately. This pattern adds no toast UI.
 - **Do** add `@media (prefers-reduced-motion: reduce)` alternatives for every animation — Thai Gen X users on desktop may be in accessibility contexts.
 - **Do** verify `ink-muted` (#baabab) passes 4.5:1 against Surface (#4a3a3a) before using it for body copy. It is borderline; increase weight if it fails.
 - **Do** use Kanit 300 (light) for body copy — it reads cleanly at Thai paragraph density.

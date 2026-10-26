@@ -1,4 +1,5 @@
 'use client';
+import V5ResultTick from '@/components/layout/v5/V5ResultTick';
 import { usePublicCopy } from '@/components/ui/PublicCopyProvider';
 import { CI_COPY_DEFAULTS } from '@/lib/content/tool-copy-defaults';
 
@@ -104,7 +105,7 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
         tabIndex={-1}
         className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        {t.node("ci.result.heading")}{methodLabel}
+        <V5ResultTick />{t.node("ci.result.heading")}{methodLabel}
       </h2>
       <output className="ccpun-calculator-result-amount" aria-live="polite" aria-atomic="true">{baht(selectedNeed)}</output>
       <p className="ccpun-calculator-result-body">

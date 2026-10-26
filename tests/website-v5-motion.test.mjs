@@ -277,7 +277,7 @@ test('motion animates transform/opacity only: no layout properties, no `all`, no
       for (const [, decls] of body.matchAll(/\{([^}]*)\}/g)) {
         for (const decl of decls.split(';').map(d => d.trim()).filter(Boolean)) {
           const prop = decl.split(':')[0].trim();
-          assert.ok(['transform', 'opacity', 'translate', 'scale', 'rotate'].includes(prop), `${file} @keyframes ${name}: ${prop}`);
+          assert.ok(['transform', 'opacity', 'translate', 'scale', 'rotate'].includes(prop) || (file === 'components/layout/v5/V5Tool.module.css' && name === 'v5ResultTickDraw' && prop === 'stroke-dashoffset'), `${file} @keyframes ${name}: ${prop}`);
         }
       }
     }
@@ -301,4 +301,93 @@ test('chat panel enters with opacity/transform; the dock moves with the cookie n
   assert.match(css, /@media \(min-width: 1024px\) \{ \.panel \{ animation-name: v5ChatPop; \} \}/);
   const dock = read('components/layout/v5/V5ChatDock.tsx');
   assert.match(dock, /new ResizeObserver\(\(\) => measure\(\)\)/, 'size changes are applied before paint');
+});
+
+
+// C8: owner-approved bounded exit, native details and decorative result tick.
+test('C8 uses existing tokens, native details, bounded transforms and immediate reduced-motion final states', () => {
+  const dock = strip(read('components/layout/v5/V5ChatDock.module.css'));
+  const shell = strip(read('components/layout/v5/V5.module.css'));
+  const tool = strip(read('components/layout/v5/V5Tool.module.css'));
+  assert.match(dock, /\.backdrop\[data-chat-state="closing"\], \.panel\[data-chat-state="closing"\] \{ pointer-events: none; \}/);
+  assert.match(dock, /v5ChatRise var\(--v5-motion-micro\) var\(--v5-ease-standard\) reverse both/);
+  assert.match(dock, /\.panel\[data-chat-state="closing"\] \{ animation-name: v5ChatPop;/);
+  assert.match(dock, /prefers-reduced-motion: reduce\) \{\s*\.backdrop\[data-chat-state="closing"\][^}]*animation: none; opacity: 0;/);
+  assert.match(shell, /\.root details\[open\] > :not\(summary\) \{ animation: v5DetailsReveal var\(--v5-motion-fast\) var\(--v5-ease-standard\) both; \}/);
+  assert.match(shell, /@keyframes v5DetailsReveal \{ from \{ opacity: 0; transform: translateY\(-4px\);/);
+  assert.doesNotMatch(read('components/layout/v5/V5ToolParts.tsx'), /use client|onToggle|onClick/, 'FAQ remains native server markup');
+  for (const css of [dock, shell, tool]) {
+    for (const [, value] of css.matchAll(/(?:animation|transition):\s*([^;]+);/g)) assert.doesNotMatch(value.replace(/var\([^)]*\)/g, ''), /\b[1-9]\d*ms\b/, 'no raw durations');
+  }
+  assert.match(tool, /scale\(\.96\)/);
+  assert.match(tool, /v5ResultTickDraw var\(--v5-motion-slow\) var\(--v5-ease-emphasized\) both/);
+  assert.match(tool, /prefers-reduced-motion: reduce\) \{ \.resultTick, \.resultTick path \{ animation: none;/);
+  const Tick = require('../components/layout/v5/V5ResultTick.tsx').default;
+  const markup = renderToStaticMarkup(React.createElement(Tick));
+  assert.match(markup, /aria-hidden="true"/);
+  assert.match(markup, /pathLength="1"/);
+  assert.doesNotMatch(markup, /role="(?:status|alert)"|<title|<text/);
+  assert.match(read('DESIGN.md'), /Toast motion pattern.*role="status".*aria-live="polite"/);
+  assert.doesNotMatch(read('DESIGN.md'), /Framer Motion/);
+});
+
+test('C8 result successors reconstruct the frozen C6 pins exactly and reject unrelated edits', async () => {
+  const { createHash } = await import('node:crypto');
+  const { websiteV5MotionSources, websiteV5ResultLineSources, isWebsiteV5ReviewedSuccessor } = await import('../qa/website-v5-phase-a-proof.mjs');
+  const sha = s => createHash('sha256').update(s).digest('hex');
+  for (const [file, entry] of Object.entries(websiteV5MotionSources)) {
+    const source = read(file);
+    assert.equal(entry.before, websiteV5ResultLineSources[file].after);
+    assert.equal(sha(source), entry.after);
+    const predecessor = source.replace("import V5ResultTick from '@/components/layout/v5/V5ResultTick';\n", '').replace('<V5ResultTick />', '');
+    assert.equal(sha(predecessor), entry.before, 'only the tick import and insertion differ');
+    assert.equal(isWebsiteV5ReviewedSuccessor(file, source), true);
+    for (const mutation of [source + '\n', source.replace('resultChatHref', 'changedResultHref')]) assert.equal(isWebsiteV5ReviewedSuccessor(file, mutation), false);
+  }
+});
+
+test('C8 panel closes on its own animationend or token fallback, cancels on reopen, and ends immediately for reduced motion', async () => {
+  const { loadFixtureModule } = await import('../qa/phase1-fixture-loader.mjs');
+  const { LINE_CHAT_DEFAULTS, chatContextForPath } = require('../lib/line/chat-panel.ts');
+  const { createRoot } = require('react-dom/client');
+  const mocks = new Map([
+    ['./V5ChatDock.module.css', { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) }],
+    ['@/lib/analytics', { trackEvent: () => {} }],
+    ['@/lib/acquisition', { getAttribution: () => undefined }],
+    ['@/lib/cookie-consent', { getConsentData: () => null }],
+  ]);
+  const Panel = loadFixtureModule('components/layout/v5/V5ChatPanel.tsx', { mocks }).default;
+  await withDom(async dom => {
+    let reduced = false, preferenceChange, timer, duration, cancelled = 0, ended = 0;
+    dom.window.matchMedia = query => ({ get matches() { return query.includes('reduce') && reduced; }, addEventListener: (_, callback) => { preferenceChange = callback; }, removeEventListener() {} });
+    dom.window.setTimeout = (callback, delay) => { timer = callback; duration = delay; return 7; };
+    dom.window.clearTimeout = id => { assert.equal(id, 7); cancelled++; };
+    const root = createRoot(dom.window.document.getElementById('app'));
+    const onClose = () => {};
+    const onClosed = () => { ended++; };
+    const render = closing => React.act(async () => root.render(React.createElement(Panel, { config: LINE_CHAT_DEFAULTS, context: chatContextForPath('/'), trigger: 'dock', closing, onClose, onClosed })));
+    await render(false);
+    await render(true);
+    const panel = dom.window.document.querySelector('#v5-chat-panel');
+    assert.equal(panel.hasAttribute('inert'), true);
+    assert.equal(panel.getAttribute('aria-hidden'), 'true');
+    assert.equal(duration, tokens.V5_MOTION_MS.micro);
+    await React.act(async () => panel.querySelector('svg').dispatchEvent(new dom.window.Event('animationend', { bubbles: true })));
+    assert.equal(ended, 0, 'child animations cannot unmount the closing panel');
+    await React.act(async () => panel.dispatchEvent(new dom.window.Event('animationend', { bubbles: true })));
+    assert.equal(ended, 1, 'the panel animation ends the close');
+    await React.act(async () => timer());
+    assert.equal(ended, 2, 'fallback also ends the close without an animation event');
+    await render(false);
+    assert.ok(cancelled > 0, 'reopening cancels the old fallback');
+    await render(true);
+    reduced = true;
+    await React.act(async () => preferenceChange());
+    assert.equal(ended, 3, 'preference changed mid-exit: finish immediately');
+    await render(false);
+    await render(true);
+    assert.equal(ended, 4, 'already reduced: finish immediately without waiting');
+    await React.act(async () => root.unmount());
+    dom.window.close();
+  });
 });

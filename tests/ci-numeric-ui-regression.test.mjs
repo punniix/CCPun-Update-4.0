@@ -14,6 +14,8 @@ window.requestAnimationFrame = (fn) => window.setTimeout(fn, 0);
 Element.prototype.scrollIntoView = function () {};
 const { createRoot } = await import('react-dom/client');
 const require = createRequire(import.meta.url);
+// Native Node journeys exercise React behavior; the built-Web C8 browser suite verifies the real CSS.
+require.extensions['.css'] = module => { module.exports = { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) }; };
 const CI = require('../features/ci-planning/components/CIWizard.tsx').default;
 const setValue = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
 

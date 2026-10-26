@@ -6,6 +6,7 @@ import { getAttribution } from "@/lib/acquisition";
 import { getConsentData } from "@/lib/cookie-consent";
 import { chatSurfaceGroup, resolveChatPanel, type ChatPageContext, type LineChatConfig, type LineChatResultTool } from "@/lib/line/chat-panel";
 import type { V5ChatPanelTrigger } from "./chat-events";
+import { V5_MOTION_MS } from "./motion-tokens";
 import styles from "./V5ChatDock.module.css";
 
 const CLOSE_LABEL = "ปิด";
@@ -25,7 +26,7 @@ function Arrow() {
  * trackEvent(), and it is fire-and-forget (never awaited, never blocks the link). On touch devices the
  * link opens in the same tab. Desktop selection displays its QR; only a QR failure offers a browser fallback.
  */
-export default function V5ChatPanel({ config, context, trigger, resultTool, onClose }: { config: LineChatConfig; context: ChatPageContext; trigger: V5ChatPanelTrigger; resultTool?: LineChatResultTool; onClose: () => void }) {
+export default function V5ChatPanel({ config, context, trigger, resultTool, closing, onClose, onClosed }: { config: LineChatConfig; context: ChatPageContext; trigger: V5ChatPanelTrigger; resultTool?: LineChatResultTool; closing: boolean; onClose: () => void; onClosed: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const [newTab] = useState(() => !window.matchMedia("(pointer: coarse)").matches);
   const [desktop] = useState(() => window.matchMedia("(hover: hover) and (pointer: fine)").matches
@@ -73,7 +74,7 @@ export default function V5ChatPanel({ config, context, trigger, resultTool, onCl
 
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (!dialog) return;
+    if (!dialog || closing) return;
     // The panel is the top layer, also when it opens above the cookie notice (a modal with its own
     // focus guard). While it is open it owns Escape, Tab and focus for its own controls; once it
     // closes, the notice (if still open) takes focus back as before.
@@ -96,7 +97,18 @@ export default function V5ChatPanel({ config, context, trigger, resultTool, onCl
       window.removeEventListener("keydown", onKeyDown, true);
       window.removeEventListener("focusin", keepFocus, true);
     };
-  }, [onClose]);
+  }, [onClose, closing]);
+
+  useEffect(() => {
+    if (!closing) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    // The CSS root rule also disables motion when the visitor changes this preference mid-close.
+    const finishIfReduced = () => { if (reduced.matches) onClosed(); };
+    if (reduced.matches) { onClosed(); return; }
+    const timeout = window.setTimeout(onClosed, V5_MOTION_MS.micro);
+    reduced.addEventListener("change", finishIfReduced);
+    return () => { window.clearTimeout(timeout); reduced.removeEventListener("change", finishIfReduced); };
+  }, [closing, onClosed]);
 
   if (panel.mode !== "panel") return null;
   const surface = chatSurfaceGroup(panel.pageGroup);
@@ -111,8 +123,8 @@ export default function V5ChatPanel({ config, context, trigger, resultTool, onCl
 
   return (
     <>
-      <div className={styles.backdrop} aria-hidden="true" onClick={onClose} />
-      <div ref={dialogRef} id="v5-chat-panel" className={styles.panel} role="dialog" aria-modal="true" aria-labelledby="v5-chat-title" aria-describedby="v5-chat-note">
+      <div className={styles.backdrop} data-chat-state={closing ? "closing" : "open"} inert={closing} aria-hidden="true" onClick={onClose} />
+      <div ref={dialogRef} id="v5-chat-panel" className={styles.panel} data-chat-state={closing ? "closing" : "open"} inert={closing} aria-hidden={closing || undefined} onAnimationEnd={event => { if (closing && event.target === event.currentTarget) onClosed(); }} role="dialog" aria-modal={closing ? undefined : true} aria-labelledby="v5-chat-title" aria-describedby="v5-chat-note">
         <div className={styles.panelHead}>
           <h2 id="v5-chat-title" className={styles.panelTitle}>{panel.headline}</h2>
           <button type="button" className={styles.close} onClick={onClose} aria-label={CLOSE_LABEL}>
