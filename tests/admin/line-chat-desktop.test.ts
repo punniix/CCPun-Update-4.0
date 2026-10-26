@@ -69,8 +69,8 @@ test("pinned local encoder round-trips exact topic URLs and UTF-8 with a four-mo
   assert.throws(() => encodeQr("a".repeat(4000)), "an oversized QR fails, rather than silently truncating the destination");
 });
 
-test("desktop selection reveals its own QR without outbound tracking; mobile and mobile-UA keep the plain link", async () => {
-  for (const device of ["desktop", "coarse", "mobile-ua", "ipad"] as const) {
+test("desktop success has QR only; generation failure alone offers its exact HTTPS fallback; mobile keeps its link", async () => {
+  for (const device of ["desktop", "desktop-failure", "coarse", "mobile-ua", "ipad"] as const) {
     const dom = new JSDOM('<div id="root"></div>', { url: "http://localhost/" });
     const previous = new Map(["window", "document", "navigator", "IS_REACT_ACT_ENVIRONMENT"].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
     Object.defineProperty(dom.window.navigator, "userAgent", { value: device === "mobile-ua" ? "Mozilla/5.0 iPhone Mobile" : "Mozilla/5.0 Desktop" });
@@ -80,12 +80,14 @@ test("desktop selection reveals its own QR without outbound tracking; mobile and
     for (const [key, value] of Object.entries({ window: dom.window, document: dom.window.document, navigator: dom.window.navigator, IS_REACT_ACT_ENVIRONMENT: true })) Object.defineProperty(globalThis, key, { value, writable: true, configurable: true });
     const events: string[] = [];
     let closed = 0;
-    const Panel = loadFixtureModule("components/layout/v5/V5ChatPanel.tsx", { mocks: new Map([
+    const mocks = new Map<string, unknown>([
       ["./V5ChatDock.module.css", { __esModule: true, default: new Proxy({}, { get: (_, key) => String(key) }) }],
       ["@/lib/analytics", { trackEvent: (name: string) => events.push(name) }],
       ["@/lib/acquisition", { getAttribution: () => undefined }],
       ["@/lib/cookie-consent", { getConsentData: () => null }],
-    ]) }).default;
+    ]);
+    if (device === "desktop-failure") mocks.set("./qr-code", { encodeQr: () => { throw new Error("injected-encoder-failure"); }, qrSvgPath });
+    const Panel = loadFixtureModule("components/layout/v5/V5ChatPanel.tsx", { mocks }).default;
     const root = createRoot(dom.window.document.getElementById("root"));
     try {
       await React.act(async () => root.render(React.createElement(Panel, { config: LINE_CHAT_DEFAULTS, context: { pageGroup: "home" }, trigger: "dock", onClose: () => { closed++; } })));
@@ -93,18 +95,31 @@ test("desktop selection reveals its own QR without outbound tracking; mobile and
       const href = topic.getAttribute("href");
       const click = new dom.window.MouseEvent("click", { bubbles: true, cancelable: true });
       await React.act(async () => { topic.dispatchEvent(click); });
-      if (device === "desktop") {
+      if (device === "desktop" || device === "desktop-failure") {
         assert.equal(click.defaultPrevented, true);
         assert.equal(events.filter(name => name === "line_oa_click").length, 0);
-        const open = dom.window.document.querySelector("[data-chat-desktop-open]");
-        assert.equal(open.getAttribute("href"), href);
-        assert.equal(open.getAttribute("target"), "_blank");
-        assert.ok(dom.window.document.querySelector('svg[role="img"]').getAttribute("aria-label").includes(topic.textContent));
-        await React.act(async () => { open.addEventListener("click", (event: Event) => event.preventDefault()); open.click(); });
-        assert.equal(events.filter(name => name === "line_oa_click").length, 1);
+        assert.equal(dom.window.document.querySelector("[data-chat-desktop-open]"), null, "the PC-open action is removed");
+        assert.doesNotMatch(dom.window.document.body.textContent, /เปิด LINE บนคอมพิวเตอร์|ลิงก์นี้เปิดหน้า LINE ในเบราว์เซอร์|และลิงก์ LINE/);
+        assert.equal(dom.window.document.querySelector("#v5-chat-note").textContent, "เลือกหัวข้อเพื่อแสดง QR");
+        const fallback = dom.window.document.querySelector("[data-chat-qr-fallback]");
+        const image = dom.window.document.querySelector('svg[role="img"]');
+        if (device === "desktop-failure") {
+          assert.equal(image, null, "generation failure never displays a stale QR");
+          assert.equal(fallback.getAttribute("href"), href);
+          assert.equal(fallback.getAttribute("target"), "_blank");
+          assert.match(fallback.closest('[role="status"]').textContent, /แสดง QR ไม่สำเร็จ/);
+          fallback.focus();
+          assert.equal(dom.window.document.activeElement, fallback);
+          await React.act(async () => { fallback.addEventListener("click", (event: Event) => event.preventDefault()); fallback.click(); });
+          assert.equal(events.filter(name => name === "line_oa_click").length, 1);
+        } else {
+          assert.equal(fallback, null, "successful desktop QR never offers an open link");
+          assert.ok(image.getAttribute("aria-label").includes(topic.textContent));
+          assert.equal(image.parentElement.textContent.trim(), "สแกนด้วยมือถือเพื่อส่งข้อความนี้ทาง LINE");
+        }
       } else {
         assert.equal(click.defaultPrevented, false, device);
-        assert.equal(dom.window.document.querySelector("[data-chat-desktop-open]"), null, device);
+        assert.equal(dom.window.document.querySelector("[data-chat-desktop-open],[data-chat-qr-fallback]"), null, device);
         assert.equal(events.filter(name => name === "line_oa_click").length, 1, device);
         await new Promise(resolve => setTimeout(resolve, 5));
         assert.equal(closed, 1, device);

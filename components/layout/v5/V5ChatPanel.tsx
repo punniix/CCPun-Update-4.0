@@ -23,7 +23,7 @@ function Arrow() {
  * The chat never depends on cookie consent (owner requirement 2026-10-26): a topic is a plain link
  * to line.me that opens whatever the visitor chose; only the analytics event is consent-gated, inside
  * trackEvent(), and it is fire-and-forget (never awaited, never blocks the link). On touch devices the
- * link opens in the same tab, where the LINE app takes it over; elsewhere a new tab shows LINE's page.
+ * link opens in the same tab. Desktop selection displays its QR; only a QR failure offers a browser fallback.
  */
 export default function V5ChatPanel({ config, context, trigger, onClose }: { config: LineChatConfig; context: ChatPageContext; trigger: V5ChatPanelTrigger; onClose: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -137,14 +137,14 @@ export default function V5ChatPanel({ config, context, trigger, onClose }: { con
             </li>
           ))}
         </ul>
-        <p id="v5-chat-note" className={styles.note}>{desktop ? "เลือกหัวข้อเพื่อแสดง QR และลิงก์ LINE" : panel.note}</p>
+        <p id="v5-chat-note" className={styles.note}>{desktop ? "เลือกหัวข้อเพื่อแสดง QR" : panel.note}</p>
         {selectedTopic ? (
           <section className={styles.desktopChoice} aria-label={selectedTopic.label}>
-            <p className={styles.desktopHint}>สแกนด้วยมือถือเพื่อส่งข้อความนี้ทาง LINE</p>
-            {qr && qr.href === qrHref && qr.path ? <svg className={styles.desktopQr} viewBox={qr.viewBox} role="img" aria-label={`สแกน QR เพื่อเปิด LINE: ${selectedTopic.label}`}><path d={qr.path} fill="currentColor" shapeRendering="crispEdges" /></svg> : null}
-            {qr && qr.href === qrHref && qr.failed ? <p role="status" className={styles.desktopHint}>แสดง QR ไม่สำเร็จ</p> : null}
-            <a data-chat-desktop-open="" className={styles.topic} href={selectedTopic.href} target="_blank" rel="noopener noreferrer" onClick={() => trackTopic(selectedTopic)}>เปิด LINE บนคอมพิวเตอร์<Arrow /></a>
-            <p className={styles.desktopHint}>ลิงก์นี้เปิดหน้า LINE ในเบราว์เซอร์ หากเข้าแอปไม่ได้ ให้สแกน QR ด้วยมือถือ</p>
+            {qr && qr.href === qrHref && qr.path ? <>
+              <svg className={styles.desktopQr} viewBox={qr.viewBox} role="img" aria-label={`สแกน QR เพื่อเปิด LINE: ${selectedTopic.label}`}><path d={qr.path} fill="currentColor" shapeRendering="crispEdges" /></svg>
+              <p className={styles.desktopHint}>สแกนด้วยมือถือเพื่อส่งข้อความนี้ทาง LINE</p>
+            </> : null}
+            {qr && qr.href === qrHref && qr.failed ? <p role="status" className={styles.desktopHint}>แสดง QR ไม่สำเร็จ{" "}<a data-chat-qr-fallback="" className={styles.desktopFallback} href={selectedTopic.href} target="_blank" rel="noopener noreferrer" onClick={() => trackTopic(selectedTopic)}>เปิดหน้า LINE</a></p> : null}
           </section>
         ) : null}
       </div>

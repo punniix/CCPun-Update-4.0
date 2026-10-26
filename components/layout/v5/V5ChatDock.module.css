@@ -78,3 +78,4 @@
 .desktopChoice { display: grid; justify-items: stretch; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--v5-border-soft); }
 .desktopHint { margin: 0; color: var(--v5-muted); font-size: 14px; line-height: 1.6; }
 .desktopQr { width: 224px; height: 224px; max-width: 100%; justify-self: center; background: #ffffff; color: #000000; }
+.desktopFallback { color: var(--v5-gold-text); text-decoration: underline; text-underline-offset: 3px; }
