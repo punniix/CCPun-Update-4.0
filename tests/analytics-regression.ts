@@ -62,6 +62,8 @@ assert.deepEqual(buildSemanticDataLayerEvent('ci_calculator_start', safe, { anal
   campaign_code: null,
   // Owner-approved 2026-10-25: which control opened the chat panel is cleared on every event too.
   panel_trigger: null,
+  topic: null,
+  page_type: null,
   // Owner-approved 2026-10-25 (Coming Soon): the planned-path dimension is cleared on every event too.
   coming_soon_path: null,
 }, 'semantic event layer must be consent-labelled and contain only safe metadata');
@@ -148,15 +150,32 @@ assert.deepEqual(sanitizeEventParams({ coming_soon_path: '/tools/tax-deduction/'
 for (const value of ['/tools/x/?email=a@b.co', 'https://ccpun.com/tools/x/', '/blog/a/b/']) assert.equal(sanitizeEventParams({ coming_soon_path: value }).coming_soon_path, undefined, value);
 assert.equal(sanitizeEventParams({ page_group: 'coming_soon' }).page_group, 'coming_soon', 'Coming Soon chat panels have their own page group');
 
+// C12: only registered topic/page tokens survive; QR views preserve outbound LINE semantics.
+const qrSafe = sanitizeEventParams({ panel_trigger: 'dock', topic: 'health-plan', cta_location: 'chat_panel', page_type: 'home', prefill: 'private', income: 90000, answers: { health: 'private' }, email: 'private@example.com', phone: '0812345678' });
+assert.deepEqual(qrSafe, { cta_location: 'chat_panel', panel_trigger: 'dock', topic: 'health-plan', page_type: 'home' });
+assert.deepEqual(resolveEventMapping('line_chat_qr_view', qrSafe), { ga: ['line_chat_qr_view'], meta: 'none' });
+assert.deepEqual(resolveEventMapping('line_chat_panel_open', qrSafe), { ga: ['line_chat_panel_open'], meta: 'none' });
+for (const key of ['topic', 'page_type']) for (const value of ['private@example.com', '0812345678', '90000', 'name-alice', 'health-plan?email=x', 'custom-customer-value', '', 123]) {
+  assert.equal(sanitizeEventParams({ [key]: value })[key], undefined, `${key} must reject personal/unregistered values`);
+}
+const qrModel: Record<string, string | number | null> = {};
+Object.assign(qrModel, buildSemanticDataLayerEvent('line_chat_qr_view', qrSafe, { analytics: true, social: false }));
+assert.equal(qrModel.topic, 'health-plan');
+assert.equal(qrModel.page_type, 'home');
+Object.assign(qrModel, buildSemanticDataLayerEvent('line_chat_panel_open', {}, { analytics: true, social: false }));
+assert.equal(qrModel.topic, null, 'later events clear QR topic');
+assert.equal(qrModel.page_type, null, 'later events clear QR page type');
+
 const acquisitionSource = readFileSync(new URL('../lib/acquisition.ts', import.meta.url), 'utf8');
 assert.equal(acquisitionSource.includes('fbclid'), false, 'click identifiers must not be parsed, stored, or sent');
 process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED = 'false';
 let analyticsConsent = true;
+let socialConsent = false;
 const sent: unknown[][] = [];
 const browser = { gtag: (...args: unknown[]) => { sent.push(args); } } as Window;
 Object.defineProperty(globalThis, 'window', { configurable: true, value: browser });
 Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
-  getItem: () => JSON.stringify({ analytics: analyticsConsent, social: false, expires: Date.now() + 60000 }),
+  getItem: () => JSON.stringify({ analytics: analyticsConsent, social: socialConsent, expires: Date.now() + 60000 }),
 } });
 try {
   const cta = { tool_name: 'ci_planning', cta_location: 'ci_landing' };
@@ -220,8 +239,25 @@ try {
   assert.deepEqual([semanticRows[2].event_name, semanticRows[2].page_group, semanticRows[2].campaign_code], ['line_chat_panel_open', 'home', 'bio-facebook']);
   trackEvent('line_chat_panel_open', { page_group: 'article', panel_trigger: 'article_cta' });
   assert.deepEqual([semanticRows[3].event_name, semanticRows[3].page_group, semanticRows[3].panel_trigger, semanticRows[3].campaign_code], ['line_chat_panel_open', 'article', 'article_cta', null]);
-  analyticsConsent = false;
-  analyticsConsent = true;
+  for (const semantic of ['true', 'false']) {
+    process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED = semantic;
+    clearPendingAnalyticsEvents();
+    sent.length = 0;
+    browser.dataLayer = [];
+    analyticsConsent = false;
+    delete browser.gtag;
+    trackEvent('line_chat_qr_view', qrSafe);
+    socialConsent = true;
+    trackEvent('line_chat_qr_view', qrSafe);
+    socialConsent = false;
+    analyticsConsent = true;
+    browser.gtag = (...args: unknown[]) => { sent.push(args); };
+    flushPendingAnalyticsEvents('analytics');
+    assert.equal(sent.length, 0, 'denied QR views never queue/replay');
+    assert.equal(browser.dataLayer.length, 0, 'denied QR views never emit semantic rows');
+    trackEvent('line_chat_qr_view', qrSafe);
+    assert.equal(semantic === 'true' ? browser.dataLayer.length : sent.length, 1, 'permitted QR views use the existing destination mode');
+  }
 } finally {
   clearPendingAnalyticsEvents();
   Reflect.deleteProperty(globalThis, 'window');
