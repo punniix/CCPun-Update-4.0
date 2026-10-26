@@ -197,6 +197,10 @@
 .articleCardTitle { font-size: 18px; line-height: 1.45; font-weight: 500; font-family: var(--v5-font-display); }
 .articleCardTitle a { text-decoration: none; }
 .articleCardTitle a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+/* Blog only: retain the full headline link while reserving the mobile card's right hit strip. */
+@media (max-width: 1023px) {
+  :global(#v5-blog-scope) .articleCardTitle a::after { right: 72px; }
+}
 .articleCardTitle a:focus-visible { outline: none; }
 .articleCardExcerpt { color: var(--v5-muted); font-size: 15px; line-height: 1.65; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .articleCardMeta { color: var(--v5-muted); font-size: var(--v5-text-meta); margin-top: var(--v5-card-meta-top, auto); padding-top: 4px; }

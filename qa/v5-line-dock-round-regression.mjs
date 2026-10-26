@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE);
 const origin = 'http://127.0.0.1:3037';
-const output = path.resolve('qa/artifacts/c17b-line-dock-round-20261026');
+const output = path.resolve('qa/artifacts/v5-dock-overlap-20261026');
 await mkdir(output, { recursive: true });
 const paths = ['/', '/blog/', '/blog/personal-finance/c10-local-fixture/', '/ci-planning/', '/tools/financial-health-check/', '/about/'];
 const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--disable-background-networking', '--disable-component-update', '--disable-sync', '--no-first-run'] });
