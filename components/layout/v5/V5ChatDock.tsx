@@ -45,6 +45,7 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
   const layerRef = useRef<HTMLDivElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   const revealRef = useRef<() => void>(() => undefined);
+  const measureCollisionRef = useRef<() => void>(() => undefined);
   const token = chatPageGroupToken(context);
 
   useEffect(() => {
@@ -121,6 +122,7 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
       if (offset > 0) layerRef.current?.style.setProperty("--v5-dock-offset", `${offset}px`);
       else layerRef.current?.style.removeProperty("--v5-dock-offset");
       setCookieOffset(offset);
+      measureCollisionRef.current();
       // While the notice is open it makes the rest of the page inert; the chat layer stays out of it.
       if (dialog && layerRef.current) exemptFromInert(layerRef.current, exempted);
       else if (!dialog) restoreInert(exempted);
@@ -138,6 +140,78 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
       boxObserver?.disconnect();
       window.removeEventListener("ccpun:consent", schedule);
       restoreInert(exempted);
+    };
+  }, []);
+
+  useEffect(() => {
+    // C17 owner exception: move up only when the original mobile corner overlaps a visible
+    // heading/form box. Always solve from the fixed corner, never from the previous lift.
+    const dock = dockRef.current;
+    const layer = layerRef.current;
+    if (!dock || !layer) return;
+    let frame = 0;
+    let disposed = false;
+    let applied = 0;
+    const apply = (lift: number) => {
+      if (lift === applied) return;
+      applied = lift;
+      if (lift > 0) layer.style.setProperty("--v5-dock-collision-offset", `${lift}px`);
+      else layer.style.removeProperty("--v5-dock-collision-offset");
+    };
+    const measure = () => {
+      if (window.innerWidth >= 1024) { apply(0); return; }
+      const rect = dock.getBoundingClientRect();
+      const bottom = parseFloat(getComputedStyle(dock).bottom) || 0;
+      const cookie = parseFloat(layer.style.getPropertyValue("--v5-dock-offset")) || 0;
+      const baseline = window.innerHeight - bottom - rect.height - cookie;
+      const boxes = Array.from(document.querySelectorAll("h1,h2,h3,label,input"), element => {
+        const box = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity) !== 0
+          && box.width > 0 && box.height > 0 && box.bottom > 0 && box.top < window.innerHeight
+          && box.left < rect.right && box.right > rect.left ? box : null;
+      }).filter((box): box is DOMRect => box !== null);
+      const minimumTop = Math.max(0, document.querySelector("[data-v5-header]")?.getBoundingClientRect().bottom ?? 0);
+      let top = baseline;
+      // Every step crosses at least one box top, so the search is bounded by the box count.
+      for (let step = 0; step <= boxes.length; step++) {
+        const collisions = boxes.filter(box => top < box.bottom && top + rect.height > box.top);
+        if (!collisions.length) break;
+        const next = Math.min(...collisions.map(box => box.top)) - rect.height - 4;
+        if (next < minimumTop) { top = baseline; break; } // No free interval: preserve the reachable corner.
+        top = next;
+      }
+      apply(Math.max(0, baseline - top));
+    };
+    const schedule = () => { if (!disposed && !frame) frame = window.requestAnimationFrame(() => { frame = 0; measure(); }); };
+    measureCollisionRef.current = measure;
+    // Observe content only: writing the dock's translate variable cannot trigger this observer.
+    const content = [document.querySelector("#main-content"), document.querySelector("footer")].filter((node): node is Element => node !== null);
+    const mutations = new MutationObserver(schedule);
+    const sizes = typeof ResizeObserver === "function" ? new ResizeObserver(schedule) : null;
+    for (const node of content) {
+      mutations.observe(node, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["class", "style", "hidden", "open", "type", "aria-hidden"] });
+      sizes?.observe(node);
+      node.addEventListener("load", schedule, true);
+    }
+    sizes?.observe(dock);
+    window.addEventListener("scroll", schedule, { passive: true });
+    // Keep this DOM event name out of Tailwind's literal utility-class scan.
+    const viewportEvent = ["re", "size"].join("");
+    window.addEventListener(viewportEvent, schedule);
+    document.fonts?.addEventListener("loadingdone", schedule);
+    document.fonts?.ready.then(schedule);
+    measure();
+    return () => {
+      disposed = true;
+      if (frame) window.cancelAnimationFrame(frame);
+      measureCollisionRef.current = () => undefined;
+      mutations.disconnect(); sizes?.disconnect();
+      for (const node of content) node.removeEventListener("load", schedule, true);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener(viewportEvent, schedule);
+      document.fonts?.removeEventListener("loadingdone", schedule);
+      layer.style.removeProperty("--v5-dock-collision-offset");
     };
   }, []);
 

@@ -8,7 +8,7 @@ const output = path.resolve('qa/artifacts/c17-line-dock-round-20261026');
 await mkdir(output, { recursive: true });
 const paths = ['/', '/blog/', '/blog/personal-finance/c10-local-fixture/', '/ci-planning/', '/tools/financial-health-check/', '/about/'];
 const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--disable-background-networking', '--disable-component-update', '--disable-sync', '--no-first-run'] });
-const results = [], behaviour = [], desktop = [], failures = [];
+const results = [], behaviour = [], desktop = [], collisionChanges = [], failures = [];
 async function contextFor(width, theme, consent = true, reducedMotion = 'reduce') {
   const context = await browser.newContext({ viewport: { width, height: 844 }, colorScheme: theme, reducedMotion });
   await context.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
@@ -44,7 +44,13 @@ function measure() {
   const fill = background(node), icon = over(rgb(getComputedStyle(node.querySelector('svg')).color), fill), edge = rgb(style.borderTopColor);
   const points = [[button.x - 2, button.y + button.height / 2], [button.right + 2, button.y + button.height / 2], [button.x + button.width / 2, button.y - 2], [button.x + button.width / 2, button.bottom + 2]];
   const surroundings = points.map(([x, y]) => { const el = document.elementFromPoint(x, y); const bg = background(el); return { x, y, element: el?.tagName, background: bg, ratio: contrast(over(edge, bg), bg) }; });
-  return { theme: document.documentElement.dataset.theme, button, name: node.textContent, radius: style.borderRadius, padding: style.padding, icon: rect(node.querySelector('svg')), dock: { box: rect(node.parentElement), background: dockStyle.backgroundColor, borderTop: dockStyle.borderTopWidth, blur: dockStyle.backdropFilter, translate: dockStyle.translate, transition: dockStyle.transitionDuration }, semantics, intersections: semantics.filter(el => intersects(button, el.box)), contrast: { fill, icon, edge, iconRatio: contrast(icon, fill), surroundings, minimumEdgeRatio: Math.min(...surroundings.map(s => s.ratio)) } };
+  const baseline = { ...button, y: innerHeight - 72, bottom: innerHeight - 16 };
+  const baselineIntersections = semantics.filter(el => intersects(baseline, el.box));
+  const collisionLift = parseFloat(node.closest('[data-v5-chat-layer]').style.getPropertyValue('--v5-dock-collision-offset')) || 0;
+  const headerBottom = document.querySelector('[data-v5-header]')?.getBoundingClientRect().bottom ?? 0;
+  const hit = document.elementFromPoint(button.x + button.width / 2, button.y + button.height / 2);
+  const clickable = hit === node || node.contains(hit);
+  return { theme: document.documentElement.dataset.theme, headerBottom, clickable, baseline, baselineIntersections, collisionLift, button, name: node.textContent, radius: style.borderRadius, padding: style.padding, icon: rect(node.querySelector('svg')), dock: { box: rect(node.parentElement), background: dockStyle.backgroundColor, borderTop: dockStyle.borderTopWidth, blur: dockStyle.backdropFilter, translate: dockStyle.translate, transition: dockStyle.transitionDuration }, semantics, intersections: semantics.filter(el => intersects(button, el.box)), contrast: { fill, icon, edge, iconRatio: contrast(icon, fill), surroundings, minimumEdgeRatio: Math.min(...surroundings.map(s => s.ratio)) } };
 }
 try {
   for (const width of [390, 834]) for (const theme of ['light', 'dark']) {
@@ -56,7 +62,11 @@ try {
       assert.equal(result.name, 'คุยกับปั้นทาง LINE');
       assert.equal(await page.getByRole('button', { name: 'คุยกับปั้นทาง LINE', exact: true }).count(), 1, 'accessible name remains unchanged');
       assert.equal(result.button.width, 56); assert.equal(result.button.height, 56);
-      assert.equal(result.button.x, width - 72); assert.equal(result.button.y, 772);
+      assert.equal(result.button.x, width - 72);
+      assert.ok(result.button.y >= 0 && result.button.bottom <= 844, 'upward avoidance stays fully in the viewport');
+      assert.ok(result.button.y >= result.headerBottom, 'solved fixtures stay below sticky header'); assert.equal(result.clickable, true, 'actual center hit reaches the visible trigger');
+      if (!result.baselineIntersections.length) { assert.equal(result.button.y, 772, 'no overlap retains the exact original16px corner'); assert.equal(result.collisionLift, 0); }
+      else { assert.ok(result.button.y < 772, 'only a real baseline overlap permits upward movement'); assert.equal(result.button.y, 772 - result.collisionLift); }
       assert.equal(result.radius, '50%'); assert.equal(result.padding, '0px');
       assert.equal(result.icon.width, 24); assert.equal(result.icon.height, 24);
       assert.equal(result.dock.background, 'rgba(0, 0, 0, 0)'); assert.equal(result.dock.borderTop, '0px'); assert.equal(result.dock.blur, 'none');
@@ -107,6 +117,62 @@ try {
     if (reducedMotion === 'reduce') assert.equal(transition, '0s');
     behaviour.push({ reducedMotion, tuck: 'PASS', up: 'PASS', openEscapeFocus: 'PASS', transition }); await context.close();
   }
+  // The approved exception reacts to actual late semantic content and returns to the original
+  // corner when that overlap disappears. These are local fixture elements, never application copy.
+  {
+    const context = await contextFor(390, 'light');
+    const page = await context.newPage(); await load(page, '/', 'light');
+    assert.equal((await page.evaluate(measure)).button.y, 772);
+    await page.evaluate(() => {
+      const label = document.createElement('label'); label.id = 'c17-late-local-fixture';
+      label.textContent = 'Local collision fixture';
+      label.style.cssText = 'position:fixed;right:16px;bottom:16px;width:56px;height:56px;z-index:1';
+      document.querySelector('#main-content').append(label);
+    });
+    await page.waitForFunction(() => document.querySelector('[data-v5-chat-dock] > a').getBoundingClientRect().y === 712);
+    const late = await page.evaluate(measure); assert.equal(late.intersections.length, 0); assert.equal(late.button.x, 318);
+    const stable = await page.evaluate(async () => {
+      const ys = []; for (let i = 0; i < 10; i++) { await new Promise(resolve => requestAnimationFrame(resolve)); ys.push(document.querySelector('[data-v5-chat-dock] > a').getBoundingClientRect().y); } return ys;
+    });
+    assert.deepEqual([...new Set(stable)], [712], 'stable content does not feed back or jitter');
+    await page.locator('#c17-late-local-fixture').evaluate(el => { el.style.height = '96px'; });
+    await page.waitForFunction(() => document.querySelector('[data-v5-chat-dock] > a').getBoundingClientRect().y === 672);
+    const changed = await page.evaluate(measure); assert.equal(changed.intersections.length, 0);
+    await page.locator('#c17-late-local-fixture').evaluate(el => { el.hidden = true; });
+    await page.waitForFunction(() => document.querySelector('[data-v5-chat-dock] > a').getBoundingClientRect().y === 772);
+    const hidden = await page.evaluate(measure); assert.equal(hidden.collisionLift, 0);
+    await page.locator('#c17-late-local-fixture').evaluate(el => { el.remove(); });
+    const removed = await page.evaluate(measure); assert.equal(removed.button.y, 772);
+    await page.evaluate(() => {
+      const label = document.createElement('label'); label.id = 'c17-no-interval-local-fixture';
+      label.textContent = 'Local full-height collision fixture';
+      label.style.cssText = 'position:fixed;right:16px;top:0;width:56px;height:100vh';
+      document.querySelector('#main-content').append(label);
+    });
+    await page.waitForTimeout(100);
+    const noFreeInterval = await page.evaluate(measure);
+    assert.equal(noFreeInterval.button.y, 772); assert.equal(noFreeInterval.button.height, 56); assert.equal(noFreeInterval.clickable, true); assert.equal(noFreeInterval.collisionLift, 0);
+    assert.ok(noFreeInterval.intersections.some(el => el.text === 'Local full-height collision fixture'), 'explicit limit: no upward free interval below the header, retain clickable original corner and report unresolved overlap');
+    await page.locator('#c17-no-interval-local-fixture').evaluate(el => el.remove());
+    await page.waitForFunction(() => document.querySelector('[data-v5-chat-dock] > a').getBoundingClientRect().y === 772);
+    collisionChanges.push({ late, stable, changed, hidden, removed, noFreeInterval }); await context.close();
+  }
+  {
+    const context = await contextFor(834, 'dark');
+    const page = await context.newPage(); await load(page, '/tools/financial-health-check/', 'dark');
+    const before = await page.evaluate(measure); assert.ok(before.collisionLift > 0); assert.equal(before.intersections.length, 0);
+    await page.setViewportSize({ width: 1440, height: 844 }); await page.waitForTimeout(100);
+    const desktopResize = await page.evaluate(measure); assert.equal(desktopResize.collisionLift, 0); assert.equal(desktopResize.button.y, 764);
+    await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(100);
+    const narrow = await page.evaluate(measure); assert.equal(narrow.collisionLift, 0); assert.equal(narrow.button.y, 772);
+    await page.setViewportSize({ width: 834, height: 844 }); await page.waitForTimeout(100);
+    const restored = await page.evaluate(measure); assert.equal(restored.button.y, before.button.y); assert.equal(restored.intersections.length, 0);
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight)); await page.waitForTimeout(100);
+    const end = await page.evaluate(measure); assert.equal(end.collisionLift, 0); assert.equal(end.button.y, 772);
+    await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(100);
+    const top = await page.evaluate(measure); assert.equal(top.button.y, before.button.y); assert.equal(top.intersections.length, 0);
+    collisionChanges.push({ before, desktopResize, narrow, restored, end, top }); await context.close();
+  }
   for (const width of [390, 834]) {
     const context = await contextFor(width, 'dark', false);
     const page = await context.newPage(); await load(page, '/', 'dark');
@@ -118,7 +184,7 @@ try {
   }
 } finally {
   await browser.close();
-  await writeFile(path.join(output, 'evidence.json'), JSON.stringify({ origin, cms: 'offline C10 synthetic fixture only', results, desktop, behaviour, failures, c12: 'NOT IN BASE; Money hide/QR event integration pending owner merge' }, null, 2));
+  await writeFile(path.join(output, 'evidence.json'), JSON.stringify({ origin, cms: 'offline C10 synthetic fixture only', results, desktop, behaviour, collisionChanges, failures, c12: 'NOT IN BASE; Money hide/QR event integration pending owner merge' }, null, 2));
 }
-console.log(JSON.stringify({ captures: results.length, strictFailures: failures.length, desktop: desktop.length, behaviour: behaviour.length, output }, null, 2));
+console.log(JSON.stringify({ captures: results.length, strictFailures: failures.length, desktop: desktop.length, behaviour: behaviour.length, collisionChanges: collisionChanges.length, output }, null, 2));
 assert.equal(failures.length, 0, 'strict element-box overlap acceptance (see evidence.json)');
