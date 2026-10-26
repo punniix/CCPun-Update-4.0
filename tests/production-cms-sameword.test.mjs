@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { websiteV5PhaseBRenderGoldens } from '../qa/website-v5-phase-a-proof.mjs';
+import { inverseWebsiteV5C14, websiteV5C14RenderPins } from '../qa/website-v5-c14-successor.mjs';
 import { inverseWebsiteV5C11Header } from '../qa/website-v5-c11-render-successor.mjs';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 const require = createRequire(import.meta.url);
@@ -52,7 +53,7 @@ async function resolveServer(node) {
   const children = await resolveServer(node.props.children);
   return React.cloneElement(node, {}, ...(Array.isArray(children) ? children : [children]));
 }
-export async function renderFixture(scope, props = {}, {sources = new Map(), overrides = {}, article = null} = {}) {
+export async function renderFixture(scope, props = {}, {sources = new Map(), overrides = {}, article = null, v5Article = false} = {}) {
   const mocks = new Map([
     ['@/components/ui/PublicCopyProvider',copyProvider],
     ['@/lib/content/public-copy',{getPublicCopy:async requested=>({...registry.parsePublicCopy(requested,null),...overrides})}],
@@ -73,7 +74,7 @@ export async function renderFixture(scope, props = {}, {sources = new Map(), ove
   ]);
   // Existing fixture loader intentionally does not load assets. Stable named CSS
   // projections retain class identity so a layout change changes these goldens.
-  const allFiles = [...new Set([...Object.values(files),'features/ci-planning/components/CILandingIntro.tsx','features/financial-health-check/components/FHCLandingIntro.tsx','features/financial-health-check/components/ClientFHC.tsx','features/home/website-43/Website43HomeStatic.tsx','features/blog/website-43/Website43Blog.tsx','features/blog/website-43/Website43BlogInteractive.tsx','features/blog/website-43/Website43Article.tsx','features/blog/website-43/Website43ArticleBody.tsx','features/money-story/components/MoneyStoryGame.tsx','features/money-story/components/MoneyStoryScreens.tsx','features/money-story/components/MoneyStoryStatusSidebar.tsx','features/ci-planning/components/CIWizard.tsx','features/financial-health-check/components/LifeCoverageWizard.tsx','components/layout/v5/V5Page.tsx','components/layout/v5/V5ChatDockServer.tsx','components/layout/v5/V5ChatDock.tsx','components/layout/v5/V5Header.tsx','components/layout/v5/V5Footer.tsx','components/layout/v5/V5Primitives.tsx','components/layout/v5/V5LegacyBridge.tsx','features/blog/v5/V5BlogIndex.tsx','features/blog/v5/V5BlogSearch.tsx','features/blog/v5/V5GroupPager.tsx','components/layout/v5/V5ToolParts.tsx','features/ci-planning/v5/V5CiPlanning.tsx','features/financial-health-check/v5/V5Fhc.tsx','features/money-story/v5/V5MoneyStory.tsx','features/legal/v5/V5Privacy.tsx','features/legal/v5/V5CookiePolicy.tsx','features/blog/website-43/ArticleShareActions.tsx','features/blog/website-43/ArticleEngagement.tsx','features/blog/website-43/ArticleDetailAccess.tsx'])];
+  const allFiles = [...new Set([...Object.values(files),'features/ci-planning/components/CILandingIntro.tsx','features/financial-health-check/components/FHCLandingIntro.tsx','features/financial-health-check/components/ClientFHC.tsx','features/home/website-43/Website43HomeStatic.tsx','features/blog/website-43/Website43Blog.tsx','features/blog/website-43/Website43BlogInteractive.tsx','features/blog/website-43/Website43Article.tsx','features/blog/website-43/Website43ArticleBody.tsx','features/money-story/components/MoneyStoryGame.tsx','features/money-story/components/MoneyStoryScreens.tsx','features/money-story/components/MoneyStoryStatusSidebar.tsx','features/ci-planning/components/CIWizard.tsx','features/financial-health-check/components/LifeCoverageWizard.tsx','components/layout/v5/V5Page.tsx','components/layout/v5/V5ChatDockServer.tsx','components/layout/v5/V5ChatDock.tsx','components/layout/v5/V5Header.tsx','components/layout/v5/V5Footer.tsx','components/layout/v5/V5Primitives.tsx','components/layout/v5/V5LegacyBridge.tsx','features/blog/v5/V5Article.tsx','features/blog/v5/V5ArticleBody.tsx','features/blog/v5/V5ArticleEngagementMeta.tsx','features/blog/v5/V5BlogIndex.tsx','features/blog/v5/V5BlogSearch.tsx','features/blog/v5/V5GroupPager.tsx','components/layout/v5/V5ToolParts.tsx','features/ci-planning/v5/V5CiPlanning.tsx','features/financial-health-check/v5/V5Fhc.tsx','features/money-story/v5/V5MoneyStory.tsx','features/legal/v5/V5Privacy.tsx','features/legal/v5/V5CookiePolicy.tsx','features/blog/website-43/ArticleShareActions.tsx','features/blog/website-43/ArticleEngagement.tsx','features/blog/website-43/ArticleDetailAccess.tsx'])];
   for (const file of allFiles) {
     const source = sources.get(file) ?? readFileSync(file,'utf8');
     for (const [,id] of source.matchAll(/from ['"]([^'"]+\.(?:css|svg))['"]/g)) {
@@ -81,7 +82,7 @@ export async function renderFixture(scope, props = {}, {sources = new Map(), ove
       else mocks.set(id,{__esModule:true,default:{src:id,width:32,height:32}});
     }
   }
-  const path = article ? 'features/blog/website-43/Website43Article.tsx' : files[scope];
+  const path = article ? (v5Article ? 'features/blog/v5/V5Article.tsx' : 'features/blog/website-43/Website43Article.tsx') : files[scope];
   const fixtureModule = loadFixtureModule(path,{sources,mocks});
   const render = scope === 'site' ? fixtureModule.Website43Footer : fixtureModule.default;
   const tree = await render(article ? {article,...props} : scope === 'home' ? {copy:overrides,...props} : props);
@@ -166,7 +167,7 @@ test('eight original scopes retain exact b871 public HTML, current design and si
     // is retired deliberately and replaced by the v5 archive assertions below. The unchanged
     // Website 4.3 Blog presentation keeps its own render contract in website43-blog-article-regression.
     if (scope === 'blog') continue;
-    let html = await renderFixture(scope,props);
+    let html = inverseWebsiteV5C14(await renderFixture(scope,props), index);
     if (scope === 'blog') {
       const hint = '<link rel="preload" href="/assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.lossless.webp" as="image" fetchPriority="high"/>';
       const heroHint = '<link rel="preload" as="image" href="/assets/website-43/blog-hero.png" imageSizes="(max-width: 639px) 100vw, 60vw" fetchPriority="high"/>';
@@ -274,7 +275,7 @@ test('original article fallback and managed author branches retain complete b871
   const articles=[base,{...base,authorName:'ผู้เขียนภายนอก'},{...base,author:{name:'ผู้เขียนจัดการ',professionalQualifications:[{shortName:'CFP',identifier:'123'}],profileRole:'บทบาท',profileBio:'ประวัติ',profileCtaLabel:'อ่านประวัติ',profileCtaUrl:'#about-ccpun',profileAvatar:{src:'/assets/ccpun.webp',alt:'ชื่อผู้เขียน',width:96,height:96}}}];
   for(const[index,article]of articles.entries()) {
     const html = await renderFixture('blog',{preview:index===2},{article});
-    assert.equal(digest(inverseCanonicalShellLinks(html,'article')),articleBaseline[index]);
+    assert.equal(digest(inverseCanonicalShellLinks(inverseWebsiteV5C14(html, 'legacyArticle'+index),'article')),articleBaseline[index]);
     if(index===0){
       const breadcrumb=html.match(/<nav\b[^>]*class="breadcrumbs"[^>]*>[\s\S]*?<\/nav>/g);assert.equal(breadcrumb?.length,1);
       assert.equal(breadcrumb[0].split('href="/blog/"').length-1,1,'actual Article breadcrumb links directly to canonical Blog URL');
@@ -456,7 +457,7 @@ test('native Presentation selects the exact page copy or SEO form for every priv
 // above continue to inspect the actual current header, labels, destinations and markup.
 test('C11 header inverse preserves all old goldens and rejects unknown, duplicate, moved and unrelated render mutations', async () => {
   for (const [index, scope] of [[3, 'ci'], [4, 'fhc'], [8, 'privacy'], [9, 'cookies'], [10, 'moneyStory']]) {
-    const current = await renderFixture(scope, {});
+    const current = inverseWebsiteV5C14(await renderFixture(scope, {}), index);
     const restored = inverseWebsiteV5C11Header(current, index);
     assert.equal(digest(restored), websiteV5PhaseBRenderGoldens.v5[index]);
     assert.equal(inverseWebsiteV5C11Header(restored, index), restored, 'exact historical output remains accepted');
@@ -477,4 +478,39 @@ test('C11 header inverse preserves all old goldens and rejects unknown, duplicat
   const current = await renderFixture('ci', {});
   assert.throws(() => inverseWebsiteV5C11Header(current, 4), /unknown full render/, 'cases cannot borrow a different pin');
   assert.throws(() => inverseWebsiteV5C11Header(current, 5), /unregistered render case/);
+});
+
+test('C14 admits exact complete default renders, preserves C11 pins and rejects all unapproved DOM deltas', async () => {
+  for (const [index, [scope, props]] of cases.entries()) {
+    if (scope === 'blog') continue;
+    const current = await renderFixture(scope, props);
+    const restored = inverseWebsiteV5C14(current, index);
+    assert.equal(digest(restored), websiteV5C14RenderPins[index].before);
+    assert.equal(inverseWebsiteV5C14(restored, index), restored);
+    const approvedAnchor = current.match(/<a\b[^>]*>รู้จักปั้น<\/a>/)?.[0];
+    assert.ok(approvedAnchor);
+    for (const mutation of [
+      current.replace(approvedAnchor, approvedAnchor + approvedAnchor),
+      current.replace(approvedAnchor, '') + approvedAnchor,
+      current.replace('รู้จักปั้น', 'รู้จักปั้นเปลี่ยน'),
+      current.replace(approvedAnchor, approvedAnchor.replace(/href="[^"]+"/, 'href="/about-changed/"')),
+      current + '<p>unrelated</p>',
+    ]) { assert.notEqual(mutation, current); assert.throws(() => inverseWebsiteV5C14(mutation, index), /unknown full render/); }
+  }
+  const article = {id:'article-fixture',slug:'article-fixture',title:'บทความเจ้าของ',excerpt:'คำอธิบาย',category:'การเงินส่วนบุคคล',categorySlug:'personal-finance',status:'published',publishedAt:'2026-10-01T00:00:00Z',updatedAt:'2026-10-02T00:00:00Z',tags:[],body:[{type:'heading',level:2,text:'หัวข้อ'},{type:'paragraph',text:'เนื้อหา'}]};
+  const current = await renderFixture('blog', {}, { article, v5Article: true });
+  const restored = inverseWebsiteV5C14(current, 'v5Article');
+  assert.equal(digest(restored), websiteV5C14RenderPins.v5Article.before);
+  const date = '<span>อัปเดต <time dateTime="2026-10-02T00:00:00Z">2 ตุลาคม 2569</time></span>';
+  assert.ok(current.includes(date));
+  for (const mutation of [current.replace(date, date + date), current.replace(date, '') + date, current.replace('dateTime="2026-10-02T00:00:00Z"', 'dateTime="2026-10-03T00:00:00Z"'), current.replace('2 ตุลาคม 2569', '3 ตุลาคม 2569')]) {
+    assert.throws(() => inverseWebsiteV5C14(mutation, 'v5Article'), /unknown full render/);
+  }
+  for (const label of ['เกี่ยวกับ Pun ฉบับเจ้าของ', 'ชื่อเมนูเจ้าของ']) {
+    const edited = await renderFixture('ci', {}, { overrides: { 'site.footer.about': label } });
+    assert.equal((edited.match(new RegExp(label, 'g')) ?? []).length, 3, 'actual desktop/mobile/footer CMS copy remains literal');
+    assert.throws(() => inverseWebsiteV5C14(edited, 3), /unknown full render/);
+  }
+  assert.throws(() => inverseWebsiteV5C14(current, 3), /unknown full render/);
+  assert.throws(() => inverseWebsiteV5C14(current, 'unknown'), /unregistered/);
 });

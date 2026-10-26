@@ -18,6 +18,7 @@ import { transformSync } from "esbuild";
 import "./website-v5-motion.test.mjs";
 import "./money-story-theme.test.mjs";
 import "./about-father-story.test";
+import "./website-v5-article-dates.test.mjs";
 
 const read = (file: string) => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 const v5Files = [
