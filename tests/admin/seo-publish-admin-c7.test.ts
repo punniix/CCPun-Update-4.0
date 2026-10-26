@@ -13,3 +13,15 @@ test("manual Search Console link appears for every +24h result that is not index
   const html=renderToStaticMarkup(await mod.default());assert.equal(/เปิดใน Search Console เพื่อขอจัดทำดัชนี/.test(html),expected,String(finalState));
  }
 });
+
+test("C7b GSC waiting, reconciling and excluded states are clear and remain read-only",async()=>{
+ for(const [gsc_state,gsc_error,label] of [
+  ['waiting',null,'รอครบช่วงรวมส่งแผนผังเว็บไซต์'],
+  ['reconciling','gsc-reconciling','พักส่งแผนผังเว็บไซต์ กำลังตรวจผล'],
+  ['blocked','gsc-member-ineligible','บทความนี้ไม่ผ่านเงื่อนไขเผยแพร่ จึงไม่รวมส่ง'],
+  ['blocked','gsc-uncertain-exhausted','พักส่งแผนผังเว็บไซต์ ต้องตรวจผลด้วยตนเอง']
+ ]){
+  const mod=loadFixtureModule(page,{mocks:new Map([["@/lib/admin/require-permission",{requireAdminPermission:async()=>({role:'owner'})}],["@/lib/admin/seo-intelligence/post-publish-read-model",{readLastPostPublishJobs:async()=>[{...row,gsc_state,gsc_error}],searchConsoleInspectionLink:()=> 'https://search.google.com/search-console/inspect'}]])});
+  const html=renderToStaticMarkup(await mod.default());assert.ok(html.includes(String(label)));assert.doesNotMatch(html,/<form|<button/);
+ }
+});

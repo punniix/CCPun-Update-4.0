@@ -23,8 +23,9 @@ test("stale completed jobs and exhausted attempts cannot reopen indefinitely; sh
  assert.match(queue,/WHERE state='queued' AND attempts>=8/);
  assert.match(queue,/SEO_VERIFICATION_INCOMPLETE/);assert.match(queue,/interval '45 minutes'/);
  const migration=readFileSync("db/migrations/20261026_seo_post_publish_webhook_v2.sql","utf8");
- assert.match(migration,/state='uncertain' OR state='processing' AND lease_until<=v_now/);
- assert.match(migration,/state='processing' AND lease_until>v_now\) THEN RETURN 'retry-later'/);
+ assert.match(migration,/state IN \('processing','validating','uncertain','reconciling'\)/);
+ assert.match(migration,/last_error_code='gsc-uncertain-exhausted'/);
+ assert.match(migration,/seo_claim_gsc_window/);
  const store=readFileSync("lib/admin/seo-intelligence/post-publish-notification-store.ts","utf8");
  assert.match(store,/attempts>=3 THEN 'blocked'/);assert.match(store,/final_index_state='unknown'/);
 });

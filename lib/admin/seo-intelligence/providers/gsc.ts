@@ -169,3 +169,22 @@ export async function submitGscSitemap(input: {
   if (!response.ok) throw new Error("GSC_INVALID_RESPONSE");
   return { submittedAt: new Date().toISOString() };
 }
+
+export type GscSitemapStatus={path:string;lastSubmitted:string|null;isPending:boolean|null;errors:string|null;warnings:string|null};
+/** Read-only reconciliation; exact property/feed, one bounded GET, no write credential. */
+export async function getGscSitemapStatus(token:string,fetcher:FetchLike=fetch):Promise<GscSitemapStatus>{
+  const endpoint=`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent('sc-domain:ccpun.com')}/sitemaps/${encodeURIComponent('https://ccpun.com/sitemap.xml')}`;
+  const response=await fetcher(endpoint,{method:'GET',headers:{Authorization:`Bearer ${token}`},cache:'no-store',redirect:'error',signal:AbortSignal.timeout(10_000)});
+  if(response.status===404)return {path:'https://ccpun.com/sitemap.xml',lastSubmitted:null,isPending:null,errors:null,warnings:null};
+  if(!response.ok)throw new Error(response.status===401||response.status===403?'GSC_READ_AUTH_REQUIRED':'GSC_SITEMAP_READ_UNAVAILABLE');
+  if(Number(response.headers.get('content-length'))>16384)throw new Error('GSC_READ_RESPONSE_TOO_LARGE');
+  const reader=response.body?.getReader();let size=0;const chunks:Uint8Array[]=[];let timer!:ReturnType<typeof setTimeout>;const timeout=new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(new Error('GSC_READ_TIMEOUT')),10_000);});
+  if(!reader)throw new Error('GSC_INVALID_RESPONSE');
+  try{while(true){const part=await Promise.race([reader.read(),timeout]);if(part.done)break;size+=part.value.byteLength;if(size>16384)throw new Error('GSC_READ_RESPONSE_TOO_LARGE');chunks.push(part.value);}}finally{clearTimeout(timer);void reader.cancel().catch(()=>undefined);}
+  const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+  const value:unknown=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));
+  if(!value||typeof value!=='object')throw new Error('GSC_INVALID_RESPONSE');const row=value as Record<string,unknown>;
+  if(row.path!=='https://ccpun.com/sitemap.xml'||(row.isPending!==undefined&&typeof row.isPending!=='boolean')||(row.lastSubmitted!==undefined&&(typeof row.lastSubmitted!=='string'||!Number.isFinite(Date.parse(row.lastSubmitted)))))throw new Error('GSC_INVALID_RESPONSE');
+  const counter=(x:unknown)=>typeof x==='string'&&/^\d{1,12}$/.test(x)?x:typeof x==='number'&&Number.isSafeInteger(x)&&x>=0?String(x):null;
+  return {path:row.path,lastSubmitted:typeof row.lastSubmitted==='string'?row.lastSubmitted:null,isPending:typeof row.isPending==='boolean'?row.isPending:null,errors:counter(row.errors),warnings:counter(row.warnings)};
+}

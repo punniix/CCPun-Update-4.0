@@ -8,7 +8,7 @@ import {
 } from "../lib/admin/seo-intelligence/post-publish-queue";
 import { isPostPublishWorkerSourceAllowed } from "../lib/admin/seo-intelligence/post-publish-worker-policy";
 import { runPostPublishSeoPipeline } from "../lib/admin/seo-intelligence/post-publish-runner";
-import { runDueSeoInspections } from "../lib/admin/seo-intelligence/post-publish-notifications";
+import { runDueSeoInspections, runDueGscSitemapWindows } from "../lib/admin/seo-intelligence/post-publish-notifications";
 import { recordSeoWorkerPass } from "../lib/admin/seo-intelligence/post-publish-notification-store";
 
 
@@ -21,6 +21,7 @@ export async function runSeoPostPublishWorkerOnce(
     markAttempt: markSitemapAttempt,
     execute: runPostPublishSeoPipeline,
     inspectDue: runDueSeoInspections,
+    gscWindows:runDueGscSitemapWindows,
     recordPass: recordSeoWorkerPass,
   },
 ) {
@@ -64,9 +65,10 @@ export async function runSeoPostPublishWorkerOnce(
       await dependencies.finish(job, { outcome: "retry", errorCode: "SEO_WORKER_TRANSIENT_FAILURE" }, env);
     }
   }
+  const gscWindows=await dependencies.gscWindows?.(env);
   const inspections = await dependencies.inspectDue?.(env) ?? 0;
   await dependencies.recordPass?.(env);
-  return { discovered, processed, incomplete, inspections };
+  return { discovered, processed, incomplete, inspections, gscWindows };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

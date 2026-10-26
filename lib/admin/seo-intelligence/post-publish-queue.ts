@@ -120,7 +120,8 @@ export async function claimPublishedSeoJob(env: Env = process.env): Promise<SeoP
     WHERE j.state='completed' AND j.attempts<8 AND coalesce(j.result_json->>'skipped','')<>'stale-or-ineligible'
     AND (j.source='owner' AND j.owner_approved OR EXISTS(SELECT 1 FROM ccpun_admin.seo_post_publish_intent i WHERE i.job_id=j.job_id))
     AND (j.inspect_due_1h IS NULL
-      OR ($1 AND NOT EXISTS(SELECT 1 FROM ccpun_admin.seo_post_publish_step s WHERE s.job_id=j.job_id AND s.step='gsc-sitemap-submit'))
+      OR ($1 AND (NOT EXISTS(SELECT 1 FROM ccpun_admin.seo_post_publish_step s WHERE s.job_id=j.job_id AND s.step='gsc-sitemap-submit')
+       OR EXISTS(SELECT 1 FROM ccpun_admin.seo_post_publish_step s WHERE s.job_id=j.job_id AND s.step='gsc-sitemap-submit' AND s.gsc_window_id IS NULL AND s.error_code='gsc-legacy-uncovered')))
       OR ($2 AND NOT EXISTS(SELECT 1 FROM ccpun_admin.seo_post_publish_step s WHERE s.job_id=j.job_id AND s.step='indexnow')))`,
     [isGscSitemapWriteApproved(env), indexNowEnabled(env)]);
   const rows = rowSchema.array().max(1).parse(await sql.query(
@@ -165,7 +166,7 @@ export async function finishPublishedSeoJob(
        WHEN $3='completed' THEN 'completed'
        WHEN $3='reconciliation-required' OR (sitemap_attempted AND
          (NOT EXISTS(SELECT 1 FROM ccpun_admin.seo_post_publish_step s WHERE s.job_id=seo_post_publish_job.job_id AND s.step='gsc-sitemap-submit')
-          OR EXISTS(SELECT 1 FROM ccpun_admin.seo_post_publish_step s WHERE s.job_id=seo_post_publish_job.job_id AND s.state IN ('processing','uncertain')))) THEN 'reconciliation-required'
+          OR EXISTS(SELECT 1 FROM ccpun_admin.seo_post_publish_step s WHERE s.job_id=seo_post_publish_job.job_id AND (s.state IN ('processing','uncertain') AND (s.step<>'gsc-sitemap-submit' OR s.gsc_window_id IS NULL))))) THEN 'reconciliation-required'
        WHEN $3='retry' AND $4='SEO_VERIFICATION_INCOMPLETE' AND $7
          AND coalesce((SELECT min(i.created_at) FROM ccpun_admin.seo_post_publish_intent i
            WHERE i.job_id=seo_post_publish_job.job_id),created_at)<now()-interval '45 minutes' THEN 'reconciliation-required'

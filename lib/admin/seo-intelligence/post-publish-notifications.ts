@@ -4,9 +4,9 @@ import { approvedPublishedArticle, BLOG_SITEMAP_URL } from "./post-publish-netwo
 import { emptyGoogleInspection, verifyPublishedArticleSeo } from "./post-publish";
 import { getGoogleDataAccessToken } from "./google-data-auth";
 import { getGscSitemapWriteToken, isGscSitemapWriteApproved } from "./gsc-sitemap-write-auth";
-import { inspectGscIndexedUrl, submitGscSitemap } from "./providers/gsc";
+import { inspectGscIndexedUrl, submitGscSitemap, getGscSitemapStatus } from "./providers/gsc";
 import { indexNowBudget, indexNowEnabled, submitIndexNow } from "./providers/indexnow";
-import { reserveNotification, finishNotification, scheduleSeoInspections, claimSeoInspection, reserveInitialInspection, deferSeoInspection } from "./post-publish-notification-store";
+import { reserveNotification, finishNotification, scheduleSeoInspections, claimSeoInspection, reserveInitialInspection, deferSeoInspection, claimGscWindow, readGscWindowMembers, beginGscWindow, finishGscWindow, claimGscReconciliation, finishGscReconciliation, failGscWindowValidation } from "./post-publish-notification-store";
 import { writeSeoTelemetry } from "./post-publish-telemetry";
 import { workerDatabaseIdentity } from "./post-publish-worker-policy";
 import type { SeoPostPublishJob } from "./post-publish-queue";
@@ -22,6 +22,7 @@ export const notificationDependencies = {
   readArticle: getPublishedSeoObservationArticle, verify: verifyPublishedArticleSeo,
   initialBudget: reserveInitialInspection, defer: deferSeoInspection, reserve: reserveNotification, finish: finishNotification, schedule: scheduleSeoInspections,
   readToken: getGoogleDataAccessToken, writeToken: getGscSitemapWriteToken,
+  failValidation:failGscWindowValidation,claimWindow:claimGscWindow,members:readGscWindowMembers,beginWindow:beginGscWindow,finishWindow:finishGscWindow,claimReconciliation:claimGscReconciliation,finishReconciliation:finishGscReconciliation,sitemapStatus:getGscSitemapStatus,
   inspect: inspectGscIndexedUrl, submitSitemap: submitGscSitemap, indexNow: submitIndexNow, telemetry: writeSeoTelemetry,
 };
 
@@ -55,29 +56,12 @@ export async function runDurablePostPublishNotifications(job: SeoPostPublishJob,
     result.notificationOutcome = "retry"; result.retryAfterMs = Math.max(result.retryAfterMs ?? 0, milliseconds); result.notificationError = code;
   };
   if (isGscSitemapWriteApproved(env)) {
-    const reservation = await deps.reserve(job, "gsc-sitemap-submit", gscBudget(env), env);
-    if (reservation === "reserved") {
-      try {
-        const token = await deps.writeToken(env);
-        const submitted = await deps.submitSitemap({ siteUrl: "sc-domain:ccpun.com", sitemapUrl: GSC_NOTIFICATION_SITEMAP, token });
-        await deps.finish(job, "gsc-sitemap-submit", { state: "succeeded", result: { submittedAt: submitted.submittedAt } }, env);
-        result.sitemapSubmission = { state: "submitted", submittedAt: submitted.submittedAt, limitation: "Sitemap accepted; no individual indexing request or crawl is guaranteed." };
-      } catch (error) {
-        const code = error instanceof Error ? error.message : "GSC_UNKNOWN";
-        const auth = ["GSC_AUTH_REQUIRED", "GSC_SITEMAP_AUTH_REQUIRED"].includes(code);
-        const knownRetry = ["GSC_RATE_LIMITED", "GSC_RETRYABLE_RESPONSE"].includes(code);
-        await deps.finish(job, "gsc-sitemap-submit", { state: auth ? "blocked" : knownRetry ? "failed" : "uncertain", errorCode: auth ? "gsc-auth-required" : knownRetry ? "gsc-rate-limited" : "gsc-uncertain", retryMs: knownRetry ? 1_800_000 : 0 }, env);
-        result.sitemapSubmission = { state: auth ? "authorization-required" : "provider-unavailable", submittedAt: null, limitation: auth ? "Separate GSC write authorization required." : "A known retryable response waits for the next window; an uncertain outcome needs reconciliation." };
-        if (auth) result.notificationError = "gsc-auth-required";
-        if (knownRetry) retry(1_800_000, "gsc-retry-later"); else if (!auth) result.notificationOutcome = "reconciliation-required";
-      }
-    } else if (!["done", "coalesced"].includes(reservation)) {
-      if (reservation === "reconciliation-required" || reservation === "denied") result.notificationOutcome = "reconciliation-required";
-      else retry(reservation === "budget-exhausted" ? 86_400_000 : 1_800_000, reservation);
-    }
-    await safeTelemetry({ jobId: job.job_id, step: "gsc-sitemap-submit", status: result.sitemapSubmission.state === "submitted" ? "succeeded" : "skipped", detail }, env);
+    const enrollment=await deps.reserve(job,"gsc-sitemap-submit",gscBudget(env),env);
+    result.sitemapSubmission={state:enrollment==='done'?'submitted':'skipped',submittedAt:null,limitation:'The durable GSC window independently waits, validates and reconciles sitemap submission.'};
+    if(enrollment==='denied')result.notificationError='gsc-enrollment-denied';
+    await safeTelemetry({jobId:job.job_id,step:'gsc-sitemap-submit',status:enrollment==='done'?'succeeded':'skipped',detail},env);
   }
-  if (indexNowEnabled(env) && result.notificationOutcome !== "reconciliation-required") {
+  if (indexNowEnabled(env)) {
     const reservation = await deps.reserve(job, "indexnow", indexNowBudget(env), env);
     if (reservation === "reserved") {
       const submitted = await deps.indexNow(url, env);
@@ -93,7 +77,7 @@ export async function runDurablePostPublishNotifications(job: SeoPostPublishJob,
   return result;
 }
 
-export async function runDueSeoInspections(env: Env = process.env, deps = { ...notificationDependencies, claim: claimSeoInspection, reserveInitialInspection, deferSeoInspection }) {
+export async function runDueSeoInspections(env: Env = process.env, deps = { ...notificationDependencies, claim: claimSeoInspection, reserveInitialInspection, deferSeoInspection, claimGscWindow, readGscWindowMembers, beginGscWindow, finishGscWindow, claimGscReconciliation, finishGscReconciliation, failGscWindowValidation }) {
   if (!workerDatabaseIdentity(env)) throw new Error("SEO_POST_PUBLISH_WORKER_DENIED");
   const safeTelemetry: typeof deps.telemetry = async (...args) => { try { await deps.telemetry(...args); } catch { console.warn("SEO_OPS_TELEMETRY_UNAVAILABLE"); } };
   let count = 0;
@@ -121,4 +105,56 @@ export async function runDueSeoInspections(env: Env = process.env, deps = { ...n
     }
   }
   return count;
+}
+
+/** Same private timer, separate durable GSC leases; no main-job retry can suppress IndexNow. */
+export async function runDueGscSitemapWindows(env:Env=process.env,deps=notificationDependencies){
+ if(!workerDatabaseIdentity(env))throw new Error('SEO_POST_PUBLISH_WORKER_DENIED');
+ if(!isGscSitemapWriteApproved(env))return {submitted:0,reconciled:0};
+ let submitted=0,reconciled=0;
+ const uncertain=await deps.claimReconciliation(gscBudget(env),env);
+ if(uncertain){
+  let confirmed=false;let observation:unknown;
+  try{
+   const status=await deps.sitemapStatus(await deps.readToken(env));
+   const started=uncertain.started_at?Date.parse(String(uncertain.started_at)):NaN;
+   const observed=status.lastSubmitted?Date.parse(status.lastSubmitted):NaN;
+   // GSC timestamps may omit fractional seconds. Never use historic lastDownloaded as submission evidence.
+   confirmed=Number.isFinite(started)&&Number.isFinite(observed)&&observed>=Math.floor(started/1000)*1000&&observed<=Date.now()+300_000;
+   observation={kind:confirmed?'confirmed':'unconfirmed',...status};
+  }catch{observation={kind:'transport-error',error:'gsc-read-unavailable'};}
+  await deps.finishReconciliation(uncertain,confirmed,observation,env);reconciled++;
+ }
+ const window=await deps.claimWindow(env);if(!window)return {submitted,reconciled};
+ const eligible:string[]=[];const retry:string[]=[];const deadline=Date.now()+120_000;
+ try{
+  const members=await deps.members(window,env);
+  for(const member of members){
+   if(Date.now()>deadline){retry.push(member.job_id);continue;}
+   try{
+    const article=await deps.readArticle(member.article_id);
+    const version=member.content_version instanceof Date?member.content_version.toISOString():member.content_version;
+    const authority=member.source==='owner'&&member.owner_approved||member.notification_approved===true;
+    if(!article||!authority||article.reviewStatus!=='approved'||article.noindex||Date.parse(article.updatedAt)!==Date.parse(version))continue;
+    const url=approvedPublishedArticle(article);if(!url)continue;
+    const verification=await deps.verify({articleId:article.id,url,expectedLastmod:article.updatedAt,sitemapUrl:BLOG_SITEMAP_URL});
+    if([verification.live,verification.canonical,verification.indexability,verification.sitemap].every(check=>check.state==='pass'))eligible.push(member.job_id);else retry.push(member.job_id);
+   }catch{retry.push(member.job_id);}
+  }
+ }catch(error){
+  await deps.failValidation(window,error instanceof Error&&error.message==='GSC_WINDOW_MEMBER_LIMIT'?'gsc-window-member-limit':'gsc-validation-unavailable',env);
+  return {submitted,reconciled};
+ }
+ const reservation=await deps.beginWindow(window,eligible,retry,gscBudget(env),env);
+ if(reservation!=='reserved')return {submitted,reconciled};
+ try{
+  const receipt=await deps.submitSitemap({siteUrl:'sc-domain:ccpun.com',sitemapUrl:GSC_NOTIFICATION_SITEMAP,token:await deps.writeToken(env)});
+  await deps.finishWindow(window,'succeeded',null,receipt,env);submitted++;
+ }catch(error){
+  const code=error instanceof Error?error.message:'GSC_UNKNOWN';
+  const auth=['GSC_AUTH_REQUIRED','GSC_SITEMAP_AUTH_REQUIRED'].includes(code);
+  const known=['GSC_RATE_LIMITED','GSC_RETRYABLE_RESPONSE'].includes(code);
+  await deps.finishWindow(window,auth?'blocked':known?'failed':'uncertain',auth?'gsc-auth-required':known?'gsc-retry-later':'gsc-uncertain',{kind:auth?'authorization-error':known?'retryable-response':'uncertain-write'},env);
+ }
+ return {submitted,reconciled};
 }

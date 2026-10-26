@@ -15,3 +15,14 @@ SELECT proname,prosecdef,proconfig FROM pg_proc p JOIN pg_namespace n ON n.oid=p
  WHERE n.nspname='ccpun_admin' AND proname IN ('seo_reserve_notification','seo_reserve_initial_inspection');
 SELECT grantee,table_name,column_name,privilege_type FROM information_schema.column_privileges
  WHERE table_schema='ccpun_admin' AND table_name='seo_post_publish_job' ORDER BY grantee,column_name,privilege_type;
+
+-- C7b aggregate coverage and read-only reconciliation privileges.
+SELECT window_id,state,opened_at,closes_at,coverage_cutoff,attempts,validation_attempts,
+ reconcile_attempts,retry_released,started_at,next_reconcile_at,last_error_code
+ FROM ccpun_admin.seo_gsc_window ORDER BY opened_at DESC LIMIT 30;
+SELECT grantee,table_name,privilege_type FROM information_schema.role_table_grants
+ WHERE table_schema='ccpun_admin' AND table_name='seo_gsc_window' ORDER BY grantee,privilege_type;
+SELECT proname,prosecdef,proconfig FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+ WHERE n.nspname='ccpun_admin' AND proname LIKE 'seo_%gsc%';
+SELECT has_function_privilege('ccpun_admin_runtime','ccpun_admin.seo_claim_gsc_window(uuid)','EXECUTE') AS producer_cannot_claim_gsc,
+ has_function_privilege('ccpun_admin_runtime','ccpun_admin.seo_claim_gsc_reconciliation(uuid,int)','EXECUTE') AS producer_cannot_reconcile_gsc;
