@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
+import { cookieBannerTimingPredecessor } from './v5-cookie-banner-timing-proof.mjs';
 import { loadFixtureModule } from './phase1-fixture-loader.mjs';
 import { adminPhase1PredecessorDigest } from './admin-phase1-quick-wins-proof.mjs';
 import { isWebsiteV5RetainedSource, isWebsiteV5ReviewedSuccessor, websiteV5CopyPredecessor, websiteV5RendererSources } from './website-v5-phase-a-proof.mjs';
@@ -242,6 +243,7 @@ export function assertProductionCmsOwner(file, source = read(file)) {
   assert.ok(hasProductionCmsOwner(file), 'Unknown CMS source owner: '+file);
   // Website v5 Phase A (UAT prototype): an exact reviewed v5 route successor, or the
   // exact additive v5 copy keys removed to reconstruct the frozen registry source.
+  source = cookieBannerTimingPredecessor(file, source);
   if (isWebsiteV5ReviewedSuccessor(file, source)) return true;
   source = websiteV5CopyPredecessor(file, source);
   if (file === 'lib/content/sanity.ts') {

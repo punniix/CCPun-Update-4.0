@@ -574,8 +574,9 @@ test("UX: the cookie notice matches the site visually and keeps its consent beha
   const preferences = read("features/analytics/components/CookieConsentPreferences.tsx");
   assert.doesNotMatch(consent + preferences, /style=\{\{/, "visual rules live in the CSS module");
   assert.doesNotMatch(consent, /text-xs/, "no 12px body text");
-  // Behaviour stays byte-for-byte the reviewed logic: same storage call shapes, timing and event.
-  assert.match(consent, /setTimeout\(\(\) => setVisible\(true\), 800\)/);
+  // C9 removes the first-visit delay; storage call shapes and events stay unchanged.
+  assert.match(consent, /if \(getConsentData\(\) === null\) \{\n      \/\/ eslint-disable-next-line react-hooks\/set-state-in-effect[^\n]*\n      setVisible\(true\);\n    \}/);
+  assert.doesNotMatch(consent, /setTimeout|clearTimeout/);
   assert.match(consent, /status: 'accepted_all',\n      essential: true,\n      performance: true,\n      analytics: true,\n      social: true,/);
   assert.match(consent, /window\.dispatchEvent\(new CustomEvent\('ccpun:consent', \{ detail: 'accepted' \}\)\);/);
   assert.match(consent, /new CustomEvent\('ccpun:consent', \{ detail: analytics \? 'accepted' : 'rejected' \}\)/);

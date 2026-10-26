@@ -1,0 +1,51 @@
+PASS pre-consent stores no preference
+PASS pre-consent loads no GA script
+PASS pre-consent loads GTM-5DKMGSK3 once
+PASS pre-consent loads no Meta script
+PASS pre-consent creates no tracking cookie
+PASS Google commands use the provider Arguments protocol
+PASS consent default precedes GTM startup
+PASS pre-consent defaults analytics storage to denied
+PASS pre-consent defaults all advertising consent signals to denied
+FAIL pre-consent LINE test finds navbar CTA
+PASS pre-consent LINE click emits no analytics event
+PASS accepted consent respects GA initialization owner
+PASS accepted consent loads GTM-5DKMGSK3 once
+PASS accepted consent loads one Meta script
+PASS Meta initializes expected dataset
+PASS CI PageView fires once
+PASS CI ViewContent fires once
+PASS GA config respects initialization owner
+PASS first accepted consent emits ci_landing_view once
+PASS accepted consent grants analytics storage
+PASS accepted consent keeps advertising consent denied
+PASS repeat consent does not duplicate GA script
+PASS repeat consent does not duplicate GTM script
+PASS repeat consent does not duplicate Meta script
+PASS repeat consent does not duplicate CI PageView
+PASS repeat accepted consent keeps ci_landing_view at one
+PASS LINE surface test initialized
+FAIL six active LINE surfaces emit once each — ["navbar_mobile","home_hero","home_contact","fhc_landing","blog_article"]
+FAIL LINE location navbar emits once
+PASS LINE location navbar_mobile emits once
+PASS LINE location home_hero emits once
+PASS LINE location home_contact emits once
+PASS LINE location fhc_landing emits once
+PASS LINE location blog_article emits once
+PASS legacy navbar cta_click is suppressed
+FAIL tool result and policy links are not double counted
+FAIL LINE events contain only safe context
+PASS delegated LINE analytics does not add Meta Contact
+PASS reject removes GA script
+PASS reject keeps one consent-aware GTM script
+PASS reject removes Meta script
+PASS reject updates analytics storage to denied
+PASS blocked QA sends no analytics hit — ["https://www.googletagmanager.com/gtm.js?id=GTM-5DKMGSK3","https://connect.facebook.net/en_US/fbevents.js"]
+PASS reject leaves no tracking cookie
+PASS accepted consent emits fhc_landing_view once
+PASS repeat accepted consent keeps fhc_landing_view at one
+PASS /dashboard/ loads no public tracking tags
+PASS /snt-admin/ loads no public tracking tags
+PASS /studio/ loads no public tracking tags
+
+Tracking consent QA: 44/49 PASS
