@@ -342,7 +342,10 @@ test("website: one merged bottom LINE element, panel and QR load on interaction,
   assert.match(panel, /event\.key === "Escape"/);
   assert.match(panel, /event\.key !== "Tab"/);
   assert.match(panel, /import\("\.\/qr-code"\)/);
-  assert.match(panel, /min-width: 1024px/);
+  assert.match(panel, /\(hover: hover\) and \(pointer: fine\)/);
+  assert.match(panel, /!\/Mobi\|Android\|iPhone\|iPad\|iPod\/i\.test\(navigator\.userAgent\)/);
+  assert.match(panel, /topics\.find\(topic => topic\.id === selectedTopicId\)/, "QR belongs to the selected topic, not the final default topic");
+  assert.doesNotMatch(panel, /topics\.at\(-1\)/);
   assert.match(panel, /trackEvent\("line_chat_panel_open"/);
   assert.match(panel, /cta_location: "chat_panel", chat_topic_id: topic\.id, page_group: panel\.pageGroup/);
   assert.match(panel, /getAttribution\(\)\?\.utm_campaign/);
