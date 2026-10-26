@@ -42,3 +42,11 @@ test("unconfigured secret fails closed and CMS payload fields cannot replace aut
  const missing=await run({missingSecret:true});assert.equal(missing.response.status,503);assert.equal(missing.reads,0);assert.equal(missing.writes,0);
  const safe=await run({body:{...payload,noindex:true,canonical:'https://evil.test/',slug:'attacker-controlled'}});assert.equal(safe.response.status,202);assert.equal(safe.writes,1);
 });
+
+test("signature comparison is constant-time over the recomputed header, never a plain string compare",async()=>{
+ const {readFileSync}=await import("node:fs");const source=readFileSync("lib/admin/seo-intelligence/post-publish-webhook.ts","utf8");
+ assert.match(source,/timingSafeEqual\(a, b\)/);assert.doesNotMatch(source,/isValidSignature\(/);
+ const raw=JSON.stringify(payload);const valid=await encodeSignatureHeader(raw,now,secret);
+ const flipped=valid.slice(0,-1)+(valid.endsWith("A")?"B":"A");
+ for(const signature of [flipped,valid+"A",valid.replace(",v1=",", v1=")]){const r=await run({raw,headers:{"sanity-webhook-signature":signature}});assert.equal(r.response.status,401);assert.equal(r.writes,0);}
+});

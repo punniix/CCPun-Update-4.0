@@ -1,5 +1,6 @@
 import "server-only";
-import { decodeSignatureHeader, isValidSignature, SIGNATURE_HEADER_NAME } from "@sanity/webhook";
+import { timingSafeEqual } from "node:crypto";
+import { decodeSignatureHeader, encodeSignatureHeader, SIGNATURE_HEADER_NAME } from "@sanity/webhook";
 import { z } from "zod";
 import { approvedPublishedArticle } from "./post-publish-network";
 
@@ -20,6 +21,11 @@ export type SanityPublishDependencies = {
   readArticle: (id: string) => Promise<Article | null>;
   enqueue: (input: { article: Article; deliveryId: string; sanityRev: string }) => Promise<{ job_id: string } | null>;
 };
+// @sanity/webhook compares with `!==`; compare the recomputed header in constant time instead.
+function sameSignature(received: string, expected: string) {
+  const a = Buffer.from(received, "utf8"); const b = Buffer.from(expected, "utf8");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 const buckets = new Map<string, { minute: number; count: number }>();
 function allowedRate(request: Request, now: number) {
   const key = (request.headers.get("cf-connecting-ip") ?? request.headers.get("x-real-ip") ?? "unknown").slice(0, 100);
@@ -66,7 +72,7 @@ export async function handleSanityArticlePublished(request: Request, deps: Sanit
     if (!signature || signature.length > 1024) return reply({ error: "unauthorized" }, 401);
     const { timestamp } = decodeSignatureHeader(signature);
     if (!Number.isSafeInteger(timestamp) || Math.abs(now - timestamp) > 300_000
-      || !await isValidSignature(body, signature, deps.secret)) return reply({ error: "unauthorized" }, 401);
+      || !sameSignature(signature, await encodeSignatureHeader(body, timestamp, deps.secret))) return reply({ error: "unauthorized" }, 401);
   } catch { return reply({ error: "unauthorized" }, 401); }
   let parsed;
   try { parsed = payloadSchema.safeParse(JSON.parse(body)); } catch { return reply({ error: "invalid-input" }, 400); }
