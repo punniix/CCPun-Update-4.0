@@ -8,7 +8,7 @@ export const SITE_COPY_DEFAULTS = {
   "site.tools.fhc": "Financial Health Check",
   "site.tools.ci": "CI Planning",
   "site.footer.information": "ข้อมูล",
-  "site.footer.about": "เกี่ยวกับ Pun",
+  "site.footer.about": "รู้จักปั้น",
   "site.footer.privacy": "Privacy",
   "site.footer.cookies": "Cookie",
   "site.footerDisclaimer": "ข้อมูลบนเว็บไซต์มีวัตถุประสงค์เพื่อให้ความรู้ทั่วไป ไม่ใช่คำแนะนำเฉพาะบุคคล",

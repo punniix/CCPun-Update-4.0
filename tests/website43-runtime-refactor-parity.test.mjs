@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { inverseWebsiteV5C14 } from '../qa/website-v5-c14-successor.mjs';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 import { assertProductionCmsOwner, canonicalNavigationPredecessor } from '../qa/production-cms-source-proof.mjs';
 import assert from 'node:assert/strict';
@@ -161,7 +162,7 @@ test('unified footer preserves links while removing approved marketing tagline i
   assert.doesNotMatch(after('Website43Shared.tsx'), /styles\.footerCompact/);
   const current = after('Website43Shared.tsx');
   assertProductionCmsOwner(directory + 'Website43Shared.tsx', current);
-  assert.equal(fingerprint(await footerSnapshots(canonicalNavigationPredecessor(directory + 'Website43Shared.tsx', current))),reviewedCurrent.footerDesktopDom);
+  assert.equal(fingerprint((await footerSnapshots(canonicalNavigationPredecessor(directory + 'Website43Shared.tsx', current))).map((html, index) => inverseWebsiteV5C14(html, 'legacyFooter'+index))),reviewedCurrent.footerDesktopDom);
   assert.equal(baseline.footerDom,'db903aa6d7c7bdb589a3841c2a5be6cb59459e374cc314cfdaedf6b3855f489b','Original full/compact baseline retained as history; duplicate compact removal is explicit');
 });
 

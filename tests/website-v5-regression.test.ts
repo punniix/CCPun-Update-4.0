@@ -17,6 +17,7 @@ import { transformSync } from "esbuild";
 // v5 motion round (UAT): result motion, page transition and flip-card contracts.
 import "./website-v5-motion.test.mjs";
 import "./money-story-theme.test.mjs";
+import "./website-v5-article-dates.test.mjs";
 
 const read = (file: string) => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 const v5Files = [

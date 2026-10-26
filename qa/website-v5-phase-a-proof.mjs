@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { inverseWebsiteV5C14Copy } from './website-v5-c14-successor.mjs';
 
 // Website v5 Phase A (UAT prototype, branch codex/website-v5-uat-20261025).
 // The owner asked for v5 to be built for test.ccpun.com review; this is NOT a
@@ -67,7 +68,7 @@ export const websiteV5NewCopyKeys = Object.freeze([
 export function websiteV5CopyPredecessor(file, source) {
   const edits = Object.hasOwn(websiteV5CopyAdditions, file) ? websiteV5CopyAdditions[file] : null;
   if (!edits || typeof source !== 'string') return source;
-  let result = source;
+  let result = inverseWebsiteV5C14Copy(file, source);
   for (const [current, original] of edits) {
     if (result.split(current).length !== 2) return source;
     result = result.replace(current, original);

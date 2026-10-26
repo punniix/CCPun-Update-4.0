@@ -29,6 +29,7 @@ import { renderV5ArticleBody } from "./V5ArticleBody";
 import { resolveNextSteps } from "./next-step";
 import NextStepCiLink from "./NextStepCiLink";
 import V5ArticleEngagementMeta from "./V5ArticleEngagementMeta";
+import { articleUpdatedOnLaterBangkokDay } from "./article-dates";
 
 const thaiDate = new Intl.DateTimeFormat("th-TH", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Bangkok" });
 const HEALTH_HAPPY_SLUG = "aia-health-happy-describe";
@@ -78,7 +79,8 @@ export default async function V5Article({ article, relatedArticles = [], allArti
     return groups;
   }, []);
   const published = article.publishedAt ? thaiDate.format(new Date(article.publishedAt)) : null;
-  const optimized = article.optimizedAt && Number.isFinite(Date.parse(article.optimizedAt)) ? thaiDate.format(new Date(article.optimizedAt)) : null;
+  const updated = articleUpdatedOnLaterBangkokDay(article.publishedAt, article.updatedAt)
+    ? thaiDate.format(new Date(article.updatedAt!)) : null;
   const readingMinutes = estimateArticleReadingMinutes(article);
   const path = getArticlePath(article);
   const relatedCards = toV5Cards(relatedArticles, copy);
@@ -119,7 +121,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
             <div className={styles.metaRow}>
               <div className={styles.metaDates}>
                 {published && <span>{text.node("blog.articleDateLabel")} <time dateTime={article.publishedAt}>{published}</time></span>}
-                {optimized && <span>{text.node("blog.articleDateLabel2")} <time dateTime={article.optimizedAt}>{optimized}</time></span>}
+                {updated && <span>{text.node("blog.date.updated")} <time dateTime={article.updatedAt}>{updated}</time></span>}
                 <V5LegacyBridge className={styles.metaSummary}><ArticleEngagementSummary readingMinutes={readingMinutes} /></V5LegacyBridge>
                 {!preview && <V5ArticleEngagementMeta />}
               </div>
