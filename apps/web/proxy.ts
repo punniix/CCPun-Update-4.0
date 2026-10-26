@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { observeAiCrawlerRequest } from "@/lib/observability/ai-crawler";
 import { SECURITY_HEADERS } from "@/lib/security-policy";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
+import { indexNowKeyResponse } from "@/lib/runtime/indexnow-key";
 
 import { TAX_SLUG_MIGRATION, WEB_REDIRECTS } from "../../lib/runtime/web-build-config.mjs";
 
@@ -32,6 +33,8 @@ export function hostingerRedirectUrl(request: Request): URL | null {
 }
 
 export default function proxy(request: Request & { nextUrl: URL }) {
+  const indexNowKey = indexNowKeyResponse(request);
+  if (indexNowKey) return indexNowKey;
   const pathname = new URL(request.url).pathname;
   const headers = request.headers;
 

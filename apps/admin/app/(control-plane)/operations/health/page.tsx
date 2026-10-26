@@ -1,3 +1,4 @@
+import PostPublishHealthCard from "@/features/admin/components/PostPublishHealthCard";
 import { Row, Card as HealthCard } from "@/features/admin/components/HealthStatus";
 import { isPinnedCloudProductionRelease } from "../../../../../../lib/runtime/hostinger-production-release.mjs";
 import type { Metadata } from "next";
@@ -156,6 +157,8 @@ export default async function AdminHealthPage() {
       <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">
         ดูว่าระบบหลังบ้าน เนื้อหา ข้อมูลส่วนตัว งานตั้งเวลา LINE และโซเชียลพร้อมใช้งานหรือไม่ โดยไม่แสดงรหัสลับหรือข้อมูลลูกค้า
       </p>
+
+      <div className="mt-7"><PostPublishHealthCard /></div>
 
       <div className="mt-7">
         <LineProviderActivationActions

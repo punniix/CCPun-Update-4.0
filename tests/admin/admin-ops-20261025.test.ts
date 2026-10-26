@@ -1,3 +1,4 @@
+import { seoPublishTriggerPredecessorDigest } from "../../qa/seo-publish-trigger-20261026-proof.mjs";
 import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
 import { registerHooks, createRequire } from "node:module";
@@ -407,7 +408,7 @@ test("2026-10-25 frozen-proof admissions are exact and reject any further edit",
     assert.ok(existsSync(path.join(root, file)), file);
     const current = adminOps20261025SourceDigest(read(file));
     // Later exact admissions (copy fixes, then the audit follow-up) may replace the successor; each must name the one it replaced.
-    const copyReviewed = adminCopyFixesPredecessorDigest(file, current);
+    const copyReviewed = adminCopyFixesPredecessorDigest(file, seoPublishTriggerPredecessorDigest(file,current));
     const followUp = Object.hasOwn(adminOpsAuditFollowUpSources, file) ? adminOpsAuditFollowUpSources[file as keyof typeof adminOpsAuditFollowUpSources] : null;
     const digest = followUp && copyReviewed === followUp.after ? followUp.before : copyReviewed;
     assert.equal(digest, successor, `${file} is exactly the reviewed successor`);

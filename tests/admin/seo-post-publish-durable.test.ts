@@ -45,6 +45,7 @@ test("SEO fetch refuses redirects and bounded responses without following untrus
 
 test("GSC read-only refresh cannot silently authorize sitemap write", async () => {
   const base = {
+    CCPUN_APP_ENV: "production-admin",
     CCPUN_BACKGROUND_EXECUTION_PLANE: "vps",
     CCPUN_SEO_POST_PUBLISH_WORKER_ENABLED: "1",
     CCPUN_GSC_SITEMAP_WRITE_ENABLED: "1",

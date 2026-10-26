@@ -16,6 +16,7 @@
     "prestart": "node ../../scripts/check-next-security-baseline.mjs"
   },
   "dependencies": {
+    "@sanity/webhook": "4.0.4",
     "next": "16.4.2",
     "react": "19.2.9",
     "react-dom": "19.2.9"

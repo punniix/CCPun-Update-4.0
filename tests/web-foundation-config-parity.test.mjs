@@ -1,3 +1,4 @@
+import { indexNowKeyResponse } from '../lib/runtime/indexnow-key.ts';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -83,7 +84,7 @@ async function observe(sources, overrides) {
   const security = evaluate(sources['lib/security-policy.ts'], { process, IS_REVIEW_ENVIRONMENT: review, ...sharedSecurity }, '({ SECURITY_POLICY, SECURITY_HEADERS })');
   const config = evaluate(sources['apps/web/next.config.ts'], { process, path, ...sharedSecurity, ...sharedWeb }, 'defaultExport');
   const proxy = evaluate(sources['apps/web/proxy.ts'], {
-    process, URL, NextResponse, IS_REVIEW_ENVIRONMENT: review, ...sharedWeb,
+    process, URL, NextResponse, indexNowKeyResponse: request => indexNowKeyResponse(request, env), IS_REVIEW_ENVIRONMENT: review, ...sharedWeb,
     SECURITY_HEADERS: security.SECURITY_HEADERS, observeAiCrawlerRequest: () => {},
   }, '({ proxy: defaultExport, hostingerRedirectUrl, config })');
   const requests = paths.map((pathname) => new Request(`https://candidate.example${pathname}`));
@@ -207,7 +208,7 @@ function hostingerProxy(overrides) {
   const review = env.CCPUN_UAT_MODE === '1' || env.CCPUN_APP_ENV === 'web-uat';
   const security = evaluate(current['lib/security-policy.ts'], { process, IS_REVIEW_ENVIRONMENT: review, ...sharedSecurity }, '({ SECURITY_POLICY, SECURITY_HEADERS })');
   return evaluate(current['apps/web/proxy.ts'], {
-    process, URL, NextResponse, IS_REVIEW_ENVIRONMENT: review, ...sharedWeb,
+    process, URL, NextResponse, indexNowKeyResponse: request => indexNowKeyResponse(request, env), IS_REVIEW_ENVIRONMENT: review, ...sharedWeb,
     SECURITY_HEADERS: security.SECURITY_HEADERS, observeAiCrawlerRequest: () => {},
   }, 'defaultExport');
 }

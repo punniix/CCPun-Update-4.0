@@ -120,6 +120,9 @@ export type AdminReviewResult = {
 };
 
 const publishedSeoObservationArticleSchema = z.object({
+  title: z.string().nullish(),
+  reviewStatus: z.string().nullish(),
+  rev: z.string().nullish(),
   id: z.string().min(1),
   slug: z.string().min(1),
   category: z.string().min(1),
@@ -267,14 +270,14 @@ export async function listRecentPublishedSeoObservationArticles(since: string): 
   }
 }
 
-export async function getPublishedSeoObservationArticle(articleId: string): Promise<PublishedSeoObservationArticle | null> {
+export async function getPublishedSeoObservationArticle(articleId: string, options: { throwOnError?: boolean } = {}): Promise<PublishedSeoObservationArticle | null> {
   const client = requireReadClient("published");
-  if (!client) return null;
+  if (!client) { if (options.throwOnError) throw new Error("SEO_PUBLISHED_READ_UNAVAILABLE"); return null; }
   const cleanId = articleId.replace(/^drafts\./, "");
   try {
     const row = await client.fetch(
       groq`*[_type == "article" && _id == $articleId][0] {
-        "id": _id,
+        "id": _id, "title": title, "rev": _rev, "reviewStatus": review.status,
         "slug": slug.current,
         "category": category->title,
         "categorySlug": category->slug.current,
@@ -290,6 +293,7 @@ export async function getPublishedSeoObservationArticle(articleId: string): Prom
     );
     return row ? publishedSeoObservationArticleSchema.parse(row) : null;
   } catch {
+    if (options.throwOnError) throw new Error("SEO_PUBLISHED_READ_UNAVAILABLE");
     return null;
   }
 }

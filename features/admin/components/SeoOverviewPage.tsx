@@ -43,7 +43,8 @@ export async function AdminSeoPage(copy: SeoOverviewCopy) {
             {copy.intro}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2" style={ownerRecheckReady ? { flexWrap: "wrap" } : undefined}>
+          {ownerRecheckReady ? <Link href="/seo/post-publish/" className="inline-flex min-h-11 items-center px-4 text-sm text-[#e0c985] underline">SEO หลังเผยแพร่</Link> : null}
           {intelligenceReady ? <Link href="/analytics/" className="inline-flex min-h-11 items-center rounded-xl border border-[#e0c985]/30 bg-[#e0c985]/10 px-4 py-2.5 text-sm text-[#f4df9b] hover:bg-[#e0c985]/15">{copy.opportunities}</Link> : null}
           <Link href="/content/research/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ดูข้อมูลงานวิจัย</Link>
           <Link href={copy.reviewsHref} className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ดูข้อเสนอที่รอตรวจ</Link>
