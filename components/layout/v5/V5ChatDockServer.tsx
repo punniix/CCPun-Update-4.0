@@ -12,11 +12,11 @@ function fallbackHref(config: LineChatConfig, context: ChatPageContext, now: Dat
   return panel.mode === "panel" ? panel.topics[0]?.href ?? LINE_OA_CHAT_URL : panel.href;
 }
 
-/** The fallback href article-body LINE CTAs use on this page (same as the dock's). */
-export async function getV5ChatFallbackHref(context: ChatPageContext): Promise<string> {
+/** The fallback href article-body LINE CTAs use on this page (same as the dock's, including a page topic). */
+export async function getV5ChatFallbackHref(context: ChatPageContext, pageTopic?: LineChatTopic): Promise<string> {
   const { config } = await getLineChatConfig();
   const now = new Date();
-  return fallbackHref(selectChatConfigForPage(config, context, now), context, now);
+  return fallbackHref(selectChatConfigForPage(pageTopic ? withPageTopic(config, context.pageGroup, pageTopic) : config, context, now), context, now);
 }
 
 /**

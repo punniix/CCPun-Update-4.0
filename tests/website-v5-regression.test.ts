@@ -657,7 +657,7 @@ test("Article LINE CTAs open the dock's chat panel; no-JS falls back to the page
   const link = read("components/layout/v5/V5ChatLink.tsx");
   assert.match(link, /<a\n      href=\{href\}/, "a real link first (no-JS fallback)");
   assert.match(link, /new CustomEvent<V5OpenChatDetail>\(V5_OPEN_CHAT_EVENT, \{ cancelable: true, detail \}\)\)\) event\.preventDefault\(\);/);
-  assert.match(link, /trigger: "article_cta"/);
+  assert.match(link, /trigger = "article_cta"/, "article-body CTAs report panel_trigger article_cta by default");
   assert.doesNotMatch(link, /trackEvent/, "the panel owns the tracking");
   const dock = read("components/layout/v5/V5ChatDock.tsx");
   assert.match(dock, /window\.addEventListener\(V5_OPEN_CHAT_EVENT, onOpenChat\)/);
@@ -686,8 +686,11 @@ test("Covers show whole at 1200 / 630 everywhere: no card or featured image is s
   }
   const shell = read("components/layout/v5/V5.module.css");
   assert.match(shell, /\.articleCardImage \{ display: block; width: 100%; height: auto; aspect-ratio: 1200 \/ 630; object-fit: cover; object-position: center;/);
-  assert.match(shell, /\.articleCardHorizontal \.articleCardImage \{ width: 38%; height: auto; aspect-ratio: 1200 \/ 630; align-self: flex-start; flex: none; \}/);
-  assert.match(read("features/blog/v5/V5Blog.module.css"), /\.featuredLead > img \{ width: 50%; height: auto; aspect-ratio: 1200 \/ 630; align-self: flex-start; flex: none; \}/);
+  // Owner bug report 2026-10-26: horizontal covers are centred (no empty block under them) with rounded outer corners.
+  assert.match(shell, /\.articleCardHorizontal \.articleCardImage \{ width: 38%; height: auto; aspect-ratio: 1200 \/ 630; align-self: center; flex: none; border-radius: var\(--v5-card-image-radius\) 0 0 var\(--v5-card-image-radius\); \}/);
+  assert.match(read("features/blog/v5/V5Blog.module.css"), /\.featuredLead > img \{ width: 50%; height: auto; aspect-ratio: 1200 \/ 630; align-self: center; flex: none; border-radius: var\(--v5-card-image-radius\) 0 0 var\(--v5-card-image-radius\); \}/);
+  assert.match(shell, /--v5-card-image-radius: calc\(var\(--v5-radius\) - 1px\);/);
+  assert.doesNotMatch(shell + read("features/blog/v5/V5Blog.module.css"), /aspect-ratio: 1200 \/ 630; align-self: flex-start/, "no top-aligned cover leaves an empty block under it");
   assert.match(read("features/blog/v5/V5Blog.module.css"), /\.feature img \{ display: block; width: 100%; height: auto;/, "the article cover keeps its natural shape");
 });
 
@@ -730,19 +733,19 @@ test("Polish: card cover sizes follow the adaptive grid, so next/image never pic
   const drawn = (vw: number, count: number, grid: "cardGrid" | "cardGrid2", narrow = false) => {
     const w = content(vw, narrow); const gap = vw < 640 ? 16 : 20;
     if (vw < 640) return w;
-    if (count === 1) return 0.4 * w;
+    if (count === 1) return vw >= 1024 ? 0.4 * w : w;
     const cols = grid === "cardGrid"
       ? (vw >= 1024 && count !== 2 && count !== 4 ? 3 : 2)
       : (vw >= 1024 && count === 3 ? 3 : count % 2 === 1 ? 1 : 2);
     return (w - (cols - 1) * gap) / cols;
   };
-  for (const vw of [320, 390, 639, 640, 700, 767, 768, 900, 1023, 1024, 1100, 1199, 1200, 1280, 1366, 1439, 1440, 1920]) {
+  for (const vw of [320, 390, 479, 480, 639, 640, 700, 767, 768, 899, 900, 1023, 1024, 1100, 1199, 1200, 1279, 1280, 1366, 1439, 1440, 1920]) {
     for (const count of [1, 2, 3, 4, 5, 6, 9]) {
       assert.ok(sizesAt(v5CardGridSizes(count), vw) >= drawn(vw, count, "cardGrid") - 1, `cardGrid x${count} at ${vw}px`);
       assert.ok(sizesAt(v5CardGridSizes(), vw) >= drawn(vw, count, "cardGrid") - 1, `cardGrid (unknown count) x${count} at ${vw}px`);
       assert.ok(sizesAt(v5CardGridSizes(count, { grid: "cardGrid2", narrow: true }), vw) >= drawn(vw, count, "cardGrid2", true) - 1, `related cardGrid2 x${count} at ${vw}px`);
     }
-    const horizontal = vw < 480 ? content(vw) : vw < 900 ? 0.38 * content(vw) : 0.38 * (content(vw) - 20) / 2;
+    const horizontal = vw < 640 ? content(vw) : vw < 900 ? 0.38 * content(vw) : vw < 1280 ? (content(vw) - 20) / 2 : 0.38 * (content(vw) - 20) / 2;
     assert.ok(sizesAt(V5_HORIZONTAL_CARD_SIZES, vw) >= horizontal - 1, `horizontal card at ${vw}px`);
   }
   assert.equal(sizesAt(v5CardGridSizes(2), 1440), 630, "two cards at 1440 draw 630px wide, not 400px");

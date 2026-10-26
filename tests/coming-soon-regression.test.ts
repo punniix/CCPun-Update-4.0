@@ -114,6 +114,27 @@ test("analytics: coming_soon_interest carries only the planned path, GA4-only an
   assert.doesNotMatch(interest, /\bgtag\s*\(|\bfbq\s*\(|dataLayer|localStorage|fetch\(/, "no provider call, storage or network request besides trackEvent");
 });
 
+test("journey (owner addendum 2026-10-26): อยากให้เสร็จเร็ว opens the chat panel or LINE, never a dead end", () => {
+  const interest = read("features/coming-soon/ComingSoonInterest.tsx");
+  // One tap opens the dock's panel (page topic first) through the shared chat-link control;
+  // its href is the no-JS / panel-off fallback straight to the @ccpun chat with the page prefill.
+  assert.match(interest, /<V5ChatLink[\s\S]*href=\{href\}[\s\S]*trigger="coming_soon"/);
+  assert.match(interest, />\s*อยากให้เสร็จเร็ว\s*</);
+  // Rejected after-tap text and any instruction to go and find another button.
+  assert.doesNotMatch(interest, /ขอบคุณครับ|ปุ่มด้านล่าง|ที่ปุ่ม/);
+  assert.doesNotMatch(interest, /role="status"/, "no confirmation text left on the page");
+  // Works whatever the cookie choice: the button keeps itself out of the notice's inert boundary.
+  assert.match(interest, /exemptFromInert\(node, exempted\)/);
+  assert.match(interest, /restoreInert\(exempted\)/);
+  const page = read("features/coming-soon/page.tsx");
+  assert.match(page, /getV5ChatFallbackHref\(chatContext, chatTopic\)/, "fallback is the dock's own first topic link");
+  assert.match(page, /<ComingSoonInterest path=\{page\.path\} href=\{interestHref\} \/>/);
+  const dock = read("components/layout/v5/V5ChatDock.tsx");
+  assert.match(dock, /if \(detail\.trigger === "article_cta"\) trackEvent\("line_oa_click"/, "a switched-off panel records an article LINE click only for article CTAs");
+  // panel_trigger stays a closed allowlist; "coming_soon" is dropped until the owner approves it.
+  assert.equal(sanitizeEventParams({ panel_trigger: "coming_soon" }).panel_trigger, undefined);
+});
+
 test("LINE: one dock per page; the planned page adds its own topic and CS reference code without writing Sanity", () => {
   const page = read("features/coming-soon/page.tsx");
   assert.match(page, /<V5Page current=\{page\.path\} chat=\{\{ pageGroup: "coming_soon" \}\} chatTopic=\{chatTopic\}>/);

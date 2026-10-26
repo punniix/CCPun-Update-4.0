@@ -1,6 +1,6 @@
 /*
  * Card cover `sizes` (v5 polish, UAT): the adaptive grids in V5.module.css pick their columns from the number of
- * cards (one card spans the row as a horizontal card, two or four share 2 columns, three or more take 3 from 1024px,
+ * cards (one card spans the row, stacked below 1024px and horizontal from 1024px, two or four share 2 columns, three or more take 3 from 1024px,
  * and in .cardGrid2 an odd last card spans the row). The hint follows the same rules so next/image picks a width
  * that covers the cover as drawn at every layout. Unknown counts take the widest layout the grid can reach.
  */
@@ -21,12 +21,15 @@ function v5Bands(narrow: boolean): V5SizesBand[] {
 /** Columns (or the horizontal 40% cover when 0) a card can reach in a v5 card grid of `count` cards at a band. */
 function v5GridColumns(from: 0 | 640 | 1024, count: number | undefined, grid: "cardGrid" | "cardGrid2"): number {
   if (from === 0) return 1;
-  if (count === 1) return 0;
+  // A lone card spans the row: stacked (full width) below 1024px, horizontal with a 40% cover from 1024px.
+  if (count === 1) return from === 1024 ? 0 : 1;
   if (grid === "cardGrid2") {
     if (count === undefined || (count % 2 === 1 && !(from === 1024 && count === 3))) return 1;
     return from === 1024 && count === 3 ? 3 : 2;
   }
-  if (from === 640 || count === undefined || count === 2 || count === 4) return 2;
+  // Unknown count: the widest layout reachable at this band (a lone stacked card below 1024px).
+  if (count === undefined) return from === 640 ? 1 : 2;
+  if (from === 640 || count === 2 || count === 4) return 2;
   return 3;
 }
 
@@ -46,5 +49,8 @@ export function v5CardGridSizes(count?: number, { grid = "cardGrid", narrow = fa
   return bands.map(({ max, value }) => max !== undefined ? `(max-width: ${max}px) ${value}` : value).join(", ");
 }
 
-/** Horizontal cards (home core guides, blog featured): a 38% cover; phones stack the card at full width. */
-export const V5_HORIZONTAL_CARD_SIZES = "(max-width: 479px) calc(100vw - 40px), (max-width: 767px) calc(38vw - 15px), (max-width: 899px) calc(38vw - 24px), 240px";
+/**
+ * Horizontal cards (home core guides, blog featured): a 38% cover where the card is horizontal (640-899px, one per
+ * row; from 1280px, two per row) and the full card width where it stacks (phones; two per row from 900 to 1279px).
+ */
+export const V5_HORIZONTAL_CARD_SIZES = "(max-width: 639px) calc(100vw - 40px), (max-width: 767px) calc(38vw - 15px), (max-width: 899px) calc(38vw - 24px), (max-width: 1199px) calc(50vw - 42px), (max-width: 1279px) calc(50vw - 90px), (max-width: 1439px) calc(19vw - 34px), 240px";

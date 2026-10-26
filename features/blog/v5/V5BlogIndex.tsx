@@ -97,7 +97,7 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
                 {featuredCards.map((card, index) => (
                   <div key={card.id} className={styles.searchItem} data-v5-search={searchById.get(card.id)}>
                     <V5ArticleCard article={card} className={index === 0 ? styles.featuredLead : undefined} horizontal={index > 0} priority={index === 0} showExcerpt={index === 0}
-                      headingLevel={3} sizes={index === 0 ? "(max-width: 899px) calc(100vw - 40px), 640px" : V5_HORIZONTAL_CARD_SIZES}
+                      headingLevel={3} sizes={index === 0 ? "(max-width: 1023px) calc(100vw - 40px), 640px" : V5_HORIZONTAL_CARD_SIZES}
                       metaEnd={<V5CardEngagement articleId={card.id} title={card.title} />} />
                   </div>
                 ))}
