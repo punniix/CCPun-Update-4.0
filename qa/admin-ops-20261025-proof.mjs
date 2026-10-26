@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { adminOwnerDecisions20261026DomPredecessor, adminOwnerDecisions20261026PredecessorDigest } from './admin-owner-decisions-20261026-proof.mjs';
+import { adminAfptReminder20261026DomPredecessor, adminAfptReminder20261026PredecessorDigest } from './admin-afpt-reminder-20261026-proof.mjs';
 
 // Owner-approved Admin ops improvements (2026-10-25, decisions A2-A9 and the
 // Supabase data split): Studio opens in the same tab, one "อนุมัติและเผยแพร่"
@@ -89,6 +90,7 @@ export const adminCopyFixesSources = Object.freeze({
 // Maps the digest of an exact copy-fix successor to the reviewed successor it
 // replaced; any other digest is returned unchanged.
 export function adminCopyFixesPredecessorDigest(file, digest) {
+  digest = adminAfptReminder20261026PredecessorDigest(file, digest);
   const copy = Object.hasOwn(adminCopyFixesSources, file) ? adminCopyFixesSources[file] : null;
   return copy && digest === copy.after ? copy.before : digest;
 }
@@ -163,7 +165,7 @@ const rules = [
 export function adminOps20261025DomPredecessor(html) {
   if (typeof html !== 'string') return html;
   // Later owner decisions (2026-10-26) are inverted first, then these 2026-10-25 rules.
-  let result = adminOwnerDecisions20261026DomPredecessor(html);
+  let result = adminOwnerDecisions20261026DomPredecessor(adminAfptReminder20261026DomPredecessor(html));
   for (const [candidate, original] of rules) result = typeof candidate === 'string' ? result.split(candidate).join(original) : result.replace(candidate, original);
   return result;
 }

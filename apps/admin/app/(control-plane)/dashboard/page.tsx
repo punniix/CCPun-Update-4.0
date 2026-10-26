@@ -4,7 +4,8 @@ import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { hasAdminPermission } from "@/lib/admin/rbac";
 import { listAdvisorInboxOperational } from "@/lib/admin/line/advisor-workflow";
 import { buildActionCenterSignals, summarizeActionCenter } from "@/lib/admin/agent-os/action-center";
-import { adminDataLaneLabel, connectionLabel, datasetLabel, environmentLabel } from "@/lib/admin/presentation";
+import { adminDataLaneLabel, connectionLabel, datasetLabel, environmentLabel, thaiDisplayDate } from "@/lib/admin/presentation";
+import { AFPT_CREDENTIAL, getAfptRenewalReminder } from "@/lib/admin/afpt-renewal";
 import { isStudioDataPlaneAllowed } from "@/lib/admin/environment";
 import { readOperationsJobs } from "@/lib/admin/operations/jobs-read-model";
 import { readConversionAnalytics } from "@/lib/admin/line/business-intelligence";
@@ -19,6 +20,7 @@ type DashboardProps = { searchParams: Promise<{ error?: string }> };
 export default async function AdminDashboardPage({ searchParams }: DashboardProps) {
   const identity = await requireAdminPermission("dashboard:read");
   const params = await searchParams;
+  const afptReminder = getAfptRenewalReminder();
   const { status, operations, pendingReviews } = await readEditorialDashboardSummary();
   const canReadSettings = hasAdminPermission(identity.role, "settings:read");
   // Supabase only: the 06:00 card never wakes Neon. Missing env = "ยังไม่ได้เชื่อม Supabase".
@@ -79,6 +81,15 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
         <div role="alert" className="mt-6 rounded-2xl border border-amber-200/20 bg-amber-200/10 p-4 text-sm leading-6 text-amber-50">
           บัญชีของคุณเปิดหน้านั้นไม่ได้ตามสิทธิ์ที่ได้รับ หากต้องใช้งาน กรุณาให้เจ้าของระบบตรวจบทบาทของบัญชีนี้
         </div>
+      ) : null}
+
+      {afptReminder ? (
+        <section role="status" aria-labelledby="afpt-renewal-heading" data-afpt-reminder={afptReminder.expired ? "expired" : "due"} className="mt-6 rounded-2xl border border-amber-200/20 bg-amber-200/10 p-5 text-amber-50">
+          <h2 id="afpt-renewal-heading" className="text-lg font-semibold">{AFPT_CREDENTIAL.name}{afptReminder.expired ? " หมดอายุแล้ว" : " ใกล้ครบกำหนดต่ออายุ"}</h2>
+          <p className="mt-2 text-sm">{AFPT_CREDENTIAL.issuer} · เลขที่ {AFPT_CREDENTIAL.number}</p>
+          <p className="mt-1 text-sm">มีผล {thaiDisplayDate(AFPT_CREDENTIAL.issuedOn)} · ใช้ได้ถึง {thaiDisplayDate(AFPT_CREDENTIAL.expiresOn)}</p>
+          <p className="mt-2 text-sm font-medium">{afptReminder.expired ? "โปรดตรวจการต่ออายุ" : afptReminder.daysRemaining === 0 ? "ใช้ได้ถึงวันนี้" : `เหลืออีก ${afptReminder.daysRemaining} วัน`}</p>
+        </section>
       ) : null}
 
       <section className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-labelledby="attention-heading">

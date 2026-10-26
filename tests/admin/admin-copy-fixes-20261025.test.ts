@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { thaiDisplayDate } from "../../lib/admin/presentation";
 import { lineBotDecisionLabel, lineNeedLabel } from "../../lib/admin/line/presentation";
 import { adminCopyFixesSources, adminOps20261025DomPredecessor, adminOps20261025PredecessorDigest, adminOps20261025Sources, adminOpsAuditFollowUpSources } from "../../qa/admin-ops-20261025-proof.mjs";
+import { adminAfptReminder20261026PredecessorDigest } from "../../qa/admin-afpt-reminder-20261026-proof.mjs";
 
 // Admin wording fixes (2026-10-25, owner FigCraft review on PR #492): owner name
 // "ปั้น", Thai display dates and Thai ภาพรวมธุรกิจ labels. Display text only;
@@ -68,7 +69,7 @@ test("copy-fix admissions are exact, chain to the reviewed successors and reject
   const reviewed = adminOps20261025Sources as Record<string, { before: string; after: string }>;
   for (const [file, { before, after }] of entries) {
     const source = read(file);
-    assert.equal(sha(source), after, `${file}: byte-identical to the reviewed copy fix`);
+    assert.equal(adminAfptReminder20261026PredecessorDigest(file, sha(source)), after, `${file}: byte-identical to the reviewed copy fix or its exact C4 successor`);
     assert.equal(before, followUps[file]?.after ?? reviewed[file]!.after, `${file}: names the successor it replaced`);
     assert.equal(adminOps20261025PredecessorDigest(file, after), reviewed[file]!.before, `${file}: chains to its original predecessor`);
     const tampered = sha(source + "\n// tamper");
