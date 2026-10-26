@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { moneyStoryDockPredecessor } from './v5-money-story-dock-proof.mjs';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { cookieBannerTimingPredecessor } from './v5-cookie-banner-timing-proof.mjs';
@@ -243,7 +244,7 @@ export function assertProductionCmsOwner(file, source = read(file)) {
   assert.ok(hasProductionCmsOwner(file), 'Unknown CMS source owner: '+file);
   // Website v5 Phase A (UAT prototype): an exact reviewed v5 route successor, or the
   // exact additive v5 copy keys removed to reconstruct the frozen registry source.
-  source = cookieBannerTimingPredecessor(file, source);
+  source = cookieBannerTimingPredecessor(file, moneyStoryDockPredecessor(file, source));
   if (isWebsiteV5ReviewedSuccessor(file, source)) return true;
   source = websiteV5CopyPredecessor(file, source);
   if (file === 'lib/content/sanity.ts') {

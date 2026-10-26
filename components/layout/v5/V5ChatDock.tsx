@@ -37,6 +37,7 @@ function ChatIcon() {
  */
 export default function V5ChatDock({ config, context, fallbackHref }: { config: LineChatConfig; context: ChatPageContext; fallbackHref: string }) {
   const [shown, setShown] = useState(true);
+  const [moneyStoryHidden, setMoneyStoryHidden] = useState(false);
   const enhanced = useHydrated();
   const [cookieOffset, setCookieOffset] = useState(0);
   const [panel, setPanel] = useState<{ trigger: V5ChatPanelTrigger; returnTo: HTMLElement | null; closing?: boolean; instance: number; resultTool?: V5OpenChatDetail["resultTool"] } | null>(null);
@@ -46,6 +47,14 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
   const dockRef = useRef<HTMLDivElement>(null);
   const revealRef = useRef<() => void>(() => undefined);
   const token = chatPageGroupToken(context);
+
+  useEffect(() => {
+    // Read on mount as well as notifications: sibling effects may mount in either order.
+    const sync = () => setMoneyStoryHidden(document.documentElement.hasAttribute('data-money-story-dock-hidden'));
+    window.addEventListener('ccpun:money-story-dock', sync);
+    sync();
+    return () => window.removeEventListener('ccpun:money-story-dock', sync);
+  }, []);
 
   useEffect(() => {
     let heroBottom = 480;
@@ -180,7 +189,7 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
   if (!config.enabled) {
     return (
       <div ref={layerRef} className={styles.layer} style={style} data-v5-chat-layer="">
-        <div ref={dockRef} className={styles.dock} data-state={state} data-v5-chat-dock="">
+        <div ref={dockRef} className={styles.dock} data-state={state} data-v5-chat-dock="" hidden={moneyStoryHidden || undefined} inert={moneyStoryHidden || undefined} aria-hidden={moneyStoryHidden || undefined}>
           <a className={styles.trigger} href={LINE_OA_CHAT_URL} target="_blank" rel="noopener noreferrer"
             onClick={() => trackEvent("line_oa_click", { contact_channel: "line", cta_location: "chat_button", page_group: token, surface_group: chatSurfaceGroup(token) })}>
             <ChatIcon />{LABEL}
@@ -192,7 +201,7 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
 
   return (
     <div ref={layerRef} className={styles.layer} style={style} data-v5-chat-layer="">
-      <div ref={dockRef} className={styles.dock} data-state={state} data-v5-chat-dock="">
+      <div ref={dockRef} className={styles.dock} data-state={state} data-v5-chat-dock="" hidden={moneyStoryHidden || undefined} inert={moneyStoryHidden || undefined} aria-hidden={moneyStoryHidden || undefined}>
         <a ref={triggerRef} className={styles.trigger} href={fallbackHref} target="_blank" rel="noopener noreferrer"
           role={enhanced ? "button" : undefined} aria-haspopup={enhanced ? "dialog" : undefined} aria-expanded={enhanced ? open : undefined} aria-controls={open ? "v5-chat-panel" : undefined}
           onClick={(event) => {
