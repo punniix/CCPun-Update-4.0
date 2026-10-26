@@ -20,8 +20,8 @@ export default function CookieConsent() {
 
   useEffect(() => {
     if (getConsentData() === null) {
-      const timer = setTimeout(() => setVisible(true), 800);
-      return () => clearTimeout(timer);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- C9 synchronizes banner visibility immediately after hydration without a timer.
+      setVisible(true);
     }
   }, []);
 

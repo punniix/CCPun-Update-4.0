@@ -1,0 +1,53 @@
+{
+  "label": "mobile",
+  "viewport": {
+    "width": 412,
+    "height": 823
+  },
+  "choice": "accept",
+  "first": {
+    "deltaMs": 0.4000000022351742,
+    "noticeCount": 1,
+    "focused": true,
+    "bodyOverflow": "hidden"
+  },
+  "consent": {
+    "status": "accepted_all",
+    "analytics": true,
+    "social": true
+  },
+  "reload": {
+    "noticeCount": 0,
+    "dialogs": 0,
+    "bodyOverflow": ""
+  },
+  "footerReopen": true,
+  "preConsentProviderAttempts": [
+    {
+      "url": "https://www.googletagmanager.com/gtm.js?id=GTM-5DKMGSK3",
+      "blocked": true
+    }
+  ],
+  "allBlockedExternalAttempts": [
+    {
+      "url": "https://www.googletagmanager.com/gtm.js?id=GTM-5DKMGSK3",
+      "blocked": true
+    },
+    {
+      "url": "https://connect.facebook.net/en_US/fbevents.js",
+      "blocked": true
+    },
+    {
+      "url": "https://www.googletagmanager.com/gtm.js?id=GTM-5DKMGSK3",
+      "blocked": true
+    },
+    {
+      "url": "https://connect.facebook.net/en_US/fbevents.js",
+      "blocked": true
+    },
+    {
+      "url": "https://www.toryod.co/badge/35d2877e-e97a-45ee-a6df-aefa5e09e2b3",
+      "blocked": true
+    }
+  ]
+}

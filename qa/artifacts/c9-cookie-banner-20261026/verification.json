@@ -1,0 +1,29 @@
+{
+  "taskId": "v5-cookie-banner-timing-20261026",
+  "branch": "codex/website-v5-cookie-banner-timing-20261026",
+  "baseSha": "cdf97c7f31a3628c09f8fe61f45c609f3aa75c9e",
+  "productChange": "Replace the 800ms first-visit timer and cleanup with immediate setVisible(true); one documented line-level React performance lint exception.",
+  "cookieSourceSha256": "3c4c0e8f54937e8183c01a79de9d6674c755d9fcdd015c5615ffad68f24333ab",
+  "checks": {
+    "check:security-baseline": "PASS Node24.22.1 Next16.4.2 React19.2.9",
+    "check:foundation": "PASS exit0; 9 existing lint warnings",
+    "analytics-regression": "PASS",
+    "production-cms-source-admission": "PASS",
+    "cookie-timing-proof-tests": "PASS 3/3",
+    "compiled-app-build": "PASS webpack Next16.4.2; final product source; synthetic local lane, Node outbound denied and local font fixture",
+    "browserTimingFocusReloadFooter": "PASS 4/4; 412x823 and1440x1000; no JS page errors",
+    "tracking-consent-regression": "44/49 PASS; original script retained; exit1"
+  },
+  "trackingFailures": [
+    "pre-consent LINE test finds navbar CTA",
+    "six active LINE surfaces emit once each",
+    "LINE location navbar emits once",
+    "tool result and policy links are not double counted",
+    "LINE events contain only safe context"
+  ],
+  "acceptanceBlocker": "Zero GA/GTM/Meta requests before accepting conflicts with retained GTM bootstrap contract. All four cases attempted GTM bootstrap before choice; locally blocked. No tracking-contract change authorized.",
+  "recoveredEnvironmentFailure": "Disk exhaustion interrupted first screenshots and caused two Drive staging assertions to fail the required256MiB reserve. Owned generated caches reclaimed by parent; final full foundation passed.",
+  "newPublicCopy": [],
+  "externalActions": "No provider/CMS/DB/Production interaction, push, PR, merge or deployment.",
+  "trackingIsolation": "Fresh owned Chrome profile; CDP9349 verified by unique marker; Node and child loopback-only preload; all browser nonlocal requests aborted; original provider URL blocking retained."
+}
