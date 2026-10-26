@@ -38,6 +38,7 @@ function ChatIcon() {
 export default function V5ChatDock({ config, context, fallbackHref }: { config: LineChatConfig; context: ChatPageContext; fallbackHref: string }) {
   const [shown, setShown] = useState(true);
   const [moneyStoryHidden, setMoneyStoryHidden] = useState(false);
+  const [typing, setTyping] = useState(false);
   const enhanced = useHydrated();
   const [cookieOffset, setCookieOffset] = useState(0);
   const [panel, setPanel] = useState<{ trigger: V5ChatPanelTrigger; returnTo: HTMLElement | null; closing?: boolean; instance: number; resultTool?: V5OpenChatDetail["resultTool"] } | null>(null);
@@ -54,6 +55,26 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
     window.addEventListener('ccpun:money-story-dock', sync);
     sync();
     return () => window.removeEventListener('ccpun:money-story-dock', sync);
+  }, []);
+
+  useEffect(() => {
+    const isField = (target: EventTarget | null) => target instanceof HTMLElement && target.matches("input,select,textarea");
+    const focusIn = (event: FocusEvent) => setTyping(isField(event.target));
+    // relatedTarget preserves hiding when focus moves directly between fields.
+    const focusOut = (event: FocusEvent) => {
+      const nextField = isField(event.relatedTarget);
+      setTyping(nextField);
+      if (isField(event.target) && !nextField) revealRef.current();
+    };
+    let active = true;
+    queueMicrotask(() => { if (active) setTyping(isField(document.activeElement)); });
+    document.addEventListener("focusin", focusIn);
+    document.addEventListener("focusout", focusOut);
+    return () => {
+      active = false;
+      document.removeEventListener("focusin", focusIn);
+      document.removeEventListener("focusout", focusOut);
+    };
   }, []);
 
   useEffect(() => {
@@ -183,7 +204,7 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
   const finishClose = useCallback(() => setPanel(current => current?.closing ? null : current), []);
 
   const open = panel !== null && !panel.closing;
-  const state = open || shown ? "shown" : "hidden";
+  const state = typing ? "hidden" : open || shown ? "shown" : "hidden";
   const style = cookieOffset > 0 ? { "--v5-dock-offset": `${cookieOffset}px` } as CSSProperties : undefined;
 
   if (!config.enabled) {
@@ -192,7 +213,7 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
         <div ref={dockRef} className={styles.dock} data-state={state} data-v5-chat-dock="" hidden={moneyStoryHidden || undefined} inert={moneyStoryHidden || undefined} aria-hidden={moneyStoryHidden || undefined}>
           <a className={styles.trigger} href={LINE_OA_CHAT_URL} target="_blank" rel="noopener noreferrer"
             onClick={() => trackEvent("line_oa_click", { contact_channel: "line", cta_location: "chat_button", page_group: token, surface_group: chatSurfaceGroup(token) })}>
-            <ChatIcon />{LABEL}
+            <ChatIcon /><span className={styles.triggerLabel}>{LABEL}</span>
           </a>
         </div>
       </div>
@@ -213,7 +234,7 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
             // role="button": Space activates it like a button (Enter already follows the click).
             if (event.key === " ") { event.preventDefault(); setPanel({ instance: ++panelSequence.current, trigger: "dock", returnTo: null }); }
           }}>
-          <ChatIcon />{LABEL}
+          <ChatIcon /><span className={styles.triggerLabel}>{LABEL}</span>
         </a>
       </div>
       {panel ? <Suspense fallback={null}><V5ChatPanel key={panel.instance} config={config} context={context} trigger={panel.trigger} resultTool={panel.resultTool} closing={panel.closing === true} onClose={close} onClosed={finishClose} /></Suspense> : null}

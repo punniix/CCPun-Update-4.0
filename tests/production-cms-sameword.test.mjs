@@ -1,5 +1,8 @@
+import { inverseC17OnCurrentUatHtml, c17CurrentUatPins } from '../qa/v5-c17-current-uat-successor.mjs';
+import { inverseWebsiteV5C17Dock } from '../qa/website-v5-c17-render-successor.mjs';
+const inverseC15OnC14Html = (html, key) => inverseC15(inverseC17OnCurrentUatHtml(html, key), key);
 import { inverseEyebrowHtml, eyebrowHtmlPins } from "../qa/v5-eyebrow-html.mjs";
-import { inverseC15OnC14Html } from '../qa/v5-c15-c14-merge-successor.mjs';
+import { inverseC15OnC14Html as inverseC15 } from '../qa/v5-c15-c14-merge-successor.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -536,6 +539,25 @@ test('C15 default-only inverse rejects edited copy, moved nodes, duplicates and 
       assert.equal(inverseC15OnC14Html(mutation,index),mutation,'unknown merged output is never normalized');
       assert.throws(()=>inverseWebsiteV5C14(inverseC15OnC14Html(mutation,index),index),/unknown full render/);
       assert.throws(()=>inverseEyebrowHtml(mutation,index),/unknown full render/);
+    }
+  }
+});
+
+// Integration successor: historical C17/C11/C14/C15 pins are never edited.
+test('C17 on current UAT peels only the full approved render and preserves all historical guards', async () => {
+  for (const [index, scope] of [[3,'ci'],[4,'fhc'],[8,'privacy'],[9,'cookies'],[10,'moneyStory']]) {
+    const current = await renderFixture(scope, {});
+    assert.equal(digest(current), c17CurrentUatPins[index].after);
+    const prior = inverseC17OnCurrentUatHtml(current, index);
+    assert.equal(digest(prior), c17CurrentUatPins[index].before);
+    const c11 = inverseWebsiteV5C14(inverseC15(prior,index),index);
+    const span = '<span class="triggerLabel">คุยกับปั้นทาง LINE</span>';
+    const originalC17 = c11.replace('</svg>คุยกับปั้นทาง LINE</a>', '</svg>'+span+'</a>');
+    assert.equal(inverseWebsiteV5C17Dock(originalC17,index), c11, 'Original C17 full pins still verified');
+    assert.equal(digest(inverseWebsiteV5C11Header(c11,index)),websiteV5PhaseBRenderGoldens.v5[index]);
+    for (const mutation of [current.replace(span,span+span), current.replace(span,''),current.replace(span,'')+span,current.replace('คุยกับปั้นทาง LINE','ข้อความเปลี่ยน'),current.replace('</main>','unrelated</main>')]) {
+      assert.equal(inverseC17OnCurrentUatHtml(mutation,index),mutation,'Unknown output never normalized');
+      assert.throws(()=>inverseWebsiteV5C14(inverseC15OnC14Html(mutation,index),index),/unknown full render/);
     }
   }
 });

@@ -1,3 +1,4 @@
+import {c17CurrentUatSourcePredecessor} from '../qa/v5-c17-current-uat-successor.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {createHash}from'node:crypto';
@@ -11,7 +12,7 @@ const sha=x=>createHash('sha256').update(x).digest('hex');
 test('C15 exact reviewed source inverses preserve old pins and reject every unrelated byte',()=>{
  for(const[file,pin]of Object.entries(eyebrowSourceSuccessors)){
   // Integrated on the C14 head: V5Article also carries C14's exact date edits; peel only those.
-  const current=c15SourceFromMerge(file,read(file));assert.equal(sha(current),pin.after,file);
+  const current=c15SourceFromMerge(file,c17CurrentUatSourcePredecessor(file,read(file)));assert.equal(sha(current),pin.after,file);
   const prior=eyebrowPredecessor(file,current);assert.equal(sha(prior),pin.before,file);
   assert.equal(eyebrowPredecessor(file,prior),prior);
   for(const changed of [current+'\n',current.replace(/\S/,'X')])assert.equal(eyebrowPredecessor(file,changed),changed,'unknown source is never normalized');

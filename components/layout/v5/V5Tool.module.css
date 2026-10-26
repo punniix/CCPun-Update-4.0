@@ -87,6 +87,10 @@
   min-width: 0;
   font-family: var(--v5-font);
 }
+/* C17b: reserve the tablet form's right edge for the fixed56px LINE corner control. */
+@media (min-width: 600px) and (max-width: 1023px) {
+  :global(:is(#ci-calculator, #fhc-calculator)) .calcScope { padding-right: 72px; }
+}
 .calcScope [data-ui="human-centered-calculator-card"] { max-width: none; border-radius: var(--v5-radius-lg); padding: clamp(20px, 3vw, 28px); background: var(--v5-card-alt) !important; border-color: var(--v5-border-soft) !important; }
 .calcScope input:not([type="range"]):not([type="radio"]):not([type="checkbox"]), .calcScope select { border-radius: var(--v5-radius-sm); }
 /*
@@ -317,3 +321,8 @@
 @keyframes v5ResultTickReveal { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
 @keyframes v5ResultTickDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @media (prefers-reduced-motion: reduce) { .resultTick, .resultTick path { animation: none; } }
+
+/* Keep only the first CI form description clear of the fixed mobile LINE control. */
+@media (max-width: 599px) {
+  :global(#ci-calculator) .calcScope :global(#ci-step-1-title) + p { padding-right: 40px; }
+}
