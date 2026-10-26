@@ -69,6 +69,7 @@ const nextConfig: NextConfig = {
     root: path.resolve(process.cwd(), "../.."),
   },
   experimental: {
+    inlineCss: true,
     optimizePackageImports: [
       "lucide-react",
       "@radix-ui/react-slot",

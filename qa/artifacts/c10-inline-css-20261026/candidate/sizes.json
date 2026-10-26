@@ -1,0 +1,68 @@
+[
+  {
+    "path": "/",
+    "status": 200,
+    "raw": 451188,
+    "gzip": 85030,
+    "brotli": 35394,
+    "stylesheetLinks": 0,
+    "styleTags": 6,
+    "csp": "upgrade-insecure-requests; default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net https://static.cloudflareinsights.com https://*.cloudflare.com https://apis.google.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://static.cloudflareinsights.com https://fonts.googleapis.com https://fonts.gstatic.com https://lead-proxy.ccpun.com https://www.googleapis.com https://accounts.google.com https://ccb9lnw5.api.sanity.io wss://ccb9lnw5.api.sanity.io; frame-src 'self' https://www.facebook.com https://accounts.google.com https://docs.google.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://www.facebook.com",
+    "styleBytes": 123516
+  },
+  {
+    "path": "/ci-planning/",
+    "status": 200,
+    "raw": 451417,
+    "gzip": 84021,
+    "brotli": 36265,
+    "stylesheetLinks": 0,
+    "styleTags": 2,
+    "csp": "upgrade-insecure-requests; default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net https://static.cloudflareinsights.com https://*.cloudflare.com https://apis.google.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://static.cloudflareinsights.com https://fonts.googleapis.com https://fonts.gstatic.com https://lead-proxy.ccpun.com https://www.googleapis.com https://accounts.google.com https://ccb9lnw5.api.sanity.io wss://ccb9lnw5.api.sanity.io; frame-src 'self' https://www.facebook.com https://accounts.google.com https://docs.google.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://www.facebook.com",
+    "styleBytes": 114287
+  },
+  {
+    "path": "/tools/financial-health-check/",
+    "status": 200,
+    "raw": 414096,
+    "gzip": 77657,
+    "brotli": 32634,
+    "stylesheetLinks": 0,
+    "styleTags": 2,
+    "csp": "upgrade-insecure-requests; default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net https://static.cloudflareinsights.com https://*.cloudflare.com https://apis.google.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://static.cloudflareinsights.com https://fonts.googleapis.com https://fonts.gstatic.com https://lead-proxy.ccpun.com https://www.googleapis.com https://accounts.google.com https://ccb9lnw5.api.sanity.io wss://ccb9lnw5.api.sanity.io; frame-src 'self' https://www.facebook.com https://accounts.google.com https://docs.google.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://www.facebook.com",
+    "styleBytes": 114287
+  },
+  {
+    "path": "/tools/aia-fund-allocation/",
+    "status": 200,
+    "raw": 459239,
+    "gzip": 86656,
+    "brotli": 35101,
+    "stylesheetLinks": 0,
+    "styleTags": 2,
+    "csp": "upgrade-insecure-requests; default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net https://static.cloudflareinsights.com https://*.cloudflare.com https://apis.google.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://static.cloudflareinsights.com https://fonts.googleapis.com https://fonts.gstatic.com https://lead-proxy.ccpun.com https://www.googleapis.com https://accounts.google.com https://ccb9lnw5.api.sanity.io wss://ccb9lnw5.api.sanity.io; frame-src 'self' https://www.facebook.com https://accounts.google.com https://docs.google.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://www.facebook.com",
+    "styleBytes": 146087
+  },
+  {
+    "path": "/blog/",
+    "status": 200,
+    "raw": 389181,
+    "gzip": 74096,
+    "brotli": 30743,
+    "stylesheetLinks": 0,
+    "styleTags": 2,
+    "csp": "upgrade-insecure-requests; default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net https://static.cloudflareinsights.com https://*.cloudflare.com https://apis.google.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://static.cloudflareinsights.com https://fonts.googleapis.com https://fonts.gstatic.com https://lead-proxy.ccpun.com https://www.googleapis.com https://accounts.google.com https://ccb9lnw5.api.sanity.io wss://ccb9lnw5.api.sanity.io; frame-src 'self' https://www.facebook.com https://accounts.google.com https://docs.google.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://www.facebook.com",
+    "styleBytes": 114287
+  },
+  {
+    "path": "/blog/personal-finance/c10-local-fixture/",
+    "status": 200,
+    "raw": 403905,
+    "gzip": 76879,
+    "brotli": 32433,
+    "stylesheetLinks": 0,
+    "styleTags": 2,
+    "csp": "upgrade-insecure-requests; default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net https://static.cloudflareinsights.com https://*.cloudflare.com https://apis.google.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://static.cloudflareinsights.com https://fonts.googleapis.com https://fonts.gstatic.com https://lead-proxy.ccpun.com https://www.googleapis.com https://accounts.google.com https://ccb9lnw5.api.sanity.io wss://ccb9lnw5.api.sanity.io; frame-src 'self' https://www.facebook.com https://accounts.google.com https://docs.google.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://www.facebook.com",
+    "styleBytes": 115872
+  }
+]
