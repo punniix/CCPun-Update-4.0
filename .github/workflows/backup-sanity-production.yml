@@ -1,0 +1,108 @@
+name: CCPun Sanity Production Backup
+
+on:
+  schedule:
+    # 02:00 Asia/Bangkok every day.
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ccpun-sanity-production-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SANITY_PROJECT_ID: kyfxgjnq
+      SANITY_DATASET: production
+      GOOGLE_DRIVE_BACKUP_FOLDER_ID: 17OTY--nrou3JjcKeDjl2OLg95n1CpdA2
+      GOOGLE_BACKUP_REGISTRY_SHEET_ID: 12hwLk83xxergE9pmf_5JJICmTuti3FhWiHlPA3ebvpU
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Use Node 24
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate backup credentials
+        env:
+          SANITY_AUTH_TOKEN: ${{ secrets.SANITY_BACKUP_READ_TOKEN }}
+          GOOGLE_BACKUP_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_BACKUP_SERVICE_ACCOUNT_JSON }}
+        run: |
+          test -n "$SANITY_AUTH_TOKEN" || { echo 'Missing SANITY_BACKUP_READ_TOKEN'; exit 1; }
+          test -n "$GOOGLE_BACKUP_SERVICE_ACCOUNT_JSON" || { echo 'Missing GOOGLE_BACKUP_SERVICE_ACCOUNT_JSON'; exit 1; }
+
+      - name: Build snapshot identity
+        id: identity
+        shell: bash
+        run: |
+          STAMP="$(TZ=Asia/Bangkok date +'%Y%m%d-%H%M%S')"
+          SHORT_SHA="${GITHUB_SHA::12}"
+          SNAPSHOT_ID="sanity-prod-${STAMP}-${SHORT_SHA}"
+          BACKUP_FILE="${RUNNER_TEMP}/ccpun-production-${SNAPSHOT_ID}.tar.gz"
+          BACKUP_STATS_FILE="${RUNNER_TEMP}/ccpun-production-${SNAPSHOT_ID}.stats.json"
+          echo "snapshot_id=${SNAPSHOT_ID}" >> "$GITHUB_OUTPUT"
+          echo "backup_file=${BACKUP_FILE}" >> "$GITHUB_OUTPUT"
+          echo "backup_stats_file=${BACKUP_STATS_FILE}" >> "$GITHUB_OUTPUT"
+
+      - name: Capture source counts for restore verification
+        env:
+          SANITY_AUTH_TOKEN: ${{ secrets.SANITY_BACKUP_READ_TOKEN }}
+          BACKUP_STATS_FILE: ${{ steps.identity.outputs.backup_stats_file }}
+        run: node scripts/backup/collect-sanity-backup-stats.mjs
+
+      - name: Export Sanity production with drafts and assets
+        env:
+          SANITY_AUTH_TOKEN: ${{ secrets.SANITY_BACKUP_READ_TOKEN }}
+        run: |
+          npx sanity datasets export production "${{ steps.identity.outputs.backup_file }}" \
+            --project-id kyfxgjnq \
+            --overwrite
+          test -s "${{ steps.identity.outputs.backup_file }}"
+
+      - name: Upload archive and manifest to CCPun Google Drive
+        id: upload
+        env:
+          GOOGLE_BACKUP_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_BACKUP_SERVICE_ACCOUNT_JSON }}
+          BACKUP_FILE: ${{ steps.identity.outputs.backup_file }}
+          BACKUP_STATS_FILE: ${{ steps.identity.outputs.backup_stats_file }}
+          BACKUP_SNAPSHOT_ID: ${{ steps.identity.outputs.snapshot_id }}
+          BACKUP_GIT_SHA: ${{ github.sha }}
+          BACKUP_TYPE: Full Sanity production dataset export
+        run: node scripts/backup/upload-sanity-backup-to-drive.mjs
+
+      - name: Keep short-lived emergency copy in GitHub Actions
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ${{ steps.identity.outputs.snapshot_id }}
+          path: |
+            ${{ steps.identity.outputs.backup_file }}
+            ${{ steps.identity.outputs.backup_file }}.manifest.json
+            ${{ steps.identity.outputs.backup_stats_file }}
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Backup summary
+        run: |
+          {
+            echo '### CCPun Production Backup'
+            echo ''
+            echo "- Snapshot: ${{ steps.identity.outputs.snapshot_id }}"
+            echo "- Sanity: kyfxgjnq/production"
+            echo "- Drive archive: ${{ steps.upload.outputs.drive_archive_id }}"
+            echo "- Drive manifest: ${{ steps.upload.outputs.drive_manifest_id }}"
+            echo "- SHA-256: ${{ steps.upload.outputs.archive_sha256 }}"
+            echo '- Manifest: includes source document/draft/asset counts for restore verification'
+            echo '- Restore status: PENDING RESTORE TEST'
+          } >> "$GITHUB_STEP_SUMMARY"

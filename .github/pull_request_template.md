@@ -2,6 +2,14 @@
 
 Describe the user/business outcome and the smallest implementation that achieves it.
 
+## Task scope
+
+Task-ID: <!-- required for agent branches; must equal the branch task, e.g. heart-activated-at-20261023 -->
+Agent: <!-- claude | codex | khai | owner -->
+
+- [ ] This PR covers only the assigned task scope; out-of-scope findings are listed as follow-ups, not included.
+- [ ] After merge/close I will run `node scripts/agent-guard.mjs cleanup --apply` and remove the head branch.
+
 ## Change type
 
 - [ ] Feature
