@@ -4,7 +4,9 @@ import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { websiteV5PhaseBRenderGoldens } from '../qa/website-v5-phase-a-proof.mjs';
-import { inverseWebsiteV5C11Header } from '../qa/website-v5-c11-render-successor.mjs';
+import { inverseWebsiteV5C11Header as inverseC11Header } from '../qa/website-v5-c11-render-successor.mjs';
+import { inverseWebsiteV5C17Dock } from '../qa/website-v5-c17-render-successor.mjs';
+const inverseWebsiteV5C11Header = (html, index) => inverseC11Header(inverseWebsiteV5C17Dock(html, index), index);
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 const require = createRequire(import.meta.url);
 const React = require('react');
@@ -477,4 +479,19 @@ test('C11 header inverse preserves all old goldens and rejects unknown, duplicat
   const current = await renderFixture('ci', {});
   assert.throws(() => inverseWebsiteV5C11Header(current, 4), /unknown full render/, 'cases cannot borrow a different pin');
   assert.throws(() => inverseWebsiteV5C11Header(current, 5), /unregistered render case/);
+});
+
+
+test('C17 exact label-wrapper successor preserves C11 and Phase B pins and rejects copy, placement and unrelated mutations', async () => {
+  for (const [index, scope] of [[3, 'ci'], [4, 'fhc'], [8, 'privacy'], [9, 'cookies'], [10, 'moneyStory']]) {
+    const current = await renderFixture(scope, {});
+    const wrapped = '<span class="triggerLabel">คุยกับปั้นทาง LINE</span>';
+    const predecessor = inverseWebsiteV5C17Dock(current, index);
+    assert.equal(predecessor, current.replace(wrapped, 'คุยกับปั้นทาง LINE'));
+    assert.equal(inverseWebsiteV5C17Dock(predecessor, index), predecessor);
+    assert.equal(digest(inverseC11Header(predecessor, index)), websiteV5PhaseBRenderGoldens.v5[index]);
+    for (const mutation of [current.replace(wrapped, wrapped + wrapped), current.replace(wrapped, ''), current.replace(wrapped, '') + wrapped, current.replace('คุยกับปั้นทาง LINE', 'ข้อความเปลี่ยน'), current.replace('</main>', 'unrelated</main>')]) {
+      assert.throws(() => inverseWebsiteV5C17Dock(mutation, index), /unknown full render/);
+    }
+  }
 });

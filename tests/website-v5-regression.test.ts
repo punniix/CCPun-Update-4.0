@@ -300,12 +300,13 @@ test("AIA fund tool (2026-10-26): same gate, robots, sitemap status and engine a
 // Owner-approved 2026-10-25: D1 glass, D2 theme, D3 bottom bar, D4 blog de-duplication, T1 /tools/ hub.
 // ---------------------------------------------------------------------------
 
-test("D1: backdrop-filter glass only on the header and the bottom LINE bar", () => {
+test("D1/C17: glass is allowed only on the header; the mobile LINE control overrides its historical bar skin", () => {
   const sources = [...v5Files.filter((file) => file.endsWith(".css")), "features/tools-hub/ToolsHub.module.css"];
   const glass = sources.flatMap((file) => read(file).split("\n").filter((line) => /backdrop-filter:(?!\s*none)/.test(line)).map((line) => `${file}: ${line.trim().slice(0, 40)}`));
   assert.deepEqual([...new Set(glass.map((line) => line.split(":")[0]))].sort(), ["components/layout/v5/V5.module.css", "components/layout/v5/V5ChatDock.module.css"].sort());
   assert.match(read("components/layout/v5/V5.module.css"), /\.header \{[^}]*backdrop-filter: saturate/);
   assert.match(read("components/layout/v5/V5ChatDock.module.css"), /\.dock \{[^}]*backdrop-filter: saturate/);
+  assert.match(read("components/layout/v5/V5ChatDock.module.css"), /@media \(max-width: 1023px\) \{\s*\.dock \{[^}]*inset: auto 16px calc\(16px \+ env\(safe-area-inset-bottom, 0px\)\) auto;[^}]*padding: 0; background: none; border: 0; backdrop-filter: none; -webkit-backdrop-filter: none;/);
   assert.match(read("components/layout/v5/V5.module.css"), /\.root :global\(:is\(\.glass-card, \.glass-button, \.glass-button-sm\)\) \{ backdrop-filter: none;/);
 });
 
@@ -860,4 +861,18 @@ test("LINE chat dock stays usable above the cookie notice: the notice's inert bo
   assert.doesNotMatch(dock, /getConsentData|ccpun_cookie_consent/, "opening the panel does not read consent");
   assert.equal((panel.match(/getConsentData\(\)/g) ?? []).length, 1, "the panel reads consent only for the L3 campaign follow-through");
   assert.match(read("components/layout/v5/V5ChatDockServer.tsx"), /resolveChatPanel\(\{ \.\.\.context, config, now, consentGiven: false \}\)/, "the no-JS link carries the page prefill without consent");
+});
+
+
+test("C17: mobile LINE trigger is a named 56px circle with safe footer room; desktop and motion stay intact", () => {
+  const css = read("components/layout/v5/V5ChatDock.module.css");
+  const dock = read("components/layout/v5/V5ChatDock.tsx");
+  assert.match(css, /@media \(max-width: 1023px\) \{[\s\S]*?\.trigger \{ width: 56px; height: 56px; min-height: 56px; padding: 0; border-radius: 50%; box-shadow: var\(--v5-shadow\); \}/);
+  assert.match(css, /\.trigger svg \{ width: 24px; height: 24px; \}/);
+  assert.match(css, /\.triggerLabel \{ position: absolute; width: 1px; height: 1px;[^}]*clip-path: inset\(50%\); white-space: nowrap;/);
+  assert.equal((dock.match(/<ChatIcon \/><span className=\{styles.triggerLabel\}>\{LABEL\}<\/span>/g) ?? []).length, 2);
+  assert.match(dock, /const LABEL = "คุยกับปั้นทาง LINE";/);
+  assert.match(css, /@media \(min-width: 1024px\) \{\s*\.dock \{ inset: auto 32px 32px auto;/);
+  assert.match(css, /\.trigger \{ width: auto; box-shadow: var\(--v5-shadow\); \}/);
+  assert.match(read("components/layout/v5/V5.module.css"), /@media \(max-width: 1023px\) \{ \.footer \{ padding-bottom: calc\(80px \+ env\(safe-area-inset-bottom, 0px\)\); \} \}/);
 });

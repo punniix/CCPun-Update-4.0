@@ -183,7 +183,7 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
         <div ref={dockRef} className={styles.dock} data-state={state} data-v5-chat-dock="">
           <a className={styles.trigger} href={LINE_OA_CHAT_URL} target="_blank" rel="noopener noreferrer"
             onClick={() => trackEvent("line_oa_click", { contact_channel: "line", cta_location: "chat_button", page_group: token, surface_group: chatSurfaceGroup(token) })}>
-            <ChatIcon />{LABEL}
+            <ChatIcon /><span className={styles.triggerLabel}>{LABEL}</span>
           </a>
         </div>
       </div>
@@ -204,7 +204,7 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
             // role="button": Space activates it like a button (Enter already follows the click).
             if (event.key === " ") { event.preventDefault(); setPanel({ instance: ++panelSequence.current, trigger: "dock", returnTo: null }); }
           }}>
-          <ChatIcon />{LABEL}
+          <ChatIcon /><span className={styles.triggerLabel}>{LABEL}</span>
         </a>
       </div>
       {panel ? <Suspense fallback={null}><V5ChatPanel key={panel.instance} config={config} context={context} trigger={panel.trigger} resultTool={panel.resultTool} closing={panel.closing === true} onClose={close} onClosed={finishClose} /></Suspense> : null}

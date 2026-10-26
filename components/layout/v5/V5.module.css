@@ -301,8 +301,8 @@
 /* Footer. */
 .footer { background: var(--v5-bg); border-top: 1px solid var(--v5-border-soft); padding-block: 56px 32px; }
 @media (min-width: 1024px) { .footer { padding-block: 72px 40px; } }
-/* Room for the bottom LINE bar on phones, so it never covers the last footer line. */
-@media (max-width: 1023px) { .footer { padding-bottom: 108px; } }
+/* Room for the mobile LINE corner button, including the device safe area. */
+@media (max-width: 1023px) { .footer { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); } }
 .footerMark { display: block; font-size: clamp(64px, 14vw, 132px); line-height: 0.9; font-weight: 500; letter-spacing: -0.02em; color: var(--v5-watermark); margin-bottom: 36px; user-select: none; font-family: var(--v5-font-display); }
 .footerGrid { display: grid; gap: 28px 24px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (min-width: 900px) { .footerGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
