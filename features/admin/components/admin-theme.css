@@ -94,6 +94,11 @@
   }
   html[data-admin-theme="light"] .admin-theme-scope :focus-visible { outline-color: #765612; }
 
+  /* The LINE chat phone preview shows the website's dark chat dock; it stays dark. */
+  html[data-admin-theme="light"] .admin-theme-scope .bg-\[\#251818\].text-\[\#faf9f9\] { background-color: #251818; color: #faf9f9; --color-white: #ffffff; color-scheme: dark; }
+  html[data-admin-theme="light"] .admin-theme-scope .text-\[\#faf9f9\] .bg-\[\#352727\] { background-color: #352727; }
+  html[data-admin-theme="light"] .admin-theme-scope .text-\[\#faf9f9\] .text-\[\#baabab\] { color: #baabab; }
+
   /* Literal colour utilities (generated from the Admin sources; dark text on gold stays). */
   html[data-admin-theme="light"] .admin-theme-scope .bg-\[\#151a20\] { background-color: #ffffff; }
   html[data-admin-theme="light"] .admin-theme-scope .bg-\[\#171b21\] { background-color: #ffffff; }
