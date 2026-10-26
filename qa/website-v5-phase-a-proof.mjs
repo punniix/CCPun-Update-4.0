@@ -181,6 +181,10 @@ export const websiteV5PhaseBRenderGoldens = Object.freeze({
   // LINE link enhanced into the panel button, visible from load) and no gold closing band.
   // v5 polish (UAT, 2026-10-25): FHC (4) and Money Story (10) guide cards carry the count-aware cover `sizes`
   // from components/layout/v5/card-sizes.ts; that attribute is the only render difference, so both digests move once.
-  v5: { "3": "b9d4893f6e4e0336f239e650dae4a81f5bf6262839e0440b95a1af8e64356b5e", "4": "78a2a35af336f50b055c645487a45f25bde1dcad226eb18e6659ff051887d4e9", "8": "943dbbb2d5db0dba7987ed8d1efd95ed05ba6a3cfb60cc30c9d9c00a08293d55", "9": "83422f6f47eba8d6054b768c523897b1a7fe61ba85a06bd5c282ff03a62b943d", "10": "65c25c3614a5b110f4eddf35d3b9ead42fbbf91c9a4b40c7f2b3283d261f134a" },
+  // LINE chat dock fix (owner bug 2026-10-26, UAT): the dock and its panel render inside one chat-layer wrapper
+  // (<div class="layer" data-v5-chat-layer="">, display: contents) so the cookie notice's inert boundary can skip
+  // it; that wrapper is the only render difference (previous digests b9d4893f, 78a2a35a, 943dbbb2, 83422f6f,
+  // 65c25c36 reproduce exactly without it), so all five digests move once.
+  v5: { "3": "05ca798ac13d62e7b007b26a53f25d5644bd9b43d935af1b11a23d9c1991cc23", "4": "4c8e845d01aced00f8e955aa181069a7ceb912d7290e8b3d75f68616c876f671", "8": "f83f0b1a47a85c86dfb6bbe505d12cb0c4fd7fab20169b8b1695690bbcb8d0eb", "9": "83edfb57e70f2bcc91c776e55eac23e8d003f0c2eb97069a124740afbd369bdd", "10": "0271715d50563659ed0dfe76055c572f730f892af9b4fb97299775c4b37d6339" },
   // END Phase B render goldens
 });

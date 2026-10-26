@@ -11,6 +11,9 @@ import { listFallbackTopics, listLinkableTopics, HOME_CORE_GUIDE_SLUGS, TOPIC_CL
 import { buildCategoryRegistry } from "../lib/content/category-registry";
 import { listToolGuides, TOOL_GUIDE_TOPICS } from "../components/layout/v5/tool-guides";
 import { v5CardGridSizes, V5_HORIZONTAL_CARD_SIZES } from "../components/layout/v5/card-sizes";
+import { exemptFromInert, restoreInert, type InertRecord } from "../components/layout/v5/chat-layer";
+import { createRequire } from "node:module";
+import { transformSync } from "esbuild";
 // v5 motion round (UAT): result motion, page transition and flip-card contracts.
 import "./website-v5-motion.test.mjs";
 
@@ -323,9 +326,15 @@ test("D3/L8 + one LINE button: the dock is visible from load, tucks away below t
   assert.match(dock, /delta < -SCROLL_DELTA/);
   assert.match(dock, /delta > SCROLL_DELTA && y > revealY \+ HIDE_AFTER/);
   assert.match(dock, /passive: true/);
-  // Cookie-sheet offset (transform only, so no layout shift); the dock steps aside if the notice covers most of the screen.
+  // Cookie-sheet offset (transform only, so no layout shift). Owner requirement 2026-10-26: the chat does not
+  // depend on consent, so the dock no longer steps aside for a tall notice; the lift is capped to keep it on screen.
   assert.match(dock, /const COOKIE_DIALOG = '\[role="dialog"\]\[aria-labelledby\^="cookie"\]';/);
-  assert.match(dock, /setCookieCovers\(offset > window\.innerHeight \* 0\.5\)/);
+  assert.match(dock, /setCookieOffset\(Math\.round\(Math\.max\(0, Math\.min\(height, room\)\)\)\);/);
+  assert.doesNotMatch(dock, /cookieCovers/);
+  assert.match(dock, /const state = open \|\| shown \? "shown" : "hidden";/);
+  // It never stays hidden: back on scroll up, at the page end, and when the panel closes.
+  assert.match(dock, /y \+ window\.innerHeight >= document\.documentElement\.scrollHeight - 4/);
+  assert.match(dock, /setPanel\(null\);\n    revealRef\.current\(\);/);
   assert.match(dock, /"--v5-dock-offset": `\$\{cookieOffset\}px`/);
   // No-JS fallback: the dock is a real LINE OA link (this page's prefill), enhanced into the panel button.
   assert.match(dock, /href=\{fallbackHref\} target="_blank" rel="noopener noreferrer"/);
@@ -751,4 +760,76 @@ test("Polish: the late share count never moves the article header; Thai labels s
   assert.match(home, /@media \(min-width: 1024px\) \{ \.hero \{ padding-block: 56px 64px; \} \}/);
   assert.match(home, /\.credentials \{ gap: 8px; margin-top: 20px; padding: 0; border: 0; background: none; \}/);
   assert.match(read("components/layout/v5/V5LicenceFlip.module.css"), /\.line \{ display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; \}/);
+});
+
+test("LINE chat dock stays usable above the cookie notice: the notice's inert boundary skips the chat layer only (owner bug 2026-10-26)", () => {
+  // The cookie notice (protected, not edited) makes every node outside itself inert. Its exact loop is run
+  // here from its own source, so this test follows the real notice rather than a copy of it.
+  const consent = read("features/analytics/components/CookieConsent.tsx");
+  const loop = consent.match(/    const inerted: Array<[\s\S]*?\n      branch = branch\.parentElement;\n    \}\n/)?.[0];
+  assert.ok(loop, "CookieConsent still inerts the page around the notice; re-check the dock's chat layer if this changes");
+  const runNotice = new Function("dialog", "window", "document", `${transformSync(loop, { loader: "ts" }).code}\nreturn inerted;`) as (dialog: Element, window: unknown, document: unknown) => Array<{ node: HTMLElement; value: boolean }>;
+
+  const { JSDOM } = createRequire(import.meta.url)("jsdom");
+  const dom = new JSDOM(`<!doctype html><body><a class="skip" href="#main-content">skip</a><div class="root"><header><a href="/">home</a></header><main id="main-content"><a data-v5-chat-link href="https://lin.ee/x">LINE</a></main><footer></footer>
+    <div data-v5-chat-layer><div data-v5-chat-dock><a id="trigger" href="https://line.me/R/oaMessage/%40ccpun/?x">LINE</a></div><div class="backdrop"></div><div id="v5-chat-panel" role="dialog"><button>close</button><a data-chat-topic href="https://line.me/R/oaMessage/%40ccpun/?a">a</a><a data-chat-topic href="https://line.me/R/oaMessage/%40ccpun/?b">b</a></div></div>
+  </div><script></script><div role="dialog" aria-labelledby="cookie-title" aria-modal="true"><button>accept</button></div></body>`);
+  const { window } = dom;
+  // jsdom has no HTMLElement.inert; browsers reflect it to the inert attribute.
+  Object.defineProperty(window.HTMLElement.prototype, "inert", { configurable: true, get(this: HTMLElement) { return this.hasAttribute("inert"); }, set(this: HTMLElement, value: boolean) { this.toggleAttribute("inert", Boolean(value)); } });
+  const doc = window.document;
+  const $ = (selector: string) => doc.querySelector(selector) as HTMLElement;
+  const inInert = (selector: string) => Boolean($(selector).closest("[inert]"));
+  const notice = $('[role="dialog"][aria-labelledby^="cookie"]');
+
+  const noticeRecords = runNotice(notice, window, doc);
+  assert.ok(inInert("[data-chat-topic]") && inInert("#trigger"), "baseline: the notice makes the dock and its panel inert (the reported bug)");
+
+  const exempted: InertRecord[] = [];
+  exemptFromInert($("[data-v5-chat-layer]"), exempted);
+  for (const selector of ["#trigger", "#v5-chat-panel", "#v5-chat-panel button", "[data-chat-topic]", ".backdrop"]) assert.equal(inInert(selector), false, `${selector} is not inside an inert subtree`);
+  for (const selector of ["header a", "main [data-v5-chat-link]", "footer", ".skip"]) assert.equal(inInert(selector), true, `${selector} stays inert behind the notice`);
+  assert.equal(inInert('[role="dialog"][aria-labelledby^="cookie"] button'), false, "the notice itself stays usable");
+  exemptFromInert($("[data-v5-chat-layer]"), exempted);
+  assert.equal(exempted.length, 3, "idempotent: header, main and footer are recorded once");
+
+  // Notice closes: it restores its own values, the dock restores the ones it set; nothing stays inert.
+  for (const { node, value } of noticeRecords) node.inert = value;
+  restoreInert(exempted);
+  assert.equal(doc.querySelectorAll("[inert]").length, 0);
+
+  // The dock applies this while the notice is open (watching inert as well as the notice), and undoes it after.
+  const dock = read("components/layout/v5/V5ChatDock.tsx");
+  assert.match(dock, /if \(dialog && layerRef\.current\) exemptFromInert\(layerRef\.current, exempted\);\n      else if \(!dialog\) restoreInert\(exempted\);/);
+  assert.match(dock, /mutations\.observe\(document\.body, \{ childList: true, subtree: true, attributes: true, attributeFilter: \["inert"\] \}\);/);
+  assert.equal((dock.match(/<div ref=\{layerRef\} className=\{styles\.layer\} style=\{style\} data-v5-chat-layer="">/g) ?? []).length, 2, "dock and panel share one chat layer, with or without the panel switched on");
+  assert.match(dock, /\{panel \? <Suspense fallback=\{null\}><V5ChatPanel [^\n]*\n    <\/div>/, "the panel renders inside the chat layer");
+  assert.doesNotMatch(consent, /exemptFromInert|data-v5-chat/, "the cookie notice itself is unchanged");
+
+  // Stacking: the open panel (and its backdrop) sit above the notice; the closed dock stays below it.
+  const css = read("components/layout/v5/V5ChatDock.module.css");
+  const noticeZ = Number(consent.match(/fixed bottom-0 left-0 right-0 z-\[(\d+)\]/)?.[1]);
+  const z = (selector: string) => Number(css.match(new RegExp(`\\.${selector} \\{[^}]*z-index: (\\d+)`))?.[1]);
+  assert.ok(noticeZ > 0);
+  assert.ok(z("panel") > noticeZ && z("backdrop") > noticeZ && z("panel") > z("backdrop"), "open panel above the cookie notice");
+  assert.ok(z("dock") < noticeZ, "the closed dock never covers the notice");
+  assert.match(css, /\.layer \{ display: contents; \}/);
+  assert.match(css, /--v5-panel-lift: clamp\(0px, var\(--v5-dock-offset, 0px\), max\(0px, 100vh - 720px\)\);/, "desktop panel rises with the dock only as far as it still fits");
+
+  // While open, the panel is the top layer: it keeps Escape, Tab and focus for its own controls.
+  const panel = read("components/layout/v5/V5ChatPanel.tsx");
+  assert.match(panel, /window\.addEventListener\("keydown", onKeyDown, true\);/);
+  assert.match(panel, /const keepFocus = \(event: FocusEvent\) => \{ if \(dialog\.contains\(event\.target as Node\)\) event\.stopPropagation\(\); \};/);
+  assert.match(panel, /if \(event\.key === "Escape"\) \{ event\.preventDefault\(\); event\.stopPropagation\(\); onClose\(\); return; \}/);
+
+  // Owner requirement 2026-10-26: the chat never depends on consent. Topics are plain line.me links (same tab on
+  // touch devices, where the LINE app takes over); analytics stay consent-gated inside trackEvent and are
+  // fire-and-forget, so nothing in the dock or panel reads consent before opening the panel or the link.
+  assert.match(panel, /const \[newTab\] = useState\(\(\) => !window\.matchMedia\("\(pointer: coarse\)"\)\.matches\);/);
+  assert.match(panel, /href=\{topic\.href\} target=\{newTab \? "_blank" : undefined\} rel="noopener noreferrer"/);
+  assert.match(panel, /try \{\n\s+trackEvent\("line_oa_click"/);
+  assert.doesNotMatch(panel, /preventDefault\(\)[^\n]*\n[^\n]*trackEvent\("line_oa_click"|await trackEvent|trackEvent\([^)]*\)\.then/, "the topic link is never held back for analytics");
+  assert.doesNotMatch(dock, /getConsentData|ccpun_cookie_consent/, "opening the panel does not read consent");
+  assert.equal((panel.match(/getConsentData\(\)/g) ?? []).length, 1, "the panel reads consent only for the L3 campaign follow-through");
+  assert.match(read("components/layout/v5/V5ChatDockServer.tsx"), /resolveChatPanel\(\{ \.\.\.context, config, now, consentGiven: false \}\)/, "the no-JS link carries the page prefill without consent");
 });

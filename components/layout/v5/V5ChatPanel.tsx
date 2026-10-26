@@ -20,9 +20,14 @@ function Arrow() {
  * Loaded and rendered only after the visitor taps the chat button. The campaign is read from this
  * page's URL; it follows the visitor to later pages only with analytics consent (L3, via
  * lib/acquisition.ts). Topic links open the @ccpun chat with owner-written text only.
+ * The chat never depends on cookie consent (owner requirement 2026-10-26): a topic is a plain link
+ * to line.me that opens whatever the visitor chose; only the analytics event is consent-gated, inside
+ * trackEvent(), and it is fire-and-forget (never awaited, never blocks the link). On touch devices the
+ * link opens in the same tab, where the LINE app takes it over; elsewhere a new tab shows LINE's page.
  */
 export default function V5ChatPanel({ config, context, trigger, onClose }: { config: LineChatConfig; context: ChatPageContext; trigger: V5ChatPanelTrigger; onClose: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const [newTab] = useState(() => !window.matchMedia("(pointer: coarse)").matches);
   const [qr, setQr] = useState<{ viewBox: string; path: string } | null>(null);
 
   const panel = useMemo(() => {
@@ -45,7 +50,7 @@ export default function V5ChatPanel({ config, context, trigger, onClose }: { con
 
   useEffect(() => {
     // panel_trigger (owner-approved 2026-10-25): which control opened it, the dock or an article-body LINE CTA.
-    trackEvent("line_chat_panel_open", { page_group: panel.pageGroup, panel_trigger: trigger, ...(campaignCode ? { campaign_code: campaignCode } : {}) });
+    try { trackEvent("line_chat_panel_open", { page_group: panel.pageGroup, panel_trigger: trigger, ...(campaignCode ? { campaign_code: campaignCode } : {}) }); } catch { /* never blocks the panel */ }
     // One event per opening of this panel instance.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -60,10 +65,13 @@ export default function V5ChatPanel({ config, context, trigger, onClose }: { con
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    dialog.querySelector<HTMLElement>("[data-chat-topic]")?.focus();
+    // The panel is the top layer, also when it opens above the cookie notice (a modal with its own
+    // focus guard). While it is open it owns Escape, Tab and focus for its own controls; once it
+    // closes, the notice (if still open) takes focus back as before.
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { event.preventDefault(); onClose(); return; }
+      if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onClose(); return; }
       if (event.key !== "Tab") return;
+      event.stopPropagation();
       const items = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE));
       if (!items.length) return;
       const first = items[0], last = items[items.length - 1];
@@ -71,8 +79,14 @@ export default function V5ChatPanel({ config, context, trigger, onClose }: { con
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
       else if (!dialog.contains(document.activeElement)) { event.preventDefault(); first.focus(); }
     };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    const keepFocus = (event: FocusEvent) => { if (dialog.contains(event.target as Node)) event.stopPropagation(); };
+    window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("focusin", keepFocus, true);
+    dialog.querySelector<HTMLElement>("[data-chat-topic]")?.focus();
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("focusin", keepFocus, true);
+    };
   }, [onClose]);
 
   if (panel.mode !== "panel") return null;
@@ -91,12 +105,14 @@ export default function V5ChatPanel({ config, context, trigger, onClose }: { con
         <ul className={styles.topics}>
           {panel.topics.map((topic) => (
             <li key={topic.id}>
-              <a data-chat-topic="" className={`${styles.topic} ${topic.journey === "type_own" ? styles.topicOwn : ""}`.trim()} href={topic.href} target="_blank" rel="noopener noreferrer"
+              <a data-chat-topic="" className={`${styles.topic} ${topic.journey === "type_own" ? styles.topicOwn : ""}`.trim()} href={topic.href} target={newTab ? "_blank" : undefined} rel="noopener noreferrer"
                 onClick={() => {
-                  trackEvent("line_oa_click", {
-                    contact_channel: "line", cta_location: "chat_panel", chat_topic_id: topic.id, page_group: panel.pageGroup,
-                    ...(surface ? { surface_group: surface } : {}), ...(campaignCode ? { campaign_code: campaignCode } : {}),
-                  });
+                  try {
+                    trackEvent("line_oa_click", {
+                      contact_channel: "line", cta_location: "chat_panel", chat_topic_id: topic.id, page_group: panel.pageGroup,
+                      ...(surface ? { surface_group: surface } : {}), ...(campaignCode ? { campaign_code: campaignCode } : {}),
+                    });
+                  } catch { /* Analytics never stands between the visitor and the LINE chat. */ }
                   window.setTimeout(onClose, 0);
                 }}>
                 <span>{topic.label}</span><Arrow />

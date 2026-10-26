@@ -6,6 +6,7 @@ import { chatPageGroupToken, chatSurfaceGroup, type ChatPageContext, type LineCh
 import { LINE_OA_CHAT_URL } from "@/lib/line/oa-link";
 import { V5_OPEN_CHAT_EVENT, type V5ChatPanelTrigger, type V5OpenChatDetail } from "./chat-events";
 import { useHydrated } from "./V5ChatLink";
+import { exemptFromInert, restoreInert, type InertRecord } from "./chat-layer";
 import styles from "./V5ChatDock.module.css";
 
 // The panel, its resolver and the QR encoder load on the first tap only (zero LCP/CLS cost).
@@ -25,19 +26,24 @@ function ChatIcon() {
 /**
  * The page's one LINE element (owner decision 2026-10-25: one LINE OA button per page; L8 merged the
  * chat button and the sticky bar). Server-rendered and visible from page load, over the hero too;
- * below the hero it tucks away while reading down and returns on scroll up (D3). While the cookie
- * notice is open the dock sits just above it (a transform, so no layout shift) and steps aside if the
- * notice fills most of the screen. Its href is the real LINE OA link with this page's prefill, the
- * no-JS fallback; with JavaScript it opens the topic panel. Article-body LINE CTAs open the same
+ * below the hero it tucks away while reading down and returns on scroll up, at the page end and after
+ * the panel closes (D3; it never stays hidden). The chat does not depend on cookie consent (owner
+ * requirement 2026-10-26): while the cookie notice is open the dock stays visible just above it (a
+ * transform, so no layout shift, kept on screen however tall the notice grows). The notice is a
+ * modal that makes the page inert; the dock keeps its own chat layer out of that boundary
+ * (chat-layer.ts), so it stays usable above the notice. Its href is the real LINE OA link with this
+ * page's prefill, the no-JS fallback; with JavaScript it opens the topic panel. Article-body LINE CTAs open the same
  * panel through V5_OPEN_CHAT_EVENT. All clicks go through trackEvent(), which stays consent-gated.
  */
 export default function V5ChatDock({ config, context, fallbackHref }: { config: LineChatConfig; context: ChatPageContext; fallbackHref: string }) {
   const [shown, setShown] = useState(true);
   const enhanced = useHydrated();
   const [cookieOffset, setCookieOffset] = useState(0);
-  const [cookieCovers, setCookieCovers] = useState(false);
   const [panel, setPanel] = useState<{ trigger: V5ChatPanelTrigger; returnTo: HTMLElement | null } | null>(null);
   const triggerRef = useRef<HTMLAnchorElement>(null);
+  const layerRef = useRef<HTMLDivElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
+  const revealRef = useRef<() => void>(() => undefined);
   const token = chatPageGroupToken(context);
 
   useEffect(() => {
@@ -47,6 +53,8 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
     let visible = true;
     let frame = 0;
     const set = (next: boolean) => { if (next !== visible) { visible = next; setShown(next); } };
+    // Closing the panel brings the dock back, so the trigger is always there afterwards.
+    revealRef.current = () => { set(true); revealY = window.scrollY; lastY = revealY; };
     // Measured on every throttled frame, so a late-loading hero or a rotated phone is handled
     // without a window size listener. The hero is the first section in <main>; it is capped at
     // 1.25 screens so a tall first block never keeps the tuck behaviour away.
@@ -64,6 +72,10 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
         // Visible from page load and over the hero.
         set(true);
         revealY = heroBottom;
+      } else if (y + window.innerHeight >= document.documentElement.scrollHeight - 4) {
+        // At the end of the page it comes back.
+        set(true);
+        revealY = y;
       } else if (delta < -SCROLL_DELTA) {
         // Scrolling back up brings it back.
         set(true);
@@ -87,6 +99,7 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
     // and unmounts on save or Escape, so its box is watched rather than read once.
     let observed: Element | null = null;
     let frame = 0;
+    const exempted: InertRecord[] = [];
     const boxObserver = typeof ResizeObserver === "function" ? new ResizeObserver(() => schedule()) : null;
     const measure = () => {
       frame = 0;
@@ -96,15 +109,19 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
         if (dialog) boxObserver?.observe(dialog);
         observed = dialog;
       }
-      // The notice is fixed to the bottom edge, so its height is the offset; watching its box also
-      // covers reflow when the window width changes.
-      const offset = dialog ? Math.max(0, Math.round(dialog.getBoundingClientRect().height)) : 0;
-      setCookieOffset(offset);
-      setCookieCovers(offset > window.innerHeight * 0.5);
+      // The notice is fixed to the bottom edge, so its height is the offset (watching its box also
+      // covers reflow when the window width changes), capped so the dock itself stays on screen.
+      const height = dialog ? dialog.getBoundingClientRect().height : 0;
+      const room = window.innerHeight - (dockRef.current?.getBoundingClientRect().height ?? 0);
+      setCookieOffset(Math.round(Math.max(0, Math.min(height, room))));
+      // While the notice is open it makes the rest of the page inert; the chat layer stays out of it.
+      if (dialog && layerRef.current) exemptFromInert(layerRef.current, exempted);
+      else if (!dialog) restoreInert(exempted);
     };
     const schedule = () => { if (!frame) frame = window.requestAnimationFrame(measure); };
     const mutations = new MutationObserver(schedule);
-    mutations.observe(document.body, { childList: true, subtree: true });
+    // The notice sets inert in an effect after it mounts, so inert changes are watched too.
+    mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["inert"] });
     window.addEventListener("ccpun:consent", schedule);
     measure();
     return () => {
@@ -112,6 +129,7 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
       mutations.disconnect();
       boxObserver?.disconnect();
       window.removeEventListener("ccpun:consent", schedule);
+      restoreInert(exempted);
     };
   }, []);
 
@@ -135,27 +153,30 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
   const close = useCallback(() => {
     const returnTo = panel?.returnTo;
     setPanel(null);
+    revealRef.current();
     window.requestAnimationFrame(() => (returnTo && returnTo.isConnected ? returnTo : triggerRef.current)?.focus());
   }, [panel]);
 
   const open = panel !== null;
-  const state = open || (shown && !cookieCovers) ? "shown" : "hidden";
-  const style = cookieOffset > 0 && !cookieCovers ? { "--v5-dock-offset": `${cookieOffset}px` } as CSSProperties : undefined;
+  const state = open || shown ? "shown" : "hidden";
+  const style = cookieOffset > 0 ? { "--v5-dock-offset": `${cookieOffset}px` } as CSSProperties : undefined;
 
   if (!config.enabled) {
     return (
-      <div className={styles.dock} data-state={state} style={style} data-v5-chat-dock="">
-        <a className={styles.trigger} href={LINE_OA_CHAT_URL} target="_blank" rel="noopener noreferrer"
-          onClick={() => trackEvent("line_oa_click", { contact_channel: "line", cta_location: "chat_button", page_group: token, surface_group: chatSurfaceGroup(token) })}>
-          <ChatIcon />{LABEL}
-        </a>
+      <div ref={layerRef} className={styles.layer} style={style} data-v5-chat-layer="">
+        <div ref={dockRef} className={styles.dock} data-state={state} data-v5-chat-dock="">
+          <a className={styles.trigger} href={LINE_OA_CHAT_URL} target="_blank" rel="noopener noreferrer"
+            onClick={() => trackEvent("line_oa_click", { contact_channel: "line", cta_location: "chat_button", page_group: token, surface_group: chatSurfaceGroup(token) })}>
+            <ChatIcon />{LABEL}
+          </a>
+        </div>
       </div>
     );
   }
 
   return (
-    <>
-      <div className={styles.dock} data-state={state} style={style} data-v5-chat-dock="">
+    <div ref={layerRef} className={styles.layer} style={style} data-v5-chat-layer="">
+      <div ref={dockRef} className={styles.dock} data-state={state} data-v5-chat-dock="">
         <a ref={triggerRef} className={styles.trigger} href={fallbackHref} target="_blank" rel="noopener noreferrer"
           role={enhanced ? "button" : undefined} aria-haspopup={enhanced ? "dialog" : undefined} aria-expanded={enhanced ? open : undefined} aria-controls={open ? "v5-chat-panel" : undefined}
           onClick={(event) => {
@@ -171,6 +192,6 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
         </a>
       </div>
       {panel ? <Suspense fallback={null}><V5ChatPanel config={config} context={context} trigger={panel.trigger} onClose={close} /></Suspense> : null}
-    </>
+    </div>
   );
 }
