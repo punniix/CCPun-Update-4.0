@@ -131,8 +131,10 @@ test("LINE: one dock per page; the planned page adds its own topic and CS refere
     if (panel.mode !== "panel") continue;
     assert.equal(panel.pageGroup, "coming_soon");
     assert.equal(panel.topics[0].id, entry.chatTopicId);
-    assert.equal(panel.topics[0].refCode, `CS${entry.chatRef}`);
-    assert.ok(panel.topics[0].prefill.includes(entry.title) && panel.topics[0].prefill.endsWith(`(รหัส CS${entry.chatRef})`));
+    // Owner decision 2026-10-26: no "(รหัส ...)" code in the visible message; the topic id stays in analytics.
+    assert.equal(panel.topics[0].prefill, topic.prefill);
+    assert.ok(panel.topics[0].prefill.includes(entry.title));
+    assert.doesNotMatch(panel.topics.map((item) => item.prefill).join(" "), /รหัส/);
     assert.deepEqual(panel.topics.map((item) => item.id), [entry.chatTopicId, "book-a-chat", "type-own"]);
     // The owner's published config wins: a disabled owner topic with the same id stays disabled,
     // and an owner placement keeps its topics after the page topic.

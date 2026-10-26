@@ -1,12 +1,19 @@
 import { z } from "zod";
 import {
+  countChatCharacters,
+  hasVisibleCode,
   LINE_CHAT_CAMPAIGN_TARGETS,
+  LINE_CHAT_DEFAULT_SOURCE_TEMPLATES,
   LINE_CHAT_DEFAULTS,
   LINE_CHAT_EVERGREEN_REVIEW_DAYS,
   LINE_CHAT_JOURNEYS,
   LINE_CHAT_LIMITS,
+  LINE_CHAT_OVERRIDE_KEY,
   LINE_CHAT_PLACEMENT_KEY,
+  LINE_CHAT_SOURCE_VARIABLES,
+  LINE_CHAT_TYPE_OWN,
   type LineChatConfig,
+  type LineChatSourceTemplates,
 } from "./chat-panel";
 
 export * from "./chat-panel";
@@ -33,17 +40,7 @@ const EMOJI_PATTERN = /\p{Extended_Pictographic}/u;
 const ELLIPSIS_PATTERN = /\.\.\.|…/;
 const MARKUP_PATTERN = /[<>{}]/;
 
-/** Visible character count; Thai vowel and tone marks do not count as extra characters. */
-export function countChatCharacters(value: string): number {
-  if (typeof Intl !== "undefined" && "Segmenter" in Intl) {
-    let count = 0;
-    for (const _ of new Intl.Segmenter("th", { granularity: "grapheme" }).segment(value)) count += 1;
-    return count;
-  }
-  return Array.from(value).length;
-}
-
-export type ChatTextIssue = "empty" | "too-long" | "url" | "email" | "phone" | "banned-word" | "emoji" | "ellipsis" | "markup";
+export type ChatTextIssue = "empty" | "too-long" | "url" | "email" | "phone" | "banned-word" | "emoji" | "ellipsis" | "markup" | "code";
 
 /** Owner copy rules for every chat string (คปภ. wording, no contact data, no links). */
 export function chatTextIssues(value: string, max: number): ChatTextIssue[] {
@@ -58,7 +55,24 @@ export function chatTextIssues(value: string, max: number): ChatTextIssue[] {
   if (EMOJI_PATTERN.test(text)) issues.push("emoji");
   if (ELLIPSIS_PATTERN.test(text)) issues.push("ellipsis");
   if (MARKUP_PATTERN.test(text)) issues.push("markup");
+  // Owner decision 2026-10-26: nothing code-like in anything that can reach the customer's message.
+  if (hasVisibleCode(text)) issues.push("code");
   return issues;
+}
+
+export type ChatTemplateIssue = ChatTextIssue | "unknown-variable";
+
+/** Source template rules: empty switches it off; only that kind's variables; the rest follows chat copy rules. */
+export function chatTemplateIssues(template: string, kind: keyof LineChatSourceTemplates): ChatTemplateIssue[] {
+  const text = template.trim();
+  if (!text) return [];
+  const issues: ChatTemplateIssue[] = [];
+  const allowed = LINE_CHAT_SOURCE_VARIABLES[kind];
+  const stripped = text.replace(/\{([A-Za-z]+)\}/g, (_, name: string) => {
+    if (!allowed.includes(name)) issues.push("unknown-variable");
+    return "ก";
+  });
+  return [...new Set([...issues, ...chatTextIssues(stripped, LINE_CHAT_LIMITS.sourceSentence)])];
 }
 
 export const CHAT_TEXT_ISSUE_LABEL: Record<ChatTextIssue, string> = {
@@ -71,6 +85,12 @@ export const CHAT_TEXT_ISSUE_LABEL: Record<ChatTextIssue, string> = {
   emoji: "ห้ามใส่อีโมจิ",
   ellipsis: "ห้ามใช้จุดไข่ปลา",
   markup: "ห้ามใช้เครื่องหมาย < > { }",
+  code: "ห้ามมีอะไรที่ดูเป็นรหัส เช่น (รหัส HM01), HM01, ref:, #, [ ] หรือรหัสภาษาอังกฤษแบบ abc-def",
+};
+
+export const CHAT_TEMPLATE_ISSUE_LABEL: Record<ChatTemplateIssue, string> = {
+  ...CHAT_TEXT_ISSUE_LABEL,
+  "unknown-variable": "ใช้ได้เฉพาะ {title} ในแม่แบบบทความ และ {toolName} ในแม่แบบเครื่องมือ",
 };
 
 const chatText = (max: number) => z.string().trim().superRefine((value, ctx) => {
@@ -78,6 +98,30 @@ const chatText = (max: number) => z.string().trim().superRefine((value, ctx) => 
 });
 
 const isoDate = z.string().datetime({ offset: true });
+
+const chatTemplate = (kind: keyof LineChatSourceTemplates) => z.string().trim().superRefine((value, ctx) => {
+  for (const issue of chatTemplateIssues(value, kind)) ctx.addIssue({ code: "custom", message: issue });
+});
+
+const sourceChoice = {
+  sourceSentence: chatText(LINE_CHAT_LIMITS.sourceSentence).optional(),
+  hideSource: z.boolean().optional(),
+};
+
+export const lineChatSourceTemplatesSchema = z.object({ article: chatTemplate("article"), tool: chatTemplate("tool") }).strict();
+
+export const lineChatOverrideTopicSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("library"), id: z.string().regex(TOPIC_ID), ...sourceChoice }).strict(),
+  z.object({ kind: z.literal("custom"), id: z.string().regex(TOPIC_ID), label: chatText(LINE_CHAT_LIMITS.label), prefill: chatText(LINE_CHAT_LIMITS.prefill), ...sourceChoice }).strict(),
+]);
+
+export const lineChatPageOverrideSchema = z.object({
+  key: z.string().regex(LINE_CHAT_OVERRIDE_KEY).refine((key) => !/^doc:(?:drafts|versions)\./.test(key), "draft-id"),
+  title: z.string().trim().min(1).max(LINE_CHAT_LIMITS.overrideTitle),
+  enabled: z.boolean(),
+  topics: z.array(lineChatOverrideTopicSchema).min(1).max(LINE_CHAT_LIMITS.placementTopics),
+  ...sourceChoice,
+}).strict();
 
 export const lineChatTopicSchema = z.object({
   id: z.string().regex(TOPIC_ID),
@@ -123,6 +167,8 @@ export const lineChatConfigSchema = z.object({
   topics: z.array(lineChatTopicSchema).min(1).max(LINE_CHAT_LIMITS.topics),
   placements: z.array(lineChatPlacementSchema).min(1).max(80),
   campaigns: z.array(lineChatCampaignSchema).max(LINE_CHAT_LIMITS.campaigns),
+  sourceTemplates: lineChatSourceTemplatesSchema.optional(),
+  pageOverrides: z.array(lineChatPageOverrideSchema).max(LINE_CHAT_LIMITS.pageOverrides).optional(),
 }).strict().superRefine((config, ctx) => {
   const topicById = new Map<string, z.infer<typeof lineChatTopicSchema>>();
   const refs = new Set<number>();
@@ -153,6 +199,25 @@ export const lineChatConfigSchema = z.object({
     });
     if (!campaign.pinnedTopicIds.some((id) => topicById.get(id)?.enabled)) ctx.addIssue({ code: "custom", path: ["campaigns", index, "pinnedTopicIds"], message: "no-enabled-topic" });
   });
+  // Per-page overrides: one per page; library topics must exist; page-only topic ids are unique across
+  // the site (they are the analytics chat_topic_id) and never reuse a library id.
+  const overrideKeys = new Set<string>();
+  const customIds = new Set<string>();
+  (config.pageOverrides ?? []).forEach((override, index) => {
+    if (overrideKeys.has(override.key)) ctx.addIssue({ code: "custom", path: ["pageOverrides", index, "key"], message: "duplicate" });
+    overrideKeys.add(override.key);
+    const ids = new Set<string>();
+    override.topics.forEach((item, topicIndex) => {
+      if (ids.has(item.id)) ctx.addIssue({ code: "custom", path: ["pageOverrides", index, "topics", topicIndex, "id"], message: "duplicate" });
+      ids.add(item.id);
+      if (item.kind === "library" && !topicById.has(item.id)) ctx.addIssue({ code: "custom", path: ["pageOverrides", index, "topics", topicIndex, "id"], message: "unknown-topic" });
+      if (item.kind === "custom") {
+        if (topicById.has(item.id) || item.id === LINE_CHAT_TYPE_OWN.id || customIds.has(item.id)) ctx.addIssue({ code: "custom", path: ["pageOverrides", index, "topics", topicIndex, "id"], message: "duplicate" });
+        customIds.add(item.id);
+      }
+    });
+    if (!override.topics.some((item) => item.kind === "custom" || topicById.get(item.id)?.enabled)) ctx.addIssue({ code: "custom", path: ["pageOverrides", index, "topics"], message: "no-enabled-topic" });
+  });
 });
 
 export type LineChatConfigRead = { config: LineChatConfig; source: "stored" | "default"; invalid: boolean };
@@ -172,7 +237,7 @@ export function defaultEvergreenReviewAt(from: Date): string {
 
 /** GROQ projection of the published singleton into the runtime shape (same for Web and Admin). */
 export const LINE_CHAT_CONFIG_ID = "ccpun-line-chat-v1";
-export const LINE_CHAT_CONFIG_PROJECTION = '{_rev,enabled,"topics":topics[]{"id":topicId,ref,label,prefill,journey,enabled},"placements":placements[]{"key":pageKey,topicIds},"campaigns":campaigns[]{code,refCode,title,"type":campaignType,startsAt,endsAt,reviewAt,pageGroups,pinnedTopicIds,headline,paused}}';
+export const LINE_CHAT_CONFIG_PROJECTION = '{_rev,enabled,"topics":topics[]{"id":topicId,ref,label,prefill,journey,enabled},"placements":placements[]{"key":pageKey,topicIds},"campaigns":campaigns[]{code,refCode,title,"type":campaignType,startsAt,endsAt,reviewAt,pageGroups,pinnedTopicIds,headline,paused},sourceTemplates{article,tool},"pageOverrides":pageOverrides[]{"key":targetKey,title,enabled,sourceSentence,hideSource,"topics":topics[]{kind,"id":topicId,label,prefill,sourceSentence,hideSource}}}';
 
 function withoutNulls(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(withoutNulls);
@@ -191,6 +256,21 @@ export function lineChatConfigFromProjection(raw: unknown): unknown {
 }
 
 const sanityKey = (prefix: string, value: string) => `${prefix}-${value.replace(/[^a-z0-9-]/gi, "-").slice(0, 60)}`;
+
+/** FNV-1a: a short stable suffix so two override keys that sanitize alike never share a `_key`. */
+function shortHash(value: string): string {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+}
+
+const sourceFields = (choice: { sourceSentence?: string; hideSource?: boolean }) => ({
+  ...(choice.sourceSentence ? { sourceSentence: choice.sourceSentence } : {}),
+  ...(choice.hideSource ? { hideSource: true } : {}),
+});
 
 /** Runtime config -> Sanity fields with stable `_key`s (topic id, page key and campaign code never change). */
 export function lineChatConfigToSanityFields(config: LineChatConfig) {
@@ -214,7 +294,47 @@ export function lineChatConfigToSanityFields(config: LineChatConfig) {
       ...(campaign.headline ? { headline: campaign.headline } : {}),
       paused: campaign.paused,
     })),
+    // Always written (defaults when absent), so a save never leaves an older draft's values behind.
+    sourceTemplates: { _type: "lineChatSourceTemplates", ...(config.sourceTemplates ?? LINE_CHAT_DEFAULT_SOURCE_TEMPLATES) },
+    pageOverrides: (config.pageOverrides ?? []).map((override) => ({
+      _type: "lineChatPageOverride",
+      _key: `${sanityKey("override", override.key).slice(0, 40)}-${shortHash(override.key)}`,
+      targetKey: override.key,
+      title: override.title,
+      enabled: override.enabled,
+      ...sourceFields(override),
+      topics: override.topics.map((item) => ({
+        _type: "lineChatOverrideTopic",
+        _key: sanityKey("item", item.id),
+        kind: item.kind,
+        topicId: item.id,
+        ...(item.kind === "custom" ? { label: item.label, prefill: item.prefill } : {}),
+        ...sourceFields(item),
+      })),
+    })),
   };
+}
+
+/** A stored Sanity document (history API, raw fields) -> runtime config candidate. */
+export function lineChatConfigFromDocument(document: Record<string, unknown>): unknown {
+  const list = (value: unknown) => Array.isArray(value) ? value as Array<Record<string, unknown>> : [];
+  const templates = document.sourceTemplates as Record<string, unknown> | undefined;
+  return withoutNulls({
+    enabled: document.enabled,
+    topics: list(document.topics).map((topic) => ({ id: topic.topicId, ref: topic.ref, label: topic.label, prefill: topic.prefill, journey: topic.journey, enabled: topic.enabled })),
+    placements: list(document.placements).map((placement) => ({ key: placement.pageKey, topicIds: placement.topicIds })),
+    campaigns: list(document.campaigns).map((campaign) => ({
+      code: campaign.code, refCode: campaign.refCode, title: campaign.title, type: campaign.campaignType, startsAt: campaign.startsAt, endsAt: campaign.endsAt,
+      reviewAt: campaign.reviewAt, pageGroups: campaign.pageGroups, pinnedTopicIds: campaign.pinnedTopicIds, headline: campaign.headline, paused: campaign.paused,
+    })),
+    ...(templates && typeof templates === "object" ? { sourceTemplates: { article: templates.article, tool: templates.tool } } : {}),
+    ...(Array.isArray(document.pageOverrides) ? {
+      pageOverrides: list(document.pageOverrides).map((override) => ({
+        key: override.targetKey, title: override.title, enabled: override.enabled, sourceSentence: override.sourceSentence, hideSource: override.hideSource,
+        topics: list(override.topics).map((item) => ({ kind: item.kind, id: item.topicId, label: item.label, prefill: item.prefill, sourceSentence: item.sourceSentence, hideSource: item.hideSource })),
+      })),
+    } : {}),
+  });
 }
 
 export type LineChatImmutabilityIssue =
@@ -225,8 +345,9 @@ export type LineChatImmutabilityIssue =
 
 /**
  * Topic ids, their reference numbers and campaign codes are permanent keys (they appear in
- * analytics, in "(รหัส ...)" chat references and in utm_campaign links already shared). They can
- * be switched off or paused, never renamed or deleted.
+ * analytics and in utm_campaign links already shared; reference numbers are kept as stored keys
+ * although the visible "(รหัส ...)" suffix was removed on 2026-10-26). They can be switched off or
+ * paused, never renamed or deleted.
  */
 export function lineChatImmutabilityIssues(previous: LineChatConfig, next: LineChatConfig): LineChatImmutabilityIssue[] {
   const issues: LineChatImmutabilityIssue[] = [];

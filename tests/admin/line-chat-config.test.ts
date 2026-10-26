@@ -79,6 +79,12 @@ test("copy rules reject links, phone numbers, emails, banned words, emoji, ellip
   assert.ok(chatTextIssues("สวัสดี 🙂", 120).includes("emoji"));
   assert.ok(chatTextIssues("รอสักครู่...", 120).includes("ellipsis"));
   assert.ok(chatTextIssues("ก".repeat(29), 28).includes("too-long"));
+  // Owner decision 2026-10-26: no reference codes in any visible text.
+  assert.ok(chatTextIssues("สนใจประกันบำนาญครับ (รหัส HM01)", 300).includes("code"));
+  assert.ok(chatTextIssues("สนใจครับ รหัส AR05", 300).includes("code"));
+  assert.deepEqual(chatTextIssues("สนใจประกันบำนาญครับ", 300), []);
+  assert.equal(LINE_CHAT_LIMITS.label, 32);
+  assert.equal(LINE_CHAT_LIMITS.prefill, 300);
   assert.equal(countChatCharacters("ที่นี่"), 2, "Thai vowel and tone marks are not extra characters");
   assert.deepEqual(chatTextIssues("   ", 28), ["empty"]);
 });
@@ -92,7 +98,7 @@ test("resolver precedence: utm campaign > latest active temporary campaign > pag
   assert.equal(viaUtm.source, "campaign-utm");
   assert.equal(viaUtm.campaignCode, "bio-facebook");
   assert.equal(viaUtm.topics[0].id, "book-a-chat");
-  assert.equal(decode(viaUtm.topics[0].href), "อยากนัดคุยกับปั้นครับ สะดวกช่วงไหนบ้าง (รหัส FB08)");
+  assert.equal(decode(viaUtm.topics[0].href), "อยากนัดคุยกับปั้นครับ สะดวกช่วงไหนบ้าง", "no reference code and no source sentence on the home page");
 
   const temporary = resolveChatPanel({ pageGroup: "home", config: cfg, now: NOW, consentGiven: true });
   assert.ok(temporary.mode === "panel" && temporary.source === "campaign-temporary" && temporary.campaignCode === "tax-2611", "the latest-started temporary campaign wins");
@@ -101,8 +107,8 @@ test("resolver precedence: utm campaign > latest active temporary campaign > pag
   if (placement.mode === "panel") {
     assert.deepEqual(placement.topics.map((topic) => topic.id), ["check-existing-policy", "health-plan", "tax-deduction", "type-own"]);
     assert.equal(placement.topics.at(-1)!.label, "พิมพ์คำถามเอง", "type-your-own is always appended last");
-    assert.equal(decode(placement.topics[0].href), "อยากให้ช่วยดูประกันที่มีอยู่ ว่าคุ้มครองพอหรือยังครับ (รหัส HM01)");
-    assert.equal(decode(placement.topics.at(-1)!.href), "สวัสดีครับ มีเรื่องอยากถาม (รหัส HM00)");
+    assert.equal(decode(placement.topics[0].href), "อยากให้ช่วยดูประกันที่มีอยู่ ว่าคุ้มครองพอหรือยังครับ");
+    assert.equal(decode(placement.topics.at(-1)!.href), "สวัสดีครับ มีเรื่องอยากถาม");
   }
   const fallback = resolveChatPanel({ pageGroup: "category:unknown-topic", config: config(), now: NOW, consentGiven: true });
   assert.ok(fallback.mode === "panel" && fallback.source === "default" && fallback.pageGroup === "blog_category");
@@ -116,7 +122,7 @@ test("article override, category placement, at most four topics plus type-your-o
   assert.ok(article.mode === "panel");
   if (article.mode === "panel") {
     assert.deepEqual(article.topics.map((topic) => topic.id), ["which-plan-fits", "type-own"]);
-    assert.equal(article.topics[0].refCode, "AR05");
+    assert.ok(article.layer === "page");
   }
   const category = resolveChatPanel({ pageGroup: "category:health-insurance", articleSlug: "other-article", config: cfg, now: NOW, consentGiven: false });
   assert.ok(category.mode === "panel" && category.topics[0].id === "smart-network-hospital");
@@ -204,17 +210,18 @@ test("the page slice sent to the browser carries only this page's placements, ca
 });
 
 test("page groups come from the physical path", () => {
-  assert.deepEqual(chatContextForPath("/"), { pageGroup: "home" });
-  assert.deepEqual(chatContextForPath("/blog/"), { pageGroup: "blog_index" });
+  assert.deepEqual(chatContextForPath("/"), { pageGroup: "home", routeKey: "home" });
+  assert.deepEqual(chatContextForPath("/blog/"), { pageGroup: "blog_index", routeKey: "blog" });
   assert.deepEqual(chatContextForPath("/blog/health-insurance/"), { pageGroup: "category:health-insurance" });
   assert.deepEqual(chatContextForPath("/blog/health-insurance/aia-health-happy-describe/"), { pageGroup: "category:health-insurance", articleSlug: "aia-health-happy-describe" });
-  assert.deepEqual(chatContextForPath("/ci-planning/"), { pageGroup: "tool_ci" });
-  assert.deepEqual(chatContextForPath("/tools/financial-health-check/"), { pageGroup: "tool_fhc" });
-  assert.deepEqual(chatContextForPath("/play/money-story/"), { pageGroup: "tool_money_story" });
-  assert.deepEqual(chatContextForPath("/tools/investment-allocation/"), { pageGroup: "tool_investment_allocation" });
-  assert.deepEqual(chatContextForPath("/tools/aia-fund-allocation/"), { pageGroup: "tool_investment_allocation" }, "the AIA fund tool shares the main tool's page group");
-  assert.deepEqual(chatContextForPath("/tools/"), { pageGroup: "tools_hub" });
-  assert.deepEqual(chatContextForPath("/about/"), { pageGroup: "about" });
+  // Site pages and tools also carry their stable route key (per-page overrides, tool source sentence).
+  assert.deepEqual(chatContextForPath("/ci-planning/"), { pageGroup: "tool_ci", routeKey: "ci-planning" });
+  assert.deepEqual(chatContextForPath("/tools/financial-health-check/"), { pageGroup: "tool_fhc", routeKey: "financial-health-check" });
+  assert.deepEqual(chatContextForPath("/play/money-story/"), { pageGroup: "tool_money_story", routeKey: "money-story" });
+  assert.deepEqual(chatContextForPath("/tools/investment-allocation/"), { pageGroup: "tool_investment_allocation", routeKey: "investment-allocation" });
+  assert.deepEqual(chatContextForPath("/tools/aia-fund-allocation/"), { pageGroup: "tool_investment_allocation", routeKey: "aia-fund-allocation" }, "the AIA fund tool shares the main tool's page group");
+  assert.deepEqual(chatContextForPath("/tools/"), { pageGroup: "tools_hub", routeKey: "tools" });
+  assert.deepEqual(chatContextForPath("/about/"), { pageGroup: "about", routeKey: "about" });
   assert.deepEqual(chatContextForPath(undefined), { pageGroup: "default" });
   assert.deepEqual(chatContextForPath("/privacy/"), { pageGroup: "default" });
 });
@@ -279,7 +286,10 @@ test("Admin service and endpoint follow the LINE Discovery contract: lane-guarde
   assert.match(service, /isAdminReadDataPlaneAllowed/);
   assert.match(service, /isAdminDataPlaneAllowed/);
   assert.match(service, /perspective: "published"/);
-  assert.match(service, /ifRevisionId\(current\._rev\)/);
+  assert.match(service, /patch\.ifRevisionId\(publishedRevision\)/, "publish and revert are checked against the published revision");
+  assert.match(service, /patch\.ifRevisionId\(data\.draftRevision\)/, "publish and discard are checked against the draft revision");
+  assert.match(service, /LINE_CHAT_DRAFT_ID = `drafts\.\$\{LINE_CHAT_CONFIG_ID\}`/, "save writes only the owner draft of the singleton");
+  assert.match(service, /transaction\.delete\(LINE_CHAT_DRAFT_ID\)|\.delete\(LINE_CHAT_DRAFT_ID\)/, "publish removes the draft in the same transaction");
   assert.match(service, /LINE_CHAT_STALE/);
   assert.match(service, /LINE_CHAT_IMMUTABLE/);
   assert.match(service, /lineChatActorDigest\(actor\)/, "updatedBy stores an actor digest, never the raw email");
@@ -301,10 +311,15 @@ test("Settings > ปุ่มแชท LINE: tabs, phone preview, test link, UTM
   assert.match(page, /canEdit=\{access\.role === "owner"\}/);
   assert.match(read("apps/admin/app/(control-plane)/layout.tsx"), /\{ href: "\/settings\/line-chat\/", label: "ปุ่มแชท LINE" \}/);
   const ui = read("features/admin/line/LineChatManager.tsx");
-  for (const label of ["คลังหัวข้อ", "หน้าไหนใช้อะไร", "แคมเปญ", "สวิตช์หลัก", "ตัวอย่างบนมือถือ", "ลองเปิดใน LINE", "สร้างลิงก์แคมเปญ", "ยังใช้ได้ (ต่ออีก 90 วัน)", "ย้อนกลับไปเวอร์ชันนี้", "เว็บกำลังใช้ค่าเริ่มต้น"]) {
+  for (const label of ["ค่าเริ่มต้นทั้งเว็บ", "ตามหมวด", "รายหน้า", "คลังหัวข้อ", "ประโยคบอกที่มา", "แคมเปญ", "สวิตช์หลัก", "ตัวอย่างบนมือถือ", "ข้อความที่ลูกค้าจะเห็นและส่งใน LINE", "ลองเปิดใน LINE", "สร้างลิงก์แคมเปญ", "ยังใช้ได้ (ต่ออีก 90 วัน)", "ย้อนกลับไปเวอร์ชันนี้", "เว็บกำลังใช้ค่าเริ่มต้น", "บันทึกร่าง", "เผยแพร่", "ทิ้งร่าง", "ค้นหาบทความหรือหน้า"]) {
     assert.ok(ui.includes(label), label);
   }
-  assert.match(ui, /lineChatConfigSchema\.safeParse\(draft\)/);
+  // The precedence the website applies is stated in the UI (owner brief 2026-10-26).
+  assert.ok(ui.includes("แคมเปญที่ดันหัวข้อ</strong> → <strong className=\"text-[#f4df9b]\">ตั้งรายหน้า</strong> → <strong className=\"text-[#f4df9b]\">ตามหมวด</strong> → <strong className=\"text-[#f4df9b]\">ค่าเริ่มต้นทั้งเว็บ"));
+  assert.match(ui, /lineChatConfigSchema\.safeParse\(working\)/);
+  assert.match(ui, /action: "draft"/);
+  assert.match(ui, /action: "publish"/);
+  assert.doesNotMatch(ui, /อักษรรหัสอ้างอิง/, "campaign reference letters are internal now");
   assert.match(ui, /chatTextIssues/);
   assert.match(ui, /role="tablist"/);
   assert.match(read("cms/sanity/schema/index.ts"), /lineChatConfig,/);

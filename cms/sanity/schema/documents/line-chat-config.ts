@@ -41,8 +41,9 @@ export const lineChatConfig = defineType({
           defineField({ name: "ref", title: "เลขอ้างอิง", type: "number", readOnly: true }),
           // Visible characters, not UTF-16 units, so Thai vowel and tone marks do not count extra. The
           // full copy rules are enforced again by lib/line/chat-config.ts on every save and read.
-          defineField({ name: "label", title: "ชื่อบนปุ่ม (ไม่เกิน 28 ตัวอักษร)", type: "string", validation: (Rule) => Rule.required().custom(maxVisible(28)) }),
-          defineField({ name: "prefill", title: "ข้อความตั้งต้น (ไม่เกิน 120 ตัวอักษร)", type: "text", rows: 2, validation: (Rule) => Rule.required().custom(maxVisible(120)) }),
+          // 2026-10-26 owner decision: label up to 32, message up to 300 (field names unchanged).
+          defineField({ name: "label", title: "ชื่อบนปุ่ม (ไม่เกิน 32 ตัวอักษร)", type: "string", validation: (Rule) => Rule.required().custom(maxVisible(32)) }),
+          defineField({ name: "prefill", title: "ข้อความตั้งต้น (ไม่เกิน 300 ตัวอักษร)", type: "text", rows: 3, validation: (Rule) => Rule.required().custom(maxVisible(300)) }),
           defineField({ name: "journey", title: "หมวด", type: "string", options: { list: JOURNEYS } }),
           defineField({ name: "enabled", title: "เปิดใช้", type: "boolean", initialValue: true }),
         ],
@@ -84,6 +85,54 @@ export const lineChatConfig = defineType({
           defineField({ name: "paused", title: "พักแคมเปญ", type: "boolean", initialValue: false }),
         ],
         preview: { select: { title: "title", subtitle: "code" } },
+      })],
+    }),
+    // Added 2026-10-26 (additive only): the natural "where I came from" sentence that replaced the
+    // "(รหัส XX)" suffix, and per-page overrides (article by logical document id, site page by route key).
+    defineField({
+      name: "sourceTemplates",
+      title: "ประโยคบอกที่มา",
+      type: "object",
+      description: "เว้นว่างเพื่อปิด ใช้ {title} ในบทความ และ {toolName} ในหน้าเครื่องมือ",
+      fields: [
+        defineField({ name: "article", title: "หน้าบทความ", type: "string", validation: (Rule) => Rule.custom(maxVisible(120)) }),
+        defineField({ name: "tool", title: "หน้าเครื่องมือ", type: "string", validation: (Rule) => Rule.custom(maxVisible(120)) }),
+      ],
+    }),
+    defineField({
+      name: "pageOverrides",
+      title: "ตั้งรายหน้า",
+      type: "array",
+      of: [defineArrayMember({
+        type: "object",
+        name: "lineChatPageOverride",
+        fields: [
+          defineField({ name: "targetKey", title: "หน้า (doc:รหัสบทความ หรือ page:หน้าเว็บ)", type: "string", readOnly: true }),
+          defineField({ name: "title", title: "ชื่อที่แสดงใน Admin", type: "string" }),
+          defineField({ name: "enabled", title: "เปิดใช้", type: "boolean", initialValue: true }),
+          defineField({ name: "sourceSentence", title: "ประโยคบอกที่มาของหน้านี้ (แทนแม่แบบ)", type: "string", validation: (Rule) => Rule.custom(maxVisible(120)) }),
+          defineField({ name: "hideSource", title: "ไม่ต่อประโยคบอกที่มา", type: "boolean", initialValue: false }),
+          defineField({
+            name: "topics",
+            title: "หัวข้อตามลำดับ (1–4)",
+            type: "array",
+            validation: (Rule) => Rule.min(1).max(4),
+            of: [defineArrayMember({
+              type: "object",
+              name: "lineChatOverrideTopic",
+              fields: [
+                defineField({ name: "kind", title: "ชนิด", type: "string", options: { list: [{ title: "จากคลังหัวข้อ", value: "library" }, { title: "เฉพาะหน้านี้", value: "custom" }] } }),
+                defineField({ name: "topicId", title: "รหัสหัวข้อ", type: "string", readOnly: true }),
+                defineField({ name: "label", title: "ชื่อบนปุ่ม (เฉพาะหน้านี้)", type: "string", validation: (Rule) => Rule.custom(maxVisible(32)) }),
+                defineField({ name: "prefill", title: "ข้อความ (เฉพาะหน้านี้)", type: "text", rows: 3, validation: (Rule) => Rule.custom(maxVisible(300)) }),
+                defineField({ name: "sourceSentence", title: "ประโยคบอกที่มาของหัวข้อนี้", type: "string", validation: (Rule) => Rule.custom(maxVisible(120)) }),
+                defineField({ name: "hideSource", title: "ไม่ต่อประโยคบอกที่มา", type: "boolean", initialValue: false }),
+              ],
+              preview: { select: { title: "label", subtitle: "topicId" } },
+            })],
+          }),
+        ],
+        preview: { select: { title: "title", subtitle: "targetKey" } },
       })],
     }),
     defineField({ name: "updatedAt", title: "อัปเดตล่าสุด", type: "datetime", readOnly: true }),

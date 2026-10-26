@@ -185,6 +185,10 @@ export const websiteV5PhaseBRenderGoldens = Object.freeze({
   // (<div class="layer" data-v5-chat-layer="">, display: contents) so the cookie notice's inert boundary can skip
   // it; that wrapper is the only render difference (previous digests b9d4893f, 78a2a35a, 943dbbb2, 83422f6f,
   // 65c25c36 reproduce exactly without it), so all five digests move once.
-  v5: { "3": "05ca798ac13d62e7b007b26a53f25d5644bd9b43d935af1b11a23d9c1991cc23", "4": "4c8e845d01aced00f8e955aa181069a7ceb912d7290e8b3d75f68616c876f671", "8": "f83f0b1a47a85c86dfb6bbe505d12cb0c4fd7fab20169b8b1695690bbcb8d0eb", "9": "83edfb57e70f2bcc91c776e55eac23e8d003f0c2eb97069a124740afbd369bdd", "10": "0271715d50563659ed0dfe76055c572f730f892af9b4fb97299775c4b37d6339" },
+  // LINE chat per page (owner decisions 2026-10-26, UAT): the dock's no-JS LINE href loses the visible
+  // "(รหัส XX01)" code and tool pages gain the natural source sentence ("ใช้เครื่องมือ...มาครับ"). That one
+  // href is the only render difference: putting the previous href back reproduces 05ca798a, 4c8e845d,
+  // f83f0b1a, 83edfb57 and 0271715d exactly, so all five digests move once.
+  v5: { "3": "03a1a395a7cee5b3f560b8b2df290309589292931f5e735f66fbb532a025a503", "4": "1195bb0ba17c93e06a75ff2c71ea0ec42852fe66e4d01749a12284f068a4dd6f", "8": "6d13f0d686028bd55d1c07c244c595720baac42449796761e04eac202a7872a8", "9": "867ce47566f483595627e0f8feae9895d4fb99649f0f32d9af3d903c6390c902", "10": "4ac66d0de94c24351a396db99317bf0117d08d36f74ecb68ca0c7ab84d74ad58" },
   // END Phase B render goldens
 });

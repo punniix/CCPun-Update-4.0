@@ -644,7 +644,9 @@ test("Article LINE CTAs open the dock's chat panel; no-JS falls back to the page
   assert.match(body, /if \(isLineOaContactHref\(item\.url\)\) return <p key=\{key\}><V5ChatLink className=\{`\$\{shell\.textLink\} \$\{styles\.chatCta\}`\} href=\{chatHref\}>/, "LINE CTA blocks are link-styled, not gold");
   assert.match(body, /return <p key=\{key\}><a className=\{item\.style === "primary" \? shell\.button : shell\.buttonOutline\} \{\.\.\.props\}>/, "non-LINE CTA blocks are unchanged");
   assert.match(body, /isLineOaContactHref\(segment\.href\)\n      \? <V5ChatLink href=\{chatHref\}>/);
-  assert.match(read("features/blog/v5/V5Article.tsx"), /const chatHref = await getV5ChatFallbackHref\(chatContextForPath\(path\)\);/);
+  // 2026-10-26 (LINE chat per page): the dock and the article CTAs share one chat context (path groups + logical id, title, semantic topic).
+  assert.match(read("features/blog/v5/V5Article.tsx"), /const chatHref = await getV5ChatFallbackHref\(chatContext\);/);
+  assert.match(read("features/blog/v5/V5Article.tsx"), /<V5Page current=\{path\} chat=\{chatContext\}>/);
   const link = read("components/layout/v5/V5ChatLink.tsx");
   assert.match(link, /<a\n      href=\{href\}/, "a real link first (no-JS fallback)");
   assert.match(link, /new CustomEvent<V5OpenChatDetail>\(V5_OPEN_CHAT_EVENT, \{ cancelable: true, detail \}\)\)\) event\.preventDefault\(\);/);

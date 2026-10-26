@@ -36,30 +36,20 @@ export type LineChatPageGroupToken = (typeof LINE_CHAT_PAGE_GROUP_TOKENS)[number
 export const LINE_CHAT_CAMPAIGN_TARGETS = ["all", ...LINE_CHAT_PAGE_GROUP_TOKENS] as const;
 export type LineChatCampaignTarget = (typeof LINE_CHAT_CAMPAIGN_TARGETS)[number];
 
-/** Short readable prefix for the reference code appended to every prefill, e.g. "(รหัส HM03)". */
-export const LINE_CHAT_REF_PREFIX: Record<LineChatPageGroupToken, string> = {
-  home: "HM",
-  blog_index: "BL",
-  blog_category: "BC",
-  article: "AR",
-  tool_ci: "CI",
-  tool_fhc: "FH",
-  tool_money_story: "MS",
-  tool_investment_allocation: "IA",
-  tools_hub: "TL",
-  about: "AB",
-  coming_soon: "CS",
-  default: "DF",
-};
-
+// Owner decision 2026-10-26: label up to 32 and message up to 300 visible characters (Thai vowel and
+// tone marks do not count). The source sentence is a separate, shorter field.
 export const LINE_CHAT_LIMITS = {
-  label: 28,
-  prefill: 120,
+  label: 32,
+  prefill: 300,
+  sourceSentence: 120,
+  sourceTitle: 60,
   headline: 60,
   title: 60,
   topics: 40,
   campaigns: 30,
   placementTopics: 4,
+  pageOverrides: 200,
+  overrideTitle: 200,
 } as const;
 
 export const LINE_CHAT_TYPE_OWN = {
@@ -84,6 +74,59 @@ export type LineChatTopic = {
 
 export type LineChatPlacement = { key: string; topicIds: string[] };
 
+/**
+ * Natural "where I came from" sentence (owner decision 2026-10-26, replaces the "(รหัส XX)" suffix).
+ * An empty template switches that kind off. Variables: {title} (article), {toolName} (tool page).
+ */
+export type LineChatSourceTemplates = { article: string; tool: string };
+export const LINE_CHAT_SOURCE_VARIABLES: Record<keyof LineChatSourceTemplates, readonly string[]> = { article: ["title"], tool: ["toolName"] };
+export const LINE_CHAT_DEFAULT_SOURCE_TEMPLATES: LineChatSourceTemplates = {
+  article: "อ่านบทความเรื่อง{title}มาครับ",
+  tool: "ใช้เครื่องมือ{toolName}มาครับ",
+};
+
+type SourceChoice = { sourceSentence?: string; hideSource?: boolean };
+
+/** One topic of a per-page override: a library topic (by id) or a page-only topic with its own text. */
+export type LineChatOverrideTopic =
+  | ({ kind: "library"; id: string } & SourceChoice)
+  | ({ kind: "custom"; id: string; label: string; prefill: string } & SourceChoice);
+
+/**
+ * Per-page override (layer 3): `doc:<logical Sanity article id>` or `page:<route key>`. `title` is the
+ * Admin display name only; the website always uses the live article title.
+ */
+export type LineChatPageOverride = {
+  key: string;
+  title: string;
+  enabled: boolean;
+  topics: LineChatOverrideTopic[];
+} & SourceChoice;
+
+/** Site pages and tools with a stable route key (per-page overrides and the tool source sentence). */
+export const LINE_CHAT_ROUTES = [
+  { key: "home", path: "/", group: "home", label: "หน้าแรก" },
+  { key: "blog", path: "/blog/", group: "blog_index", label: "หน้ารวมบทความ" },
+  { key: "tools", path: "/tools/", group: "tools_hub", label: "หน้ารวมเครื่องมือ" },
+  { key: "ci-planning", path: "/ci-planning/", group: "tool_ci", label: "วางแผนเงินก้อนโรคร้ายแรง", toolName: "วางแผนเงินก้อนโรคร้ายแรง" },
+  { key: "financial-health-check", path: "/tools/financial-health-check/", group: "tool_fhc", label: "ตรวจสุขภาพการเงิน", toolName: "ตรวจสุขภาพการเงิน" },
+  { key: "money-story", path: "/play/money-story/", group: "tool_money_story", label: "Money Story", toolName: "Money Story" },
+  { key: "investment-allocation", path: "/tools/investment-allocation/", group: "tool_investment_allocation", label: "วางแผนกองทุน", toolName: "วางแผนกองทุน" },
+  // บลจ. เอไอเอ fund tool (2026-10-26): same engine, so the same page group and "tools" surface as the main tool.
+  { key: "aia-fund-allocation", path: "/tools/aia-fund-allocation/", group: "tool_investment_allocation", label: "กองทุน บลจ. เอไอเอ", toolName: "วางแผนกองทุน บลจ. เอไอเอ" },
+  // The /about/ page (owner-approved new URL 2026-10-25) uses its own shipped "about" placement.
+  { key: "about", path: "/about/", group: "about", label: "เกี่ยวกับปั้น" },
+] as const satisfies readonly { key: string; path: string; group: LineChatFixedPageGroup; label: string; toolName?: string }[];
+export type LineChatRouteKey = (typeof LINE_CHAT_ROUTES)[number]["key"];
+
+export const LINE_CHAT_OVERRIDE_KEY = /^(?:doc:[A-Za-z0-9][A-Za-z0-9._-]{0,127}|page:[a-z0-9][a-z0-9-]{1,39})$/;
+
+/** Logical Sanity document id (no drafts./versions. prefix), or undefined when it is not a usable id. */
+export function logicalArticleId(id: string | null | undefined): string | undefined {
+  const value = id?.trim().replace(/^drafts\./, "").replace(/^versions\.[^.]+\./, "");
+  return value && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value) ? value : undefined;
+}
+
 export type LineChatCampaign = {
   code: string;
   refCode: string;
@@ -103,6 +146,10 @@ export type LineChatConfig = {
   topics: LineChatTopic[];
   placements: LineChatPlacement[];
   campaigns: LineChatCampaign[];
+  /** Added 2026-10-26; a stored config without it uses LINE_CHAT_DEFAULT_SOURCE_TEMPLATES. */
+  sourceTemplates?: LineChatSourceTemplates;
+  /** Added 2026-10-26 (layer 3, most specific). */
+  pageOverrides?: LineChatPageOverride[];
 };
 
 /** Shipped defaults (L1: drafted for every page group; the owner edits them later in Admin). */
@@ -142,15 +189,25 @@ export const LINE_CHAT_DEFAULTS: LineChatConfig = {
     { key: "default", topicIds: ["check-existing-policy", "health-plan", "book-a-chat"] },
   ],
   campaigns: [],
+  sourceTemplates: LINE_CHAT_DEFAULT_SOURCE_TEMPLATES,
+  pageOverrides: [],
 };
 
 const SLUG = /^[a-z0-9][a-z0-9-]{0,95}$/;
 export const LINE_CHAT_PLACEMENT_KEY = /^(?:home|blog_index|tool_ci|tool_fhc|tool_money_story|tool_investment_allocation|tools_hub|about|coming_soon|default|category:[a-z0-9][a-z0-9-]{0,95}|article:[a-z0-9][a-z0-9-]{0,95})$/;
 
 export type ChatPageContext = {
-  /** A fixed group, or `category:<slug>` on blog category and article pages. */
+  /** A fixed group, or `category:<slug>` (physical URL segment) on blog category and article pages. */
   pageGroup: string;
   articleSlug?: string;
+  /** Logical Sanity document id of the article: the per-page override key `doc:<id>`. */
+  articleId?: string;
+  /** Live article title, used only inside the visitor's LINE message, never in analytics. */
+  articleTitle?: string;
+  /** Semantic topic slug (lib/content/taxonomy.ts); its category placement is tried before the physical one. */
+  topicSlug?: string;
+  /** Stable route key of a site page or tool (LINE_CHAT_ROUTES): the per-page override key `page:<key>`. */
+  routeKey?: string;
 };
 
 export function chatPageGroupToken({ pageGroup, articleSlug }: ChatPageContext): LineChatPageGroupToken {
@@ -159,13 +216,29 @@ export function chatPageGroupToken({ pageGroup, articleSlug }: ChatPageContext):
   return (LINE_CHAT_FIXED_PAGE_GROUPS as readonly string[]).includes(pageGroup) ? pageGroup as LineChatFixedPageGroup : "default";
 }
 
-/** Placement lookup order for a page: article override, then its group (or category), then default. */
-export function chatPlacementKeys({ pageGroup, articleSlug }: ChatPageContext): string[] {
+/**
+ * Placement lookup order for a page: an older `article:<slug>` placement, the semantic topic's
+ * category, the physical category (or fixed group), then default.
+ */
+export function chatPlacementKeys({ pageGroup, articleSlug, topicSlug }: ChatPageContext): string[] {
   const keys: string[] = [];
   if (articleSlug && SLUG.test(articleSlug)) keys.push(`article:${articleSlug}`);
+  if (topicSlug && SLUG.test(topicSlug) && `category:${topicSlug}` !== pageGroup) keys.push(`category:${topicSlug}`);
   if (LINE_CHAT_PLACEMENT_KEY.test(pageGroup) && pageGroup !== "default") keys.push(pageGroup);
   keys.push("default");
   return keys;
+}
+
+/** Per-page override key for this page (`doc:<id>` on articles, `page:<route>` on site pages and tools). */
+export function chatOverrideKey({ articleId, routeKey }: ChatPageContext): string | undefined {
+  const id = logicalArticleId(articleId);
+  const key = id ? `doc:${id}` : routeKey ? `page:${routeKey}` : undefined;
+  return key && LINE_CHAT_OVERRIDE_KEY.test(key) ? key : undefined;
+}
+
+export function chatPageOverride(config: LineChatConfig, context: ChatPageContext): LineChatPageOverride | undefined {
+  const key = chatOverrideKey(context);
+  return key ? config.pageOverrides?.find((override) => override.key === key && override.enabled) : undefined;
 }
 
 export function isCampaignActive(campaign: LineChatCampaign, now: Date): boolean {
@@ -201,13 +274,15 @@ export type ResolveChatPanelInput = ChatPageContext & {
 export type ChatPanelTopic = {
   id: string;
   label: string;
-  journey: LineChatJourney | "type_own";
-  refCode: string;
+  journey: LineChatJourney | "type_own" | "page";
+  /** The whole message LINE puts in the chat box: the topic text plus the natural source sentence. */
   prefill: string;
   href: string;
 };
 
-export type ChatPanelSource = "campaign-utm" | "campaign-temporary" | "placement" | "default";
+export type ChatPanelSource = "campaign-utm" | "campaign-temporary" | "page-override" | "placement" | "default";
+/** Which layer supplied the page's own topics (a campaign may still pin topics above them). */
+export type ChatPanelLayer = "page" | "category" | "group" | "default";
 
 export type ChatPanel =
   | { mode: "plain"; href: string; pageGroup: LineChatPageGroupToken }
@@ -219,23 +294,148 @@ export type ChatPanel =
       pageGroup: LineChatPageGroupToken;
       campaignCode?: string;
       source: ChatPanelSource;
+      layer: ChatPanelLayer;
     };
 
-/** "(รหัส SN11)": a short code a person can read, so ปั้น sees the campaign or page and the topic. */
-export function chatReferenceCode(prefix: string, ref: number): string {
-  return `${prefix}${String(ref).padStart(2, "0")}`;
+/** Visible character count; Thai vowel and tone marks do not count as extra characters. */
+export function countChatCharacters(value: string): number {
+  if (typeof Intl !== "undefined" && "Segmenter" in Intl) {
+    let count = 0;
+    for (const _ of new Intl.Segmenter("th", { granularity: "grapheme" }).segment(value)) count += 1;
+    return count;
+  }
+  return Array.from(value).length;
 }
 
-function panelTopic(topic: Pick<LineChatTopic, "id" | "label" | "prefill" | "ref"> & { journey: ChatPanelTopic["journey"] }, prefix: string): ChatPanelTopic {
-  const refCode = chatReferenceCode(prefix, topic.ref);
-  const prefill = `${topic.prefill.trim()} (รหัส ${refCode})`;
-  return { id: topic.id, label: topic.label, journey: topic.journey, refCode, prefill, href: buildLineOaMessageHref(prefill) };
+function graphemes(value: string): string[] {
+  if (typeof Intl !== "undefined" && "Segmenter" in Intl) return Array.from(new Intl.Segmenter("th", { granularity: "grapheme" }).segment(value), (part) => part.segment);
+  return Array.from(value);
+}
+
+const THAI = /[\u0E00-\u0E7F]/;
+const LATIN_OR_DIGIT = /[A-Za-z0-9]/;
+
+/** A space between Thai and Latin/digit text where two pieces meet ("ใช้เครื่องมือ Money Story มาครับ"). */
+function joinNatural(before: string, value: string): string {
+  const a = before.slice(-1), b = value.slice(0, 1);
+  if (!a || !b || /\s/.test(a) || /\s/.test(b)) return before + value;
+  const mixed = (THAI.test(a) && LATIN_OR_DIGIT.test(b)) || (LATIN_OR_DIGIT.test(a) && THAI.test(b));
+  return mixed ? `${before} ${value}` : before + value;
 }
 
 /**
- * Pure panel resolver. Precedence: (1) the campaign named by utm_campaign, (2) the latest-started
- * active temporary campaign for this page group, (3) the page placement (article override,
- * category, fixed group), (4) the default placement. "พิมพ์คำถามเอง" is always appended.
+ * Article title as it reads inside the visitor's message: the part before "?", ":", "|" or a dash,
+ * at most 60 visible characters cut at a space, no ellipsis, no emoji or markup characters.
+ */
+export function chatSourceTitle(title: string | null | undefined): string {
+  let text = (title ?? "").replace(/<[^>]*>/g, " ").replace(/\p{Extended_Pictographic}/gu, "").replace(/[<>{}#[\]]/g, " ").replace(/\s+/g, " ").trim();
+  const cut = text.search(/\s*(?:[?:|？]|\s[–—-]\s)/);
+  if (cut > 0) text = text.slice(0, cut).trim();
+  const parts = graphemes(text);
+  if (parts.length > LINE_CHAT_LIMITS.sourceTitle) {
+    let head = parts.slice(0, LINE_CHAT_LIMITS.sourceTitle).join("");
+    const space = head.lastIndexOf(" ");
+    if (space >= 20) head = head.slice(0, space);
+    text = head.trim();
+  }
+  return text;
+}
+
+/** Fills a source template; unknown variables or an empty value give no sentence. */
+export function fillChatSourceTemplate(template: string, values: Record<string, string | undefined>): string {
+  const pieces = template.trim().split(/(\{[A-Za-z]+\})/);
+  let out = "";
+  for (const piece of pieces) {
+    const variable = /^\{([A-Za-z]+)\}$/.exec(piece)?.[1];
+    if (!variable) { out = joinNatural(out, piece); continue; }
+    const value = values[variable]?.trim();
+    if (!value) return "";
+    out = joinNatural(out, value);
+  }
+  return out.replace(/\s+/g, " ").trim();
+}
+
+function routeFor(key: string | undefined) {
+  return key ? LINE_CHAT_ROUTES.find((route) => route.key === key) : undefined;
+}
+
+/** The page's own source sentence from the owner's template (articles and tools only). */
+export function chatTemplateSentence(context: ChatPageContext, templates: LineChatSourceTemplates = LINE_CHAT_DEFAULT_SOURCE_TEMPLATES): string {
+  if (context.articleSlug || context.articleId) {
+    const title = chatSourceTitle(context.articleTitle);
+    return title ? fillChatSourceTemplate(templates.article, { title }) : "";
+  }
+  const route = routeFor(context.routeKey);
+  const toolName = route && "toolName" in route ? route.toolName : undefined;
+  return toolName ? fillChatSourceTemplate(templates.tool, { toolName }) : "";
+}
+
+/** Topic choice, then page choice, then the template: a custom sentence replaces it, hideSource drops it. */
+export function chatSourceSentence(templateSentence: string, page?: SourceChoice, topic?: SourceChoice): string {
+  for (const choice of [topic, page]) {
+    if (!choice) continue;
+    if (choice.hideSource) return "";
+    if (choice.sourceSentence?.trim()) return choice.sourceSentence.trim();
+  }
+  return templateSentence;
+}
+
+/**
+ * Owner decision 2026-10-26: the message the customer sends must contain nothing that reads like a
+ * code ("(รหัส HM01)", "HM01", "ref:", "#", "[...]", ids such as "page-annuity1" or "chat_topic_id").
+ * Topic, page and campaign attribution stays in the consent-gated analytics params only.
+ */
+export const LINE_CHAT_VISIBLE_CODE_PATTERNS: readonly RegExp[] = [
+  /\(\s*รหัส/,
+  /รหัส\s*[A-Za-z]{1,4}\s*-?\d/,
+  /(?<![A-Za-z])[A-Z]{1,4}-?\d{1,4}(?!\d)/,
+  /\b(?:ref|id|code|utm|topic|campaign)\s*[:=#]/i,
+  /[#[\]]/,
+  /\b(?=[a-z0-9_-]*[a-z])[a-z0-9]+(?:[-_][a-z0-9]+)+\b/,
+];
+
+export function hasVisibleCode(text: string): boolean {
+  return LINE_CHAT_VISIBLE_CODE_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+/** Last resort when even a topic's own text would show a code (it cannot pass Admin validation). */
+const SAFE_MESSAGE = "สวัสดีครับ มีเรื่องอยากถาม";
+
+/**
+ * The message LINE pre-fills: topic text, then the natural source sentence. A sentence that would
+ * put anything code-like in the message (for example from an article title) is dropped, so the
+ * final text never shows a code.
+ */
+export function composeChatMessage(prefill: string, sourceSentence: string): string {
+  const text = prefill.trim();
+  const sentence = sourceSentence.trim();
+  const composed = sentence ? `${text} ${sentence}` : text;
+  if (!hasVisibleCode(composed)) return composed;
+  return hasVisibleCode(text) ? SAFE_MESSAGE : text;
+}
+
+type BaseTopic = { id: string; label: string; prefill: string; journey: ChatPanelTopic["journey"]; source?: SourceChoice };
+
+function panelTopic(topic: BaseTopic, templateSentence: string, page?: SourceChoice): ChatPanelTopic {
+  const prefill = composeChatMessage(topic.prefill, chatSourceSentence(templateSentence, page, topic.source));
+  return { id: topic.id, label: topic.label, journey: topic.journey, prefill, href: buildLineOaMessageHref(prefill) };
+}
+
+function layerOfKey(key: string): ChatPanelLayer {
+  if (key === "default") return "default";
+  if (key.startsWith("article:")) return "page";
+  if (key.startsWith("category:")) return "category";
+  return "group";
+}
+
+/**
+ * Pure panel resolver (owner decision 2026-10-26, most specific wins):
+ *   campaign pin > per-page override > category (semantic topic, then physical) > site default.
+ * A campaign (named by utm_campaign, else the latest-started active temporary one for this page
+ * group) only pins its topics above the page's own list. The page's own list comes from its
+ * per-page override, else its placements (category, fixed group), else the default placement.
+ * "พิมพ์คำถามเอง" is always appended. Every message is the topic text plus one natural source
+ * sentence; no codes are ever shown (topic, page group and campaign stay in analytics params only).
  * A campaign follows the visitor to later pages only when analytics consent is given (L3).
  */
 export function resolveChatPanel(input: ResolveChatPanelInput): ChatPanel {
@@ -255,54 +455,90 @@ export function resolveChatPanel(input: ResolveChatPanelInput): ChatPanel {
     if (campaign) source = "campaign-temporary";
   }
 
-  let placementIds: string[] = [];
-  for (const key of chatPlacementKeys(input)) {
-    const ids = config.placements.find((placement) => placement.key === key)?.topicIds.filter((id) => topics.has(id)) ?? [];
-    if (ids.length) {
-      placementIds = ids;
-      if (!campaign && key === "default") source = "default";
-      break;
+  const fromLibrary = (id: string, choice?: SourceChoice): BaseTopic | undefined => {
+    const topic = topics.get(id);
+    return topic ? { id: topic.id, label: topic.label, prefill: topic.prefill, journey: topic.journey, source: choice } : undefined;
+  };
+
+  let layer: ChatPanelLayer = "default";
+  let base: BaseTopic[] = [];
+  const override = chatPageOverride(config, input);
+  if (override) {
+    base = override.topics.flatMap((item) => {
+      if (item.kind === "library") return fromLibrary(item.id, item) ?? [];
+      return [{ id: item.id, label: item.label, prefill: item.prefill, journey: "page" as const, source: item }];
+    });
+    if (base.length) {
+      layer = "page";
+      if (!campaign) source = "page-override";
+    }
+  }
+  if (!base.length) {
+    for (const key of chatPlacementKeys(input)) {
+      const ids = config.placements.find((placement) => placement.key === key)?.topicIds.filter((id) => topics.has(id)) ?? [];
+      if (ids.length) {
+        base = ids.map((id) => fromLibrary(id)!);
+        layer = layerOfKey(key);
+        if (!campaign && key === "default") source = "default";
+        break;
+      }
     }
   }
 
-  const orderedIds = [...(campaign?.pinnedTopicIds.filter((id) => topics.has(id)) ?? []), ...placementIds];
-  let selected = [...new Set(orderedIds)].slice(0, LINE_CHAT_LIMITS.placementTopics).map((id) => topics.get(id)!);
+  const pinned = campaign?.pinnedTopicIds.flatMap((id) => fromLibrary(id) ?? []) ?? [];
+  const seen = new Set<string>();
+  let selected = [...pinned, ...base].filter((topic) => !seen.has(topic.id) && Boolean(seen.add(topic.id))).slice(0, LINE_CHAT_LIMITS.placementTopics);
   if (!selected.length) {
     // A config whose every topic is unusable for this page still gets the shipped default set.
     const fallback = new Map(LINE_CHAT_DEFAULTS.topics.map((topic) => [topic.id, topic] as const));
     selected = LINE_CHAT_DEFAULTS.placements.find((placement) => placement.key === "default")!.topicIds.map((id) => fallback.get(id)!);
     source = "default";
+    layer = "default";
     campaign = undefined;
   }
 
-  const prefix = campaign?.refCode ?? LINE_CHAT_REF_PREFIX[token];
+  const templateSentence = chatTemplateSentence(input, config.sourceTemplates ?? LINE_CHAT_DEFAULT_SOURCE_TEMPLATES);
+  const pageChoice = layer === "page" ? override : undefined;
   return {
     mode: "panel",
     headline: campaign?.headline?.trim() || LINE_CHAT_DEFAULT_HEADLINE,
     note: LINE_CHAT_PANEL_NOTE,
     topics: [
-      ...selected.map((topic) => panelTopic(topic, prefix)),
-      panelTopic({ ...LINE_CHAT_TYPE_OWN, ref: 0, journey: "type_own" }, prefix),
+      ...selected.map((topic) => panelTopic(topic, templateSentence, pageChoice)),
+      panelTopic({ ...LINE_CHAT_TYPE_OWN, journey: "type_own" }, templateSentence, pageChoice),
     ],
     pageGroup: token,
     ...(campaign ? { campaignCode: campaign.code } : {}),
     source,
+    layer,
   };
 }
 
 /**
- * The slice of the config a page needs, so the browser never receives other pages' placements or
- * campaigns that cannot apply there. Ended temporary campaigns are dropped; future ones stay so a
- * cached page still switches on time.
+ * The slice of the config a page needs, so the browser never receives other pages' placements,
+ * overrides or campaigns that cannot apply there. Ended temporary campaigns are dropped; future
+ * ones stay so a cached page still switches on time.
  */
 export function selectChatConfigForPage(config: LineChatConfig, context: ChatPageContext, now: Date): LineChatConfig {
   const token = chatPageGroupToken(context);
   const keys = new Set(chatPlacementKeys(context));
   const placements = config.placements.filter((placement) => keys.has(placement.key));
+  const override = chatPageOverride(config, context);
   const campaigns = config.campaigns.filter((campaign) => !campaign.paused && campaignAppliesTo(campaign, token)
     && !(campaign.type === "temporary" && campaign.endsAt && Date.parse(campaign.endsAt) <= now.getTime()));
-  const used = new Set([...placements.flatMap((placement) => placement.topicIds), ...campaigns.flatMap((campaign) => campaign.pinnedTopicIds)]);
-  return { enabled: config.enabled, topics: config.topics.filter((topic) => topic.enabled && used.has(topic.id)), placements, campaigns };
+  const used = new Set([
+    ...placements.flatMap((placement) => placement.topicIds),
+    ...campaigns.flatMap((campaign) => campaign.pinnedTopicIds),
+    ...(override?.topics.flatMap((item) => item.kind === "library" ? [item.id] : []) ?? []),
+  ]);
+  return {
+    enabled: config.enabled,
+    topics: config.topics.filter((topic) => topic.enabled && used.has(topic.id)),
+    placements,
+    campaigns,
+    sourceTemplates: config.sourceTemplates ?? LINE_CHAT_DEFAULT_SOURCE_TEMPLATES,
+    pageOverrides: override ? [override] : [],
+  };
 }
 
 /**
@@ -332,26 +568,25 @@ export function chatSurfaceGroup(token: LineChatPageGroupToken): string | undefi
   }
 }
 
-const FIXED_PATH_GROUPS: Record<string, LineChatFixedPageGroup> = {
-  "/": "home",
-  "/blog/": "blog_index",
-  "/ci-planning/": "tool_ci",
-  "/tools/financial-health-check/": "tool_fhc",
-  "/play/money-story/": "tool_money_story",
-  "/tools/investment-allocation/": "tool_investment_allocation",
-  // บลจ. เอไอเอ fund tool (2026-10-26): same engine, so the same page group and "tools" surface as the main tool.
-  "/tools/aia-fund-allocation/": "tool_investment_allocation",
-  "/tools/": "tools_hub",
-  // The /about/ page (owner-approved new URL 2026-10-25) uses its own shipped "about" placement.
-  "/about/": "about",
-};
+const ROUTE_BY_PATH = new Map<string, (typeof LINE_CHAT_ROUTES)[number]>(LINE_CHAT_ROUTES.map((route) => [route.path, route] as const));
 
-/** Page group for a v5 page from its physical path (blog categories and articles by URL segment). */
+/** Page group (and route key) for a v5 page from its physical path (blog categories and articles by URL segment). */
 export function chatContextForPath(path: string | undefined): ChatPageContext {
   if (!path) return { pageGroup: "default" };
-  const fixed = FIXED_PATH_GROUPS[path];
-  if (fixed) return { pageGroup: fixed };
+  const route = ROUTE_BY_PATH.get(path);
+  if (route) return { pageGroup: route.group, routeKey: route.key };
   const blog = /^\/blog\/([a-z0-9][a-z0-9-]{0,95})\/(?:([a-z0-9][a-z0-9-]{0,95})\/)?$/.exec(path);
   if (blog) return blog[2] ? { pageGroup: `category:${blog[1]}`, articleSlug: blog[2] } : { pageGroup: `category:${blog[1]}` };
   return { pageGroup: "default" };
+}
+
+/** Full chat context of an article page: its path groups plus id, live title and semantic topic. */
+export function chatContextForArticle(path: string, article: { id?: string | null; title?: string | null }, topicSlug?: string | null): ChatPageContext {
+  const id = logicalArticleId(article.id);
+  return {
+    ...chatContextForPath(path),
+    ...(id ? { articleId: id } : {}),
+    ...(article.title?.trim() ? { articleTitle: article.title.trim() } : {}),
+    ...(topicSlug ? { topicSlug } : {}),
+  };
 }

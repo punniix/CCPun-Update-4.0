@@ -18,7 +18,7 @@ import V5LegacyBridge from "@/components/layout/v5/V5LegacyBridge";
 import V5ChatLink from "@/components/layout/v5/V5ChatLink";
 import { getV5ChatFallbackHref } from "@/components/layout/v5/V5ChatDockServer";
 import { isLineOaContactHref } from "@/components/layout/v5/chat-events";
-import { chatContextForPath } from "@/lib/line/chat-panel";
+import { chatContextForArticle } from "@/lib/line/chat-panel";
 import { V5SharedTransition } from "@/components/layout/v5/V5ViewTransition";
 import Website43ArticleOverview from "@/features/blog/website-43/Website43ArticleOverview";
 import ArticleShareActions from "@/features/blog/website-43/ArticleShareActions";
@@ -82,8 +82,11 @@ export default async function V5Article({ article, relatedArticles = [], allArti
   const readingMinutes = estimateArticleReadingMinutes(article);
   const path = getArticlePath(article);
   const relatedCards = toV5Cards(relatedArticles, copy);
+  // Chat topics for this article (2026-10-26): its own override (logical document id), then its semantic
+  // topic and physical category; the live title feeds the natural source sentence of the LINE message.
+  const chatContext = chatContextForArticle(path, article, topic?.slug);
   // The page's LINE OA link with its prefill: the no-JS fallback of LINE CTAs that open the dock's panel.
-  const chatHref = await getV5ChatFallbackHref(chatContextForPath(path));
+  const chatHref = await getV5ChatFallbackHref(chatContext);
 
   const nextSteps = resolveNextSteps(topic?.slug, article.slug).flatMap((step) => {
     if (step.kind === "tool") {
@@ -104,7 +107,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
   return (
     <PublicCopyProvider values={copy}>
       <ArticleEngagementProvider key={article.id} articleId={article.id} disabled={preview}>
-        <V5Page current={path}>
+        <V5Page current={path} chat={chatContext}>
           {preview && <aside className={styles.previewBar} role="status"><div className={shell.inner} style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
             <p>{text.node("blog.p2")}</p>
             <form action="/api/preview/disable/" method="post"><button type="submit" className={shell.buttonDark}>{text.node("blog.outlineButton")}</button></form>
