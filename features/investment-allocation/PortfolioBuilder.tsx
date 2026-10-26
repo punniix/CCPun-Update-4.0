@@ -416,7 +416,7 @@ function AllocationTotal({ total, label, allowZero = false, errorMessage }: { to
   const valid = total === 100 || (allowZero && total === 0);
   const width = Math.min(100, Math.max(0, total));
   const message = errorMessage ?? (valid ? (total === 0 ? "ยังไม่ได้กำหนดสัดส่วนเป้าหมาย — ทำต่อได้" : "ครบ 100%") : total < 100 ? `เหลืออีก ${Math.round((100 - total) * 100) / 100}%` : `เกินมา ${Math.round((total - 100) * 100) / 100}%`);
-  return <div className={styles.totalBox} data-valid={valid}><div className={styles.totalLine}><span>{label}</span><strong>{total}%</strong></div><div className={styles.progressTrack} aria-hidden="true"><div className={styles.progressFill} style={{ width: `${width}%` }} /></div><p className={styles.validation} data-error={!valid || Boolean(errorMessage)} aria-live="polite">{message}</p></div>;
+  return <div className={styles.totalBox} data-valid={valid}><div className={styles.totalLine}><span>{label}</span><strong>{total}%</strong></div><div className={styles.progressTrack} aria-hidden="true"><div className={styles.progressFill} style={{ transform: `translateX(${width - 100}%)` }} /></div><p className={styles.validation} data-error={!valid || Boolean(errorMessage)} aria-live="polite">{message}</p></div>;
 }
 
 function ResultView({ result, onEdit, onSave, onHandoff, saveStatus }: { result: InvestmentPlanResult; onEdit: () => void; onSave: () => void; onHandoff: () => void; saveStatus: string | null }) {

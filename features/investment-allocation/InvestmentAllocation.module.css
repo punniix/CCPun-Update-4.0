@@ -50,7 +50,8 @@
 .totalLine { display: flex; justify-content: space-between; gap: 12px; color: var(--w43-muted); font-size: 14px; }
 .totalLine strong { color: var(--w43-ink); font-variant-numeric: tabular-nums; }
 .progressTrack { overflow: hidden; height: 7px; margin-top: 10px; border-radius: 999px; background: rgba(255,255,255,.08); }
-.progressFill { height: 100%; border-radius: inherit; background: var(--w43-gold); transition: width .18s ease; }
+/* Motion smoothing (2026-10-26): the fill slides (transform) inside the clipped track instead of animating its width. */
+.progressFill { width: 100%; height: 100%; border-radius: inherit; background: var(--w43-gold); transition: transform var(--v5-motion-fast) var(--v5-ease-standard); }
 .totalBox[data-valid="false"] .progressFill { opacity: .46; }
 .validation { margin: 8px 0 0; color: var(--w43-muted); font-size: 14px; line-height: 1.55; }
 .validation[data-error="true"] { color: #f0b7ad; }
@@ -111,7 +112,7 @@
 .barFill { height: 100%; border-radius: inherit; background: var(--w43-gold); }
 /* v5 motion round (owner-approved idea #1, UAT): allocation bars grow once when the result appears.
    transform only, the final width is set from the first frame; reduced motion shows the final bar. */
-.barFill { transform-origin: left center; animation: iaBarGrow 600ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.barFill { transform-origin: left center; animation: iaBarGrow var(--v5-motion-reveal) var(--v5-ease-emphasized) both; }
 @keyframes iaBarGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @media (prefers-reduced-motion: reduce) { .barFill { animation: none; } }
 .barValue { color: var(--w43-ink); font-size: 14px; font-variant-numeric: tabular-nums; text-align: right; }
@@ -175,7 +176,7 @@
 .modeInner h2 { margin: 8px 0 0; color: var(--w43-ink); font-size: clamp(26px,4vw,36px); font-weight: 600; line-height: 1.3; }
 .modeLead { max-width: 720px; margin: 10px 0 0; color: var(--w43-muted); font-size: 14px; line-height: 1.65; }
 .modeGrid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 22px; }
-.modeCard { min-height: 148px; padding: 18px; border: 1px solid var(--w43-border); border-radius: 16px; background: rgba(74,58,58,.35); color: var(--w43-ink); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s ease, background .15s ease; }
+.modeCard { min-height: 148px; padding: 18px; border: 1px solid var(--w43-border); border-radius: 16px; background: rgba(74,58,58,.35); color: var(--w43-ink); font: inherit; text-align: left; cursor: pointer; transition: border-color var(--v5-motion-fast) ease, background-color var(--v5-motion-fast) ease; }
 .modeCard[data-active="true"] { border-color: rgba(224,201,133,.68); background: rgba(224,201,133,.08); }
 .modeCard:focus-visible { outline: 3px solid var(--v5-focus, rgba(224,201,133,.6)); outline-offset: 3px; }
 .modeBadge { display: inline-flex; min-height: 24px; align-items: center; padding: 3px 8px; border: 1px solid rgba(224,201,133,.32); border-radius: 999px; color: var(--w43-gold); font-size: 14px; font-weight: 600; }
@@ -203,8 +204,10 @@
 .catalogChoose { min-height: 44px; padding: 0 14px; border: 1px solid var(--w43-gold); border-radius: 10px; background: transparent; color: var(--w43-gold); font: inherit; font-weight: 600; cursor: pointer; }
 .loadMore { width: 100%; min-height: 48px; margin-top: 12px; border: 1px solid var(--w43-border); border-radius: 11px; background: transparent; color: var(--w43-ink); font: inherit; cursor: pointer; }
 .loadMore:disabled { opacity: .5; cursor: wait; }
-.catalogSkeleton { height: 132px; border: 1px solid var(--w43-border); border-radius: 13px; background: linear-gradient(90deg, rgba(255,255,255,.025), rgba(255,255,255,.065), rgba(255,255,255,.025)); background-size: 200% 100%; animation: iaSkeleton 1.2s linear infinite; }
-@keyframes iaSkeleton { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.catalogSkeleton { height: 132px; border: 1px solid var(--w43-border); border-radius: 13px; position: relative; overflow: hidden; background: rgba(255,255,255,.025); }
+/* Motion smoothing (2026-10-26): the loading sheen moves with transform (compositor) instead of repainting background-position. */
+.catalogSkeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.04), transparent); transform: translateX(-100%); animation: iaSkeleton 1.2s linear infinite; }
+@keyframes iaSkeleton { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 
 .singleResultLoading { width: min(1120px,100%); margin: 24px auto 0; padding: 18px; border: 1px solid var(--w43-border); border-radius: 14px; color: var(--w43-muted); text-align: center; }
 .singleResult { display: flex; flex-direction: column; gap: 14px; width: min(1120px,100%); margin: 24px auto 0; scroll-margin-top: 24px; }
@@ -255,7 +258,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .modeCard, .catalogSkeleton { transition: none; animation: none; }
+  .modeCard, .catalogSkeleton, .catalogSkeleton::after { transition: none; animation: none; }
 }
 
 /*

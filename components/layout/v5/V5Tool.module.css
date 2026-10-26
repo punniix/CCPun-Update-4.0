@@ -292,11 +292,21 @@
  * frame, so nothing reflows. The keyframes replay when the bar remounts with new amounts (method
  * switch). Reduced motion: no animation, the final state shows at once.
  */
-.calcScope :global(.ccpun-money-have) { transform-origin: left center; animation: moneyGrow 600ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-.calcScope :global(.ccpun-money-gap) { transform-origin: left center; animation: moneyGrow 500ms cubic-bezier(0.22, 1, 0.36, 1) 450ms both; }
-.calcScope :global(.ccpun-money-divider) { animation: moneyFade 150ms ease-out 450ms both; }
+/* Motion smoothing (2026-10-26): shared tokens. The gap bar and the count-up (useCountUp) share one delay,
+   duration and curve, so both land together at 1s; `data-reveal="wait"` holds the first frame until the
+   comparison is on screen (set and cleared by useCountUp; without JavaScript it is never set). */
+.calcScope :global(.ccpun-money-have) { transform-origin: left center; animation: moneyGrow var(--v5-motion-reveal) var(--v5-ease-emphasized) both; }
+.calcScope :global(.ccpun-money-gap) { transform-origin: left center; animation: moneyGrow var(--v5-motion-reveal) var(--v5-ease-emphasized) var(--v5-motion-slow) both; }
+.calcScope :global(.ccpun-money-divider) { animation: moneyFade var(--v5-motion-fast) ease-out var(--v5-motion-slow) both; }
+.calcScope :global([data-reveal="wait"] :is(.ccpun-money-have, .ccpun-money-gap, .ccpun-money-divider)) { animation-play-state: paused; }
 @keyframes moneyGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes moneyFade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .calcScope :global(.ccpun-money-have), .calcScope :global(.ccpun-money-gap), .calcScope :global(.ccpun-money-divider) { animation: none; }
 }
+@media print {
+  .calcScope :global(.ccpun-money-have), .calcScope :global(.ccpun-money-gap), .calcScope :global(.ccpun-money-divider) { animation: none; }
+}
+/* Reused calculator buttons: the 4.3 critical CSS animates `all` for 300ms; v5 hover states use the shared colour timing. */
+.calcScope :global(:is(.gold-button, .glass-button)) { transition: transform var(--v5-motion-micro) ease, background-color var(--v5-motion-fast) ease, border-color var(--v5-motion-fast) ease, color var(--v5-motion-fast) ease; }
+@media (prefers-reduced-motion: reduce) { .calcScope :global(:is(.gold-button, .glass-button)) { transition: none; } }

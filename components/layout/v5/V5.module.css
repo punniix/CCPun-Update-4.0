@@ -45,6 +45,14 @@
   --v5-card-gap: 16px;
   --v5-list-gap: 12px;
   --v5-text-meta: 14px;
+  /* Motion tokens (smoothing pass 2026-10-26): one small set for every v5 effect; motion-tokens.ts mirrors them. */
+  --v5-motion-micro: 120ms;
+  --v5-motion-fast: 160ms;
+  --v5-motion-base: 240ms;
+  --v5-motion-slow: 400ms;
+  --v5-motion-reveal: 600ms;
+  --v5-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --v5-ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
   color-scheme: dark;
   min-height: 100vh;
   background: var(--v5-bg);
@@ -113,7 +121,7 @@
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 48px; padding: 12px 28px; border-radius: var(--v5-radius-button); font-family: var(--v5-font-display);
   font-size: 15px; font-weight: 500; line-height: 1.3; text-align: center; text-decoration: none; cursor: pointer;
-  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+  transition: background-color var(--v5-motion-fast) ease, border-color var(--v5-motion-fast) ease, color var(--v5-motion-fast) ease;
 }
 .button { background: var(--v5-gold); color: var(--v5-on-gold); border: 1px solid var(--v5-gold); }
 .button:hover { background: var(--v5-highlight); }
@@ -162,7 +170,7 @@
 .articleCard {
   position: relative; display: flex; flex-direction: column; overflow: hidden; min-width: 0;
   background: var(--v5-card); border: 1px solid var(--v5-border-soft); border-radius: var(--v5-radius);
-  transition: border-color 160ms ease, transform 160ms ease;
+  transition: border-color var(--v5-motion-fast) ease;
 }
 .sectionAlt .articleCard { background: var(--v5-card-alt); }
 .articleCard:hover { border-color: var(--v5-gold); }
@@ -221,12 +229,12 @@
 }
 .navLink:hover, .navToggle:hover { color: var(--v5-gold-text); }
 .navLink[aria-current] { color: var(--v5-gold-text); }
-.chevron { width: 10px; height: 10px; transition: transform 160ms ease; }
+.chevron { width: 10px; height: 10px; transition: transform var(--v5-motion-fast) var(--v5-ease-standard); }
 .navToggle[aria-expanded="true"] .chevron { transform: rotate(180deg); }
 .dropdown {
   position: absolute; top: calc(100% + 8px); left: 50%; min-width: 260px; transform: translateX(-50%);
   padding: 8px; margin: 0; list-style: none; background: var(--v5-bg); border: 1px solid var(--v5-border); border-radius: var(--v5-radius); box-shadow: var(--v5-shadow);
-  visibility: hidden; opacity: 0; transition: opacity 120ms ease, visibility 120ms;
+  visibility: hidden; opacity: 0; transition: opacity var(--v5-motion-micro) ease, visibility var(--v5-motion-micro);
 }
 .navItem:hover > .dropdown, .navItem:focus-within > .dropdown, .navItem[data-open="true"] > .dropdown { visibility: visible; opacity: 1; }
 .navItem[data-open="false"] > .dropdown { visibility: hidden; opacity: 0; }
@@ -283,6 +291,10 @@
 @media (prefers-reduced-motion: reduce) {
   .root *, .root *::before, .root *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+/* Theme switch (smoothing pass 2026-10-26): every surface swaps in the same frame. Without this, hover-state
+   colour transitions made buttons, chips and cards fade for 160ms after the page itself had already switched.
+   V5HeaderEnhancer sets the attribute for the switching frame only. */
+:global(html[data-v5-theme-switching]) .root *, :global(html[data-v5-theme-switching]) .root *::before, :global(html[data-v5-theme-switching]) .root *::after { transition: none !important; }
 .articleCard[hidden] { display: none; }
 
 /* Health Happy countdown slot: removed entirely (no reserved space) once the deadline has passed. */

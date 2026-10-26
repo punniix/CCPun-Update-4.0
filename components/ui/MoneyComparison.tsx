@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { usePublicCopy } from "./PublicCopyProvider";
 import { useCountUp } from "./useCountUp";
 
@@ -37,10 +38,12 @@ export default function MoneyComparison({
   const surplus = Math.max(resources - need, 0);
   const coveredPercent = need > 0 ? Math.min((resources / need) * 100, 100) : 0;
   const shown = gap > 0 ? gap : surplus;
-  const countRef = useCountUp<HTMLSpanElement>(shown, baht);
+  // The figure is the reveal scope: bars and count wait until it is on screen (motion smoothing, 2026-10-26).
+  const figureRef = useRef<HTMLElement>(null);
+  const countRef = useCountUp<HTMLSpanElement>(shown, baht, figureRef);
 
   return (
-    <figure className="money-comparison space-y-4">
+    <figure ref={figureRef} className="money-comparison space-y-4">
       <figcaption className="text-sm font-semibold text-foreground">{title}</figcaption>
       {need > 0 ? (
         <div key={`${need}:${resources}`} aria-hidden="true" className="relative h-4 overflow-visible rounded-full border border-border/60 bg-secondary/70">

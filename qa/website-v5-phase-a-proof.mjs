@@ -96,7 +96,10 @@ export const websiteV5PhaseASources = Object.freeze({
   // D9 (owner-approved 2026-10-25): the page passes `current` so the gated nav entry is marked.
   // v5 motion round (owner-approved #1, UAT): allocation bars grow once (transform only) in the CSS below.
   "features/investment-allocation/page.tsx": { before: "3b8268994e496feb67bc99d79b908dc80f68564c727f1473cfad2d7b22689a39", after: "fc8ca4bbefbe65c1e6200b5e514c6fa6bf91b5ca8f7278a5fce047faf8cb3e98" },
-  "features/investment-allocation/InvestmentAllocation.module.css": { before: "ca66e94854d773d024f4fa66284a0f3dc14b2fa72b4836fcd3f3328ad4a45543", after: "41e9e934b1283037c7c1e0ae188c77991cff93d20419024b7f7c17efeb7565e4" },
+  // v5 motion smoothing (2026-10-26, UAT): shared motion tokens; the total bar slides with transform instead of a width
+  // transition and the loading sheen moves with transform instead of background-position. The reviewed successor moves
+  // from 41e9e934b1283037c7c1e0ae188c77991cff93d20419024b7f7c17efeb7565e4 to that exact file.
+  "features/investment-allocation/InvestmentAllocation.module.css": { before: "ca66e94854d773d024f4fa66284a0f3dc14b2fa72b4836fcd3f3328ad4a45543", after: "3e885a27763cc7820159252395864c079a0ca4800f3372be1201ae6fbfeb8f20" },
   // END Phase B reviewed sources
   // Owner-approved 2026-10-25 (UAT): LINE chat button L5/L6 (additive analytics tokens, the CI result
   // oaMessage prefill without numbers, line_oa_click now owned by the app because GTM v9 paused the
@@ -124,7 +127,10 @@ export const websiteV5PhaseASources = Object.freeze({
   // animates transform/opacity once and counts the gap up while the final value stays accessible.
   // `before` is the reviewed source at d77acba8. v5 integration (2026-10-25): the gold gap uses the gold text token
   // (darker #7a5c14 in light mode, >= 3:1 against its track); the reviewed successor moves to that exact file.
-  "components/ui/MoneyComparison.tsx": { before: "3f0c3a9229483df806297d5ab0bf45d7d83d4e158f1a995475a4dabccead5368", after: "6c238ed0f748c1ce06015b82249e608d014240bbe93440f15acbef6c3b100d51" },
+  // v5 motion smoothing (2026-10-26, UAT): the figure becomes the reveal scope (a ref passed to useCountUp), so bars and
+  // count wait until the comparison is on screen; no markup, copy or value changes. The reviewed successor moves from
+  // 6c238ed0f748c1ce06015b82249e608d014240bbe93440f15acbef6c3b100d51 to that exact file.
+  "components/ui/MoneyComparison.tsx": { before: "3f0c3a9229483df806297d5ab0bf45d7d83d4e158f1a995475a4dabccead5368", after: "84f82818c4503898b58643e111c69096ff1da26eb5ae4dc6e75c29867500ae73" },
   // END motion reviewed sources
 });
 

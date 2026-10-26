@@ -1,4 +1,5 @@
 import { cache, ViewTransition, type ReactNode } from "react";
+import { cssCubicBezier, V5_EASE_STANDARD, V5_MOTION_MS } from "./motion-tokens";
 
 /**
  * v5 motion round (owner-approved idea #2, UAT prototype): a tapped article card's image and title
@@ -9,13 +10,16 @@ import { cache, ViewTransition, type ReactNode } from "react";
  * - Only the shared pair animates (`default="none"`); nothing animates on first load, so LCP/CLS are untouched.
  * - A name may appear once per page or the browser skips the transition, so the first claim wins.
  * - Snapshots move with transform/opacity only. Reduced motion removes every animation (instant swap).
+ * - Timing comes from the shared motion tokens (motion-tokens.ts): the morph uses the "slow" move, the page
+ *   crossfade the "base" duration. V5HeaderEnhancer makes the next page start at its top instead of
+ *   smooth-scrolling there under the morph.
  */
 export const V5_VIEW_TRANSITION_CSS = [
   "::view-transition{pointer-events:none}",
-  "::view-transition-group(.ccpun-vt-cover),::view-transition-group(.ccpun-vt-title){animation-duration:380ms;animation-timing-function:cubic-bezier(0.2,0,0,1)}",
+  `::view-transition-group(.ccpun-vt-cover),::view-transition-group(.ccpun-vt-title){animation-duration:${V5_MOTION_MS.slow}ms;animation-timing-function:${cssCubicBezier(V5_EASE_STANDARD).replaceAll(" ", "")}}`,
   // Text keeps its own size and crossfades while its box travels, instead of being stretched.
   "::view-transition-old(.ccpun-vt-title),::view-transition-new(.ccpun-vt-title){width:auto;height:auto}",
-  "::view-transition-old(root),::view-transition-new(root){animation-duration:250ms}",
+  `::view-transition-old(root),::view-transition-new(root){animation-duration:${V5_MOTION_MS.base}ms}`,
   "@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}",
 ].join("");
 

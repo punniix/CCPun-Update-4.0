@@ -10,7 +10,7 @@
 .articleShareControls { position: relative; display: inline-flex; align-items: center; gap: 12px; max-width: 100%; }
 .articleShareLabel { display: none; }
 .articleShareButtons { display: flex; align-items: center; gap: 8px; }
-.articleShareButton { display: inline-flex; width: 44px; height: 44px; min-width: 44px; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--v5-border, #5b4848); border-radius: 999px; background: transparent; color: var(--v5-gold-text, #e0c985); cursor: pointer; transition: border-color 160ms ease, background-color 160ms ease; }
+.articleShareButton { display: inline-flex; width: 44px; height: 44px; min-width: 44px; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--v5-border, #5b4848); border-radius: 999px; background: transparent; color: var(--v5-gold-text, #e0c985); cursor: pointer; transition: border-color var(--v5-motion-fast, 160ms) ease, background-color var(--v5-motion-fast, 160ms) ease; }
 .articleShareButton svg { width: 18px; height: 18px; }
 .articleShareButton:disabled { cursor: wait; opacity: .65; }
 @media (hover: hover) and (pointer: fine) { .articleShareButton:hover { border-color: var(--v5-gold, #e0c985); background: rgba(224, 201, 133, .08); } }
@@ -35,3 +35,4 @@
   .articleTableWrap::-webkit-scrollbar-thumb { background: var(--v5-gold, #e0c985); border-radius: 4px; }
   .tableHint { display: none; }
 }
+@media (prefers-reduced-motion: reduce) { .articleShareButton { transition: none; } }

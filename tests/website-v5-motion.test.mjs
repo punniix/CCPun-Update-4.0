@@ -104,7 +104,8 @@ test('licence and AFPT™ cards: native buttons with aria-pressed, back text rea
   assert.match(licence, new RegExp(copy.V5_LICENCE_VERIFY_PLACEHOLDER), 'back note is in the markup (accessibility tree)');
   assert.match(licence, /<span class="line" aria-hidden="true">/, 'the repeated number on the back is hidden from assistive tech');
   assert.doesNotMatch(licence, /https?:\/\//, 'no invented verification URL');
-  assert.match(licence, /<noscript><style>\.card:is\(:hover,:focus-visible\) \.inner\{transform:rotateY\(180deg\)\}\.card:is\(:hover,:focus-visible\) \.back\{opacity:1\}\.card:is\(:hover,:focus-visible\) \.front\{opacity:0\}<\/style><\/noscript>/);
+  // No-JS hover/focus follows the same face timing as the tap (shown face at once, hidden face after the turn).
+  assert.match(licence, /<noscript><style>\.card:is\(:hover,:focus-visible\) \.inner\{transform:rotateY\(180deg\)\}\.card:is\(:hover,:focus-visible\) \.back\{opacity:1;transition-delay:0s\}\.card:is\(:hover,:focus-visible\) \.front\{opacity:0;transition-delay:var\(--v5-motion-slow\)\}<\/style><\/noscript>/);
 
   const production = renderToStaticMarkup(React.createElement(Flip.default, { term: 'ตัวแทนประกันชีวิต', detail: '6801064783', hint: copy.V5_LICENCE_FLIP_HINT, back: [{ label: copy.V5_LICENCE_NUMBER_LABEL, value: '6801064783', repeatsFront: true }], note: null }));
   assert.doesNotMatch(production, /<button|aria-pressed|ดูวิธีตรวจสอบ/, 'without approved verification text the licence card is static');
@@ -139,7 +140,10 @@ test('flip card toggles aria-pressed on click (Enter/Space are native button act
   assert.match(css, /\.face \{\s*grid-area: 1 \/ 1;/, 'faces share one grid cell: flipping never changes layout');
   assert.match(css, /prefers-reduced-motion: reduce\) \{\s*\.inner \{ transition: none; \}\s*\.front, \.back \{ transition: none; \}/);
   // Integration fix (Hallmark gate 73): the turned-away face is transparent, so back text is never painted under the front.
-  assert.match(css, /\.back \{ opacity: 0; \}\n\.card\[aria-pressed="true"\] \.back \{ opacity: 1; \}\n\.card\[aria-pressed="true"\] \.front \{ opacity: 0; \}/);
+  // Motion smoothing (2026-10-26): the face turning toward the viewer is opaque at once, the face turning away goes
+  // transparent only after the whole turn, so no frame shows a blank card (normal tap or a second tap mid-turn).
+  assert.match(css, /\.front, \.back \{ transition: opacity 0s linear 0s; \}\n\.back \{ opacity: 0; transition-delay: var\(--v5-motion-slow\); \}\n\.card\[aria-pressed="true"\] \.back \{ opacity: 1; transition-delay: 0s; \}\n\.card\[aria-pressed="true"\] \.front \{ opacity: 0; transition-delay: var\(--v5-motion-slow\); \}/);
+  assert.match(css, /\.inner \{[^}]*transition: transform var\(--v5-motion-slow\) var\(--v5-ease-standard\);/, 'the hide delay equals the turn duration (same token)');
   assert.match(css, /min-height: 44px/);
 });
 
@@ -161,4 +165,140 @@ test('page transition: shared names are unique per page, shared pair only, reduc
   assert.match(page, /<V5SharedTransition part="title" articleId=\{article\.id\}><h1/);
   assert.match(page, /<V5SharedTransition part="cover" articleId=\{article\.id\}><Image/);
   for (const file of ['package.json', 'apps/web/package.json']) assert.doesNotMatch(read(file), /framer-motion|"motion"|gsap|lottie|three|@splinetool|rive-/, `${file}: no animation library`);
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// v5 motion smoothing pass (UAT, 2026-10-26): shared tokens, reduced-motion coverage, transform/opacity only.
+// ---------------------------------------------------------------------------------------------------------------
+const tokens = require('../components/layout/v5/motion-tokens.ts');
+
+// Every CSS module the v5 shell renders that may carry motion. A file that animates must remove that motion for
+// reduced motion itself, or be listed here as covered by the .root rule in V5.module.css (asserted below).
+const V5_MOTION_CSS = [
+  'components/layout/v5/V5.module.css', 'components/layout/v5/V5ChatDock.module.css', 'components/layout/v5/V5LicenceFlip.module.css',
+  'components/layout/v5/V5Tool.module.css', 'components/ui/FunctionalMotion.module.css', 'components/ui/health-happy/HealthHappyCountdown.module.css',
+  'features/blog/v5/ArticleWidgets.module.css', 'features/blog/v5/V5Blog.module.css', 'features/blog/v5/V5Engagement.module.css',
+  'features/home/v5/V5Home.module.css', 'features/investment-allocation/InvestmentAllocation.module.css',
+];
+// Frozen by a source proof and rendered only inside the v5 .root, whose reduced-motion rule removes its colour transitions.
+const COVERED_BY_ROOT_RULE = new Set(['components/ui/health-happy/HealthHappyCountdown.module.css']);
+const LAYOUT_PROPS = /\b(?:width|height|min-width|min-height|max-width|max-height|top|right|bottom|left|inset|margin(?:-[a-z]+)?|padding(?:-[a-z]+)?|font-size|line-height|flex(?:-[a-z]+)?|grid(?:-[a-z]+)?|gap|border-width|background-position)\b/;
+const strip = css => css.replace(/\/\*[\s\S]*?\*\//g, '');
+
+test('motion tokens: CSS custom properties, view-transition CSS and the count-up all use the same values', () => {
+  const root = strip(read('components/layout/v5/V5.module.css'));
+  for (const [name, ms] of Object.entries(tokens.V5_MOTION_MS)) assert.match(root, new RegExp(`--v5-motion-${name}: ${ms}ms;`), `--v5-motion-${name}`);
+  assert.match(root, new RegExp(`--v5-ease-standard: ${tokens.cssCubicBezier(tokens.V5_EASE_STANDARD).replace(/[().]/g, '\\$&')};`));
+  assert.match(root, new RegExp(`--v5-ease-emphasized: ${tokens.cssCubicBezier(tokens.V5_EASE_EMPHASIZED).replace(/[().]/g, '\\$&')};`));
+  assert.ok(vt.V5_VIEW_TRANSITION_CSS.includes(`animation-duration:${tokens.V5_MOTION_MS.slow}ms;animation-timing-function:cubic-bezier(0.2,0,0,1)`), 'morph = slow + standard');
+  assert.ok(vt.V5_VIEW_TRANSITION_CSS.includes(`::view-transition-new(root){animation-duration:${tokens.V5_MOTION_MS.base}ms}`), 'page crossfade = base');
+  assert.equal(countUp.COUNT_UP_DELAY_MS, tokens.V5_MOTION_MS.slow);
+  assert.equal(countUp.COUNT_UP_DURATION_MS, tokens.V5_MOTION_MS.reveal);
+  // The gold gap bar runs on exactly the count-up's delay, duration and curve, so number and bar land together.
+  const tool = strip(read('components/layout/v5/V5Tool.module.css'));
+  assert.match(tool, /\.ccpun-money-gap\) \{ transform-origin: left center; animation: moneyGrow var\(--v5-motion-reveal\) var\(--v5-ease-emphasized\) var\(--v5-motion-slow\) both; \}/);
+  // No raw millisecond durations left in the motion-owning v5 files (hover, dock, flip, reveal all use tokens).
+  for (const file of ['components/layout/v5/V5ChatDock.module.css', 'components/layout/v5/V5LicenceFlip.module.css', 'features/blog/v5/V5Engagement.module.css']) {
+    for (const [, value] of strip(read(file)).matchAll(/(?:transition|animation):\s*([^;]+);/g)) assert.doesNotMatch(value.replace(/var\([^)]*\)/g, ''), /\b[1-9]\d*m?s\b/, `${file}: ${value}`);
+  }
+});
+
+test('cubicBezierAt follows the CSS curve: endpoints, monotonic, known midpoints', () => {
+  for (const curve of [tokens.V5_EASE_STANDARD, tokens.V5_EASE_EMPHASIZED]) {
+    assert.equal(tokens.cubicBezierAt(curve, 0), 0);
+    assert.equal(tokens.cubicBezierAt(curve, 1), 1);
+    let last = -1;
+    for (let x = 0; x <= 1.0001; x += 0.02) { const y = tokens.cubicBezierAt(curve, x); assert.ok(y >= last - 1e-9 && y <= 1 + 1e-9); last = y; }
+  }
+  // Linear curve maps to itself; ease-out curves run ahead of linear.
+  assert.ok(Math.abs(tokens.cubicBezierAt([0, 0, 1, 1], 0.37) - 0.37) < 1e-4);
+  assert.ok(tokens.cubicBezierAt(tokens.V5_EASE_EMPHASIZED, 0.5) > 0.9, 'emphasized is mostly done by half time');
+  assert.ok(countUp.countUpValue(1_000_000, countUp.COUNT_UP_DELAY_MS + countUp.COUNT_UP_DURATION_MS / 2) > 900_000);
+});
+
+test('result reveal waits until the comparison is on screen, then bars and count start together', async () => {
+  const { createRoot } = require('react-dom/client');
+  const frames = [];
+  const raf = { request: callback => { frames.push(callback); return frames.length; }, cancel: () => {} };
+  const observers = [];
+  await withDom(async dom => {
+    dom.window.IntersectionObserver = globalThis.IntersectionObserver = class { constructor(cb, opts) { this.cb = cb; this.opts = opts; this.off = false; observers.push(this); } observe(el) { this.el = el; } disconnect() { this.off = true; } };
+    try {
+      const root = createRoot(dom.window.document.getElementById('app'));
+      await React.act(async () => { root.render(React.createElement(MoneyComparison, { need: 2_400_000, resources: 900_000, title: 't' })); });
+      const figure = dom.window.document.querySelector('figure');
+      const live = dom.window.document.querySelector('dd span[aria-hidden] > span:last-child');
+      assert.equal(figure.getAttribute('data-reveal'), 'wait', 'below the fold: bars hold their first frame');
+      assert.equal(frames.length, 0, 'the count does not run while waiting');
+      assert.match(live.textContent, /^0 /);
+      assert.deepEqual(observers[0].opts.threshold, [countUp.REVEAL_VISIBLE_RATIO]);
+      observers[0].cb([{ isIntersecting: true, intersectionRatio: 0.2 }]);
+      assert.equal(figure.getAttribute('data-reveal'), 'wait', 'a sliver on screen is not enough');
+      observers[0].cb([{ isIntersecting: true, intersectionRatio: 0.6 }]);
+      assert.equal(figure.hasAttribute('data-reveal'), false, 'on screen: bars play');
+      assert.equal(observers[0].off, true);
+      let now = 0;
+      while (frames.length && now < 5000) { const next = frames.shift(); next(now); now += 16; }
+      assert.match(live.textContent, new RegExp(`^${(1_500_000).toLocaleString('th-TH')} `), 'count ends on the exact final value');
+      assert.ok(now >= countUp.COUNT_UP_DELAY_MS + countUp.COUNT_UP_DURATION_MS);
+      await React.act(async () => root.unmount());
+    } finally { delete globalThis.IntersectionObserver; }
+  }, { raf });
+  const tool = strip(read('components/layout/v5/V5Tool.module.css'));
+  assert.match(tool, /\[data-reveal="wait"\] :is\(\.ccpun-money-have, \.ccpun-money-gap, \.ccpun-money-divider\)\) \{ animation-play-state: paused; \}/);
+  assert.match(tool, /@media print \{\n  \.calcScope :global\(\.ccpun-money-have\), \.calcScope :global\(\.ccpun-money-gap\), \.calcScope :global\(\.ccpun-money-divider\) \{ animation: none; \}/, 'print shows the final bars');
+});
+
+test('reduced motion is complete: every v5 motion stylesheet, the page transition, the count-up and the theme switch', () => {
+  assert.match(read('components/layout/v5/V5.module.css'), /@media \(prefers-reduced-motion: reduce\) \{\n  \.root \*, \.root \*::before, \.root \*::after \{ transition: none !important; animation: none !important; scroll-behavior: auto !important; \}/);
+  for (const file of V5_MOTION_CSS) {
+    const css = strip(read(file));
+    if (!/\b(?:transition|animation)\s*:/.test(css)) continue;
+    if (COVERED_BY_ROOT_RULE.has(file)) continue;
+    assert.match(css, /@media \(prefers-reduced-motion: ?reduce\)/, `${file}: has its own reduced-motion branch`);
+  }
+  const dock = strip(read('components/layout/v5/V5ChatDock.module.css'));
+  assert.match(dock, /@media \(prefers-reduced-motion: reduce\) \{\n  \.dock, \.dock\[data-state="hidden"\] \{ transition: none; \}\n  \.backdrop, \.panel \{ animation: none; \}/);
+  assert.match(vt.V5_VIEW_TRANSITION_CSS, /prefers-reduced-motion:reduce/);
+  // Theme switch: one frame, no lingering hover transitions.
+  assert.match(read('components/layout/v5/V5.module.css'), /:global\(html\[data-v5-theme-switching\]\) \.root \*[^{]*\{ transition: none !important; \}/);
+  const enhancer = read('components/layout/v5/V5HeaderEnhancer.tsx');
+  assert.match(enhancer, /root\.setAttribute\("data-v5-theme-switching", ""\);\n      applyTheme\(choice\);/);
+  assert.match(enhancer, /requestAnimationFrame\(\(\) => root\.removeAttribute\("data-v5-theme-switching"\)\)/);
+  assert.match(enhancer, /switchTheme\(next\);/);
+  // Client navigations start the next page at its top (Next 16 opt-in), instead of smooth-scrolling under the morph.
+  assert.match(enhancer, /root\.dataset\.scrollBehavior = "smooth";/);
+});
+
+test('motion animates transform/opacity only: no layout properties, no `all`, no permanent will-change', () => {
+  for (const file of V5_MOTION_CSS) {
+    const css = strip(read(file));
+    for (const [, name, body] of css.matchAll(/@keyframes\s+([\w-]+)\s*\{([\s\S]*?\})\s*\}/g)) {
+      for (const [, decls] of body.matchAll(/\{([^}]*)\}/g)) {
+        for (const decl of decls.split(';').map(d => d.trim()).filter(Boolean)) {
+          const prop = decl.split(':')[0].trim();
+          assert.ok(['transform', 'opacity', 'translate', 'scale', 'rotate'].includes(prop), `${file} @keyframes ${name}: ${prop}`);
+        }
+      }
+    }
+    for (const [, value] of css.matchAll(/(?<![-\w])transition(?:-property)?:\s*([^;]+);/g)) {
+      assert.doesNotMatch(value, /\ball\b/, `${file}: transition: all`);
+      for (const part of value.split(',')) {
+        const prop = part.trim().split(/\s+/)[0];
+        assert.doesNotMatch(prop, LAYOUT_PROPS, `${file}: transition on a layout property (${prop})`);
+      }
+    }
+    assert.doesNotMatch(css, /will-change\s*:/, `${file}: no permanent will-change (the browser promotes during the animation)`);
+  }
+  // The IA total bar slides inside its track instead of animating width.
+  assert.match(read('features/investment-allocation/PortfolioBuilder.tsx'), /className=\{styles\.progressFill\} style=\{\{ transform: `translateX\(\$\{width - 100\}%\)` \}\}/);
+});
+
+test('chat panel enters with opacity/transform; the dock moves with the cookie notice in the same frame', () => {
+  const css = strip(read('components/layout/v5/V5ChatDock.module.css'));
+  assert.match(css, /\.panel \{[^}]*animation: v5ChatRise var\(--v5-motion-base\) var\(--v5-ease-standard\) both;/);
+  assert.match(css, /\.backdrop \{[^}]*animation: v5ChatFade var\(--v5-motion-fast\) ease-out both;/);
+  assert.match(css, /@media \(min-width: 1024px\) \{ \.panel \{ animation-name: v5ChatPop; \} \}/);
+  const dock = read('components/layout/v5/V5ChatDock.tsx');
+  assert.match(dock, /new ResizeObserver\(\(\) => measure\(\)\)/, 'size changes are applied before paint');
 });
