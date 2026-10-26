@@ -71,7 +71,7 @@ const mutationItemSchema = z.object({
 
 const mutationJourneySchema = z.object({
   maxCards: z.number().int().min(1).max(5),
-  items: z.array(mutationItemSchema).min(1).max(20),
+  items: z.array(mutationItemSchema).max(20),
 }).strict().superRefine((value, ctx) => {
   const seen = new Set<string>();
   for (const [index, item] of value.items.entries()) {
@@ -84,7 +84,7 @@ const mutationJourneySchema = z.object({
     }
     seen.add(item.slug);
   }
-  if (!value.items.some((item) => item.enabled)) {
+  if (value.items.length > 0 && !value.items.some((item) => item.enabled)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["items"],
@@ -172,14 +172,11 @@ function selectionFromStored(
 ): LineDiscoverySelection {
   const field = FIELD_BY_JOURNEY[journey];
   const value = stored?.[field];
-  if (!value?.items?.length) return defaultJourney(journey);
+  if (!value) return defaultJourney(journey);
   return {
     maxCards: value.maxCards,
-    items: value.items.flatMap((item) =>
-      typeof item.slug === "string" && item.slug.length > 0
-        ? [{ slug: item.slug, enabled: item.enabled }]
-        : [],
-    ),
+    // A missing reference is still an explicitly curated slot, not auto-fill consent.
+    items: value.items.map((item) => ({ slug: item.slug ?? "", enabled: item.enabled })),
   };
 }
 

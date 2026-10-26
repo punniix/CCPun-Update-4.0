@@ -79,7 +79,7 @@ export default function LineDiscoveryManager({ initialModel }: { initialModel: D
     journey.items.some((item) => !articleBySlug.has(item.slug)),
   );
   const hasEmptyActive = Object.values(journeys).some(
-    (journey) => !journey.items.some((item) => item.enabled),
+    (journey) => journey.items.length > 0 && !journey.items.some((item) => item.enabled),
   );
 
   function updateJourney(journey: JourneyId, updater: (value: JourneyConfig) => JourneyConfig) {
