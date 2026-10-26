@@ -137,17 +137,25 @@ export const websiteV5PhaseASources = Object.freeze({
   "features/money-story/MoneyStory.module.css": { before: "40b39bf243365a0888163b8a3b7dfc2d53f8a37fb92e5802f8fc12e167917a61", after: "47ae0b38b01009cc2a401813ba7b132796c621582f7f5cb53f44dfe12b1f67ca" },
 });
 
+// COO follow-up: improve only the disabled start/undo labels; retain the first C5 successor above.
+export const websiteV5ReviewedSuccessors = Object.freeze({
+  "features/money-story/MoneyStory.module.css": { before: "47ae0b38b01009cc2a401813ba7b132796c621582f7f5cb53f44dfe12b1f67ca", after: "db5fd882cf020f0d5292901f4020d1445765505dd4ca63e7b15ce5a81a471b39" },
+});
+
 /** Digest the frozen proofs should compare: the reviewed predecessor for an exact v5 successor, else the file's own digest. */
 export function websiteV5PredecessorDigest(file, source) {
   const restored = websiteV5CopyPredecessor(file, source);
-  const digest = sha(restored);
+  const current = sha(restored);
+  const successor = Object.hasOwn(websiteV5ReviewedSuccessors, file) ? websiteV5ReviewedSuccessors[file] : null;
+  const digest = successor && current === successor.after ? successor.before : current;
   const entry = Object.hasOwn(websiteV5PhaseASources, file) ? websiteV5PhaseASources[file] : null;
   return entry && digest === entry.after ? entry.before : digest;
 }
 
 export function isWebsiteV5ReviewedSuccessor(file, source) {
   const entry = Object.hasOwn(websiteV5PhaseASources, file) ? websiteV5PhaseASources[file] : null;
-  return Boolean(entry) && sha(source) === entry.after;
+  const successor = Object.hasOwn(websiteV5ReviewedSuccessors, file) ? websiteV5ReviewedSuccessors[file] : null;
+  return Boolean(entry) && (sha(source) === entry.after || Boolean(successor) && successor.before === entry.after && sha(source) === successor.after);
 }
 
 // Website v5 Phase B: retained, unrouted Website 4.3 tool and legal presentations (rollback targets).

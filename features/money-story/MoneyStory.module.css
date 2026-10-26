@@ -143,6 +143,7 @@
 :global(html[data-theme="light"]) .root :is(.meterDetail small,.goalFormula) { color:var(--v5-muted); }
 :global(html[data-theme="light"]) .root .danger { color:var(--v5-text); }
 :global(html[data-theme="light"]) .root :is(.primary,.secondary,.danger,.undoButton):disabled { opacity:1; color:var(--v5-muted); background:var(--v5-surface); border-color:var(--v5-border); }
+:global(html:not([data-theme="light"])) .root :is(.startActions .primary,.undoButton):disabled { opacity:.85; }
 
 /* The game caption floor applies to both themes without changing larger type. */
 .root { --ms-type-caption:14px; }
