@@ -59,6 +59,8 @@ export const LINE_CHAT_TYPE_OWN = {
 } as const;
 
 export const LINE_CHAT_DEFAULT_HEADLINE = "คุยกับปั้นทาง LINE";
+export const LINE_CHAT_RESULT_TOPICS = { ci: "ci-result-chat", fhc: "fhc-result-chat" } as const;
+export type LineChatResultTool = keyof typeof LINE_CHAT_RESULT_TOPICS;
 export const LINE_CHAT_PANEL_NOTE = "กดแล้วจะเปิดแอป LINE พร้อมข้อความให้ กดส่งได้เลย";
 export const LINE_CHAT_QR_LABEL = "สแกนเพื่อเปิด LINE";
 export const LINE_CHAT_EVERGREEN_REVIEW_DAYS = 90;
@@ -263,6 +265,8 @@ export function normalizeUtmCampaign(value: string | null | undefined): string |
 
 export type ResolveChatPanelInput = ChatPageContext & {
   config?: LineChatConfig;
+  /** A result CTA passes a bounded tool token only, never calculator answers or result values. */
+  resultTool?: LineChatResultTool;
   /** utm_campaign on the current URL (this page view only). */
   utmCampaign?: string | null;
   /** First-touch utm_campaign from lib/acquisition.ts; only used when analytics consent is given (L3). */
@@ -485,9 +489,12 @@ export function resolveChatPanel(input: ResolveChatPanelInput): ChatPanel {
     }
   }
 
+  const resultId = input.resultTool === "ci" && token === "tool_ci" ? LINE_CHAT_RESULT_TOPICS.ci
+    : input.resultTool === "fhc" && token === "tool_fhc" ? LINE_CHAT_RESULT_TOPICS.fhc : undefined;
+  const resultTopic = resultId ? fromLibrary(resultId) : undefined;
   const pinned = campaign?.pinnedTopicIds.flatMap((id) => fromLibrary(id) ?? []) ?? [];
   const seen = new Set<string>();
-  let selected = [...pinned, ...base].filter((topic) => !seen.has(topic.id) && Boolean(seen.add(topic.id))).slice(0, LINE_CHAT_LIMITS.placementTopics);
+  let selected = [...(resultTopic ? [resultTopic] : []), ...pinned, ...base].filter((topic) => !seen.has(topic.id) && Boolean(seen.add(topic.id))).slice(0, LINE_CHAT_LIMITS.placementTopics);
   if (!selected.length) {
     // A config whose every topic is unusable for this page still gets the shipped default set.
     const fallback = new Map(LINE_CHAT_DEFAULTS.topics.map((topic) => [topic.id, topic] as const));
@@ -498,13 +505,15 @@ export function resolveChatPanel(input: ResolveChatPanelInput): ChatPanel {
   }
 
   const templateSentence = chatTemplateSentence(input, config.sourceTemplates ?? LINE_CHAT_DEFAULT_SOURCE_TEMPLATES);
+  // Result CTAs require their tool origin even when a generic page choice hides the source sentence.
+  const resultSource = resultTopic ? templateSentence || chatTemplateSentence(input) : templateSentence;
   const pageChoice = layer === "page" ? override : undefined;
   return {
     mode: "panel",
     headline: campaign?.headline?.trim() || LINE_CHAT_DEFAULT_HEADLINE,
     note: LINE_CHAT_PANEL_NOTE,
     topics: [
-      ...selected.map((topic) => panelTopic(topic, templateSentence, pageChoice)),
+      ...selected.map((topic) => topic.id === resultTopic?.id ? panelTopic(topic, resultSource) : panelTopic(topic, templateSentence, pageChoice)),
       panelTopic({ ...LINE_CHAT_TYPE_OWN, journey: "type_own" }, templateSentence, pageChoice),
     ],
     pageGroup: token,
@@ -527,6 +536,7 @@ export function selectChatConfigForPage(config: LineChatConfig, context: ChatPag
   const campaigns = config.campaigns.filter((campaign) => !campaign.paused && campaignAppliesTo(campaign, token)
     && !(campaign.type === "temporary" && campaign.endsAt && Date.parse(campaign.endsAt) <= now.getTime()));
   const used = new Set([
+    ...(token === "tool_ci" ? [LINE_CHAT_RESULT_TOPICS.ci] : token === "tool_fhc" ? [LINE_CHAT_RESULT_TOPICS.fhc] : []),
     ...placements.flatMap((placement) => placement.topicIds),
     ...campaigns.flatMap((campaign) => campaign.pinnedTopicIds),
     ...(override?.topics.flatMap((item) => item.kind === "library" ? [item.id] : []) ?? []),
@@ -578,6 +588,13 @@ export function chatContextForPath(path: string | undefined): ChatPageContext {
   const blog = /^\/blog\/([a-z0-9][a-z0-9-]{0,95})\/(?:([a-z0-9][a-z0-9-]{0,95})\/)?$/.exec(path);
   if (blog) return blog[2] ? { pageGroup: `category:${blog[1]}`, articleSlug: blog[2] } : { pageGroup: `category:${blog[1]}` };
   return { pageGroup: "default" };
+}
+
+/** SSR/not-yet-hydrated result fallback: approved generic intent and tool origin, never user values. */
+export function resultChatHref(tool: LineChatResultTool): string {
+  const context = chatContextForPath(tool === "ci" ? "/ci-planning/" : "/tools/financial-health-check/");
+  const topic = LINE_CHAT_DEFAULTS.topics.find(topic => topic.id === LINE_CHAT_RESULT_TOPICS[tool])!;
+  return buildLineOaMessageHref(composeChatMessage(topic.prefill, chatTemplateSentence(context)));
 }
 
 /** Full chat context of an article page: its path groups plus id, live title and semantic topic. */

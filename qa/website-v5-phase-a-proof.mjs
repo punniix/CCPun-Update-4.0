@@ -144,6 +144,12 @@ export const websiteV5PhaseASources = Object.freeze({
   // END motion reviewed sources
 });
 
+// C6 (owner-approved 2026-10-26): exact result-CTA successors only. Engines, exports, and all prior pins stay frozen.
+export const websiteV5ResultLineSources = Object.freeze({
+  "features/ci-planning/components/result/CIResult.tsx": { before: "7935271a76b7830b2b6003ebeb5cde6c862c228a6401333b64ed59dd7fd96dc9", after: "c8480aedfb87812afbd42c67d5a246b163f3c3e4f99937835f41f04d9c623de0" },
+  "features/financial-health-check/components/LifeCoverageWizard.tsx": { before: "9238203d154b3d296a78e4bfefb4f3d9bb31a491b0a05ba339d4417a7df6caa1", after: "6283ac485db757f6b6f2837f8d99e517fda372a037dc3afe9c386e4c3d1d2c43" },
+});
+
 /** Digest the frozen proofs should compare: the reviewed predecessor for an exact v5 successor, else the file's own digest. */
 export function websiteV5PredecessorDigest(file, source) {
   const restored = websiteV5CopyPredecessor(file, source);
@@ -153,6 +159,8 @@ export function websiteV5PredecessorDigest(file, source) {
 }
 
 export function isWebsiteV5ReviewedSuccessor(file, source) {
+  const result = Object.hasOwn(websiteV5ResultLineSources, file) ? websiteV5ResultLineSources[file] : null;
+  if (result && sha(source) === result.after) return true;
   const entry = Object.hasOwn(websiteV5PhaseASources, file) ? websiteV5PhaseASources[file] : null;
   return Boolean(entry) && sha(source) === entry.after;
 }

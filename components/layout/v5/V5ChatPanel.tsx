@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { getAttribution } from "@/lib/acquisition";
 import { getConsentData } from "@/lib/cookie-consent";
-import { chatSurfaceGroup, resolveChatPanel, type ChatPageContext, type LineChatConfig } from "@/lib/line/chat-panel";
+import { chatSurfaceGroup, resolveChatPanel, type ChatPageContext, type LineChatConfig, type LineChatResultTool } from "@/lib/line/chat-panel";
 import type { V5ChatPanelTrigger } from "./chat-events";
 import styles from "./V5ChatDock.module.css";
 
@@ -25,7 +25,7 @@ function Arrow() {
  * trackEvent(), and it is fire-and-forget (never awaited, never blocks the link). On touch devices the
  * link opens in the same tab. Desktop selection displays its QR; only a QR failure offers a browser fallback.
  */
-export default function V5ChatPanel({ config, context, trigger, onClose }: { config: LineChatConfig; context: ChatPageContext; trigger: V5ChatPanelTrigger; onClose: () => void }) {
+export default function V5ChatPanel({ config, context, trigger, resultTool, onClose }: { config: LineChatConfig; context: ChatPageContext; trigger: V5ChatPanelTrigger; resultTool?: LineChatResultTool; onClose: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const [newTab] = useState(() => !window.matchMedia("(pointer: coarse)").matches);
   const [desktop] = useState(() => window.matchMedia("(hover: hover) and (pointer: fine)").matches
@@ -41,12 +41,13 @@ export default function V5ChatPanel({ config, context, trigger, onClose }: { con
     return resolveChatPanel({
       ...context,
       config,
+      resultTool,
       utmCampaign,
       storedUtmCampaign: consentGiven ? getAttribution()?.utm_campaign : undefined,
       now: new Date(),
       consentGiven,
     });
-  }, [config, context]);
+  }, [config, context, resultTool]);
 
   const topics = panel.mode === "panel" ? panel.topics : [];
   const campaignCode = panel.mode === "panel" ? panel.campaignCode : undefined;

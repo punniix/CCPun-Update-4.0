@@ -9,7 +9,7 @@ export const V5_OPEN_CHAT_EVENT = "ccpun:open-chat";
 /** `panel_trigger` on line_chat_panel_open: which control opened the panel. */
 export type V5ChatPanelTrigger = "dock" | "article_cta";
 
-export type V5OpenChatDetail = { trigger: V5ChatPanelTrigger; returnTo?: HTMLElement | null };
+export type V5OpenChatDetail = { trigger: V5ChatPanelTrigger; returnTo?: HTMLElement | null; resultTool?: "ci" | "fhc" };
 
 /**
  * A link that contacts the @ccpun LINE OA (lin.ee short link, line.me / page.line.me chat or add

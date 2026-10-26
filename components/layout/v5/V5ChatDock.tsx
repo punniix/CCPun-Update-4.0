@@ -39,7 +39,7 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
   const [shown, setShown] = useState(true);
   const enhanced = useHydrated();
   const [cookieOffset, setCookieOffset] = useState(0);
-  const [panel, setPanel] = useState<{ trigger: V5ChatPanelTrigger; returnTo: HTMLElement | null } | null>(null);
+  const [panel, setPanel] = useState<{ trigger: V5ChatPanelTrigger; returnTo: HTMLElement | null; resultTool?: V5OpenChatDetail["resultTool"] } | null>(null);
   const triggerRef = useRef<HTMLAnchorElement>(null);
   const layerRef = useRef<HTMLDivElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
@@ -139,12 +139,13 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
     const onOpenChat = (event: Event) => {
       const detail = (event as CustomEvent<V5OpenChatDetail>).detail;
       if (!detail) return;
+      const resultTool = detail.resultTool === "ci" && token === "tool_ci" ? "ci" : detail.resultTool === "fhc" && token === "tool_fhc" ? "fhc" : undefined;
       if (!config.enabled) {
-        trackEvent("line_oa_click", { contact_channel: "line", cta_location: "blog_article", page_group: token, surface_group: chatSurfaceGroup(token) });
+        trackEvent("line_oa_click", { contact_channel: "line", cta_location: resultTool === "ci" ? "ci_result" : resultTool === "fhc" ? "fhc_result" : "blog_article", page_group: token, surface_group: chatSurfaceGroup(token) });
         return;
       }
       event.preventDefault();
-      setPanel({ trigger: detail.trigger, returnTo: detail.returnTo ?? null });
+      setPanel({ trigger: detail.trigger, returnTo: detail.returnTo ?? null, ...(resultTool ? { resultTool } : {}) });
     };
     window.addEventListener(V5_OPEN_CHAT_EVENT, onOpenChat);
     return () => window.removeEventListener(V5_OPEN_CHAT_EVENT, onOpenChat);
@@ -191,7 +192,7 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
           <ChatIcon />{LABEL}
         </a>
       </div>
-      {panel ? <Suspense fallback={null}><V5ChatPanel config={config} context={context} trigger={panel.trigger} onClose={close} /></Suspense> : null}
+      {panel ? <Suspense fallback={null}><V5ChatPanel config={config} context={context} trigger={panel.trigger} resultTool={panel.resultTool} onClose={close} /></Suspense> : null}
     </div>
   );
 }
