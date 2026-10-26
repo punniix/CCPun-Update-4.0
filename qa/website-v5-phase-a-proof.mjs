@@ -29,7 +29,23 @@ export const websiteV5CopyAdditions = Object.freeze({
     // v5 extras (owner-approved 2026-10-25, UAT): the Coming Soon regression suite joins test:public.
     '"test:public": "node --conditions=react-server --import tsx --test tests/coming-soon-regression.test.ts && npm run audit:public-css && ',
     '"test:public": "npm run audit:public-css && ',
+  ], [
+    // C3 (owner brief 2026-10-26): exact pinned local encoder addition; every other dependency stays frozen.
+    '    "next-sanity": "^13.3.3",\n    "qrcode-generator": "2.0.4",\n',
+    '    "next-sanity": "^13.3.3",\n',
+  ], [
+    // The rendered-QR regression uses this exact dev-only decoder, never imported by product code.
+    '    "jsdom": "^29.1.1",\n    "jsqr": "1.4.0",\n',
+    '    "jsdom": "^29.1.1",\n',
   ]],
+  // C3 exact lockfile additions: pinned metadata and placement, with no JSON normalisation.
+  "package-lock.json": [
+    ["        \"qrcode-generator\": \"2.0.4\",\n        \"react\": \"19.2.9\",\n        \"react-dom\": \"19.2.9\",\n        \"server-only\": \"0.0.1\",\n", "        \"react\": \"19.2.9\",\n        \"react-dom\": \"19.2.9\",\n        \"server-only\": \"0.0.1\",\n"],
+    ["        \"qrcode-generator\": \"2.0.4\",\n        \"react\": \"19.2.9\",\n        \"react-dom\": \"19.2.9\",\n        \"sanity\": \"^6.13.1\",\n", "        \"react\": \"19.2.9\",\n        \"react-dom\": \"19.2.9\",\n        \"sanity\": \"^6.13.1\",\n"],
+    ["        \"jsdom\": \"^29.1.1\",\n        \"jsqr\": \"1.4.0\",\n", "        \"jsdom\": \"^29.1.1\",\n"],
+    ["    \"node_modules/jsqr\": {\n      \"version\": \"1.4.0\",\n      \"resolved\": \"https://registry.npmjs.org/jsqr/-/jsqr-1.4.0.tgz\",\n      \"integrity\": \"sha512-dxLob7q65Xg2DvstYkRpkYtmKm2sPJ9oFhrhmudT1dZvNFFTlroai3AWSpLey/w5vMcLBXRgOJsbXpdN9HzU/A==\",\n      \"dev\": true,\n      \"license\": \"Apache-2.0\"\n    },\n", ""],
+    ["    \"node_modules/qrcode-generator\": {\n      \"version\": \"2.0.4\",\n      \"resolved\": \"https://registry.npmjs.org/qrcode-generator/-/qrcode-generator-2.0.4.tgz\",\n      \"integrity\": \"sha512-mZSiP6RnbHl4xL2Ap5HfkjLnmxfKcPWpWe/c+5XxCuetEenqmNFf1FH/ftXPCtFG5/TDobjsjz6sSNL0Sr8Z9g==\",\n      \"license\": \"MIT\"\n    },\n", ""],
+  ],
   'lib/content/public-copy-registry.ts': [[
     'เป้าหมายทางการเงินที่ลูกค้าต้องการให้ไปถึง",\n  "home.coreGuides.title": "คู่มือหลัก",\n  "home.latest.title": "บทความล่าสุด",\n  "home.moneyStory.description": "เกมจำลองชีวิตการเงิน 12 เดือน",\n  "home.contactBand.title": "ถ้าอยากรู้ว่าตอนนี้พร้อมแค่ไหน ทักมาคุยทาง LINE ได้เลย"\n',
     'เป้าหมายทางการเงินที่ลูกค้าต้องการให้ไปถึง"\n',

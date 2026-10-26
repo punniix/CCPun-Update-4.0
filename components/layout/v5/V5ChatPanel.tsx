@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { getAttribution } from "@/lib/acquisition";
 import { getConsentData } from "@/lib/cookie-consent";
-import { chatSurfaceGroup, LINE_CHAT_QR_LABEL, resolveChatPanel, type ChatPageContext, type LineChatConfig } from "@/lib/line/chat-panel";
+import { chatSurfaceGroup, resolveChatPanel, type ChatPageContext, type LineChatConfig } from "@/lib/line/chat-panel";
 import type { V5ChatPanelTrigger } from "./chat-events";
 import styles from "./V5ChatDock.module.css";
 
@@ -28,7 +28,11 @@ function Arrow() {
 export default function V5ChatPanel({ config, context, trigger, onClose }: { config: LineChatConfig; context: ChatPageContext; trigger: V5ChatPanelTrigger; onClose: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const [newTab] = useState(() => !window.matchMedia("(pointer: coarse)").matches);
-  const [qr, setQr] = useState<{ viewBox: string; path: string } | null>(null);
+  const [desktop] = useState(() => window.matchMedia("(hover: hover) and (pointer: fine)").matches
+    && !/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    && !(navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+  const [qr, setQr] = useState<{ href: string; viewBox?: string; path?: string; failed?: boolean } | null>(null);
 
   const panel = useMemo(() => {
     const consentGiven = getConsentData()?.analytics === true;
@@ -46,7 +50,8 @@ export default function V5ChatPanel({ config, context, trigger, onClose }: { con
 
   const topics = panel.mode === "panel" ? panel.topics : [];
   const campaignCode = panel.mode === "panel" ? panel.campaignCode : undefined;
-  const qrHref = topics.at(-1)?.href;
+  const selectedTopic = desktop ? topics.find(topic => topic.id === selectedTopicId) : undefined;
+  const qrHref = selectedTopic?.href;
 
   useEffect(() => {
     // panel_trigger (owner-approved 2026-10-25): which control opened it, the dock or an article-body LINE CTA.
@@ -56,9 +61,12 @@ export default function V5ChatPanel({ config, context, trigger, onClose }: { con
   }, []);
 
   useEffect(() => {
-    if (!qrHref || !window.matchMedia("(min-width: 1024px)").matches) return;
+    if (!qrHref) return;
     let cancelled = false;
-    import("./qr-code").then(({ encodeQr, qrSvgPath }) => { if (!cancelled) setQr(qrSvgPath(encodeQr(qrHref))); }).catch(() => undefined);
+    import("./qr-code").then(({ encodeQr, qrSvgPath }) => {
+      const image = qrSvgPath(encodeQr(qrHref));
+      if (!cancelled) setQr({ href: qrHref, ...image });
+    }).catch(() => { if (!cancelled) setQr({ href: qrHref, failed: true }); });
     return () => { cancelled = true; };
   }, [qrHref]);
 
@@ -91,6 +99,14 @@ export default function V5ChatPanel({ config, context, trigger, onClose }: { con
 
   if (panel.mode !== "panel") return null;
   const surface = chatSurfaceGroup(panel.pageGroup);
+  const trackTopic = (topic: typeof panel.topics[number]) => {
+    try {
+      trackEvent("line_oa_click", {
+        contact_channel: "line", cta_location: "chat_panel", chat_topic_id: topic.id, page_group: panel.pageGroup,
+        ...(surface ? { surface_group: surface } : {}), ...(campaignCode ? { campaign_code: campaignCode } : {}),
+      });
+    } catch { /* Analytics never stands between the visitor and the LINE chat. */ }
+  };
 
   return (
     <>
@@ -106,13 +122,14 @@ export default function V5ChatPanel({ config, context, trigger, onClose }: { con
           {panel.topics.map((topic) => (
             <li key={topic.id}>
               <a data-chat-topic="" className={`${styles.topic} ${topic.journey === "type_own" ? styles.topicOwn : ""}`.trim()} href={topic.href} target={newTab ? "_blank" : undefined} rel="noopener noreferrer"
-                onClick={() => {
-                  try {
-                    trackEvent("line_oa_click", {
-                      contact_channel: "line", cta_location: "chat_panel", chat_topic_id: topic.id, page_group: panel.pageGroup,
-                      ...(surface ? { surface_group: surface } : {}), ...(campaignCode ? { campaign_code: campaignCode } : {}),
-                    });
-                  } catch { /* Analytics never stands between the visitor and the LINE chat. */ }
+                aria-current={selectedTopic?.id === topic.id ? "true" : undefined}
+                onClick={(event) => {
+                  if (desktop && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+                    event.preventDefault();
+                    setSelectedTopicId(topic.id);
+                    return;
+                  }
+                  trackTopic(topic);
                   window.setTimeout(onClose, 0);
                 }}>
                 <span>{topic.label}</span><Arrow />
@@ -120,12 +137,15 @@ export default function V5ChatPanel({ config, context, trigger, onClose }: { con
             </li>
           ))}
         </ul>
-        <p id="v5-chat-note" className={styles.note}>{panel.note}</p>
-        {qr ? (
-          <figure className={styles.qr}>
-            <svg viewBox={qr.viewBox} role="img" aria-label={LINE_CHAT_QR_LABEL}><path d={qr.path} fill="currentColor" shapeRendering="crispEdges" /></svg>
-            <figcaption><p>{LINE_CHAT_QR_LABEL}</p></figcaption>
-          </figure>
+        <p id="v5-chat-note" className={styles.note}>{desktop ? "เลือกหัวข้อเพื่อแสดง QR และลิงก์ LINE" : panel.note}</p>
+        {selectedTopic ? (
+          <section className={styles.desktopChoice} aria-label={selectedTopic.label}>
+            <p className={styles.desktopHint}>สแกนด้วยมือถือเพื่อส่งข้อความนี้ทาง LINE</p>
+            {qr && qr.href === qrHref && qr.path ? <svg className={styles.desktopQr} viewBox={qr.viewBox} role="img" aria-label={`สแกน QR เพื่อเปิด LINE: ${selectedTopic.label}`}><path d={qr.path} fill="currentColor" shapeRendering="crispEdges" /></svg> : null}
+            {qr && qr.href === qrHref && qr.failed ? <p role="status" className={styles.desktopHint}>แสดง QR ไม่สำเร็จ</p> : null}
+            <a data-chat-desktop-open="" className={styles.topic} href={selectedTopic.href} target="_blank" rel="noopener noreferrer" onClick={() => trackTopic(selectedTopic)}>เปิด LINE บนคอมพิวเตอร์<Arrow /></a>
+            <p className={styles.desktopHint}>ลิงก์นี้เปิดหน้า LINE ในเบราว์เซอร์ หากเข้าแอปไม่ได้ ให้สแกน QR ด้วยมือถือ</p>
+          </section>
         ) : null}
       </div>
     </>
