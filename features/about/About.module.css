@@ -21,8 +21,20 @@
 :global(html[data-theme="light"]) .portraitDark { display: none; }
 :global(html[data-theme="light"]) .portraitLight { display: block; }
 
-/* UAT-only father photo inside the father-story slot (removed from Production until the owner's text arrives). */
-.fatherPhoto { margin: 0; max-width: 420px; }
+/* UAT trial: connected story and owner-approved photo; absent from Production. */
+.fatherPhoto { margin: 0; min-width: 0; max-width: 420px; }
+/* No reusable plain-photo caption exists; use the existing small/muted tokens. */
+.fatherPhoto figcaption { margin-top: 16px; color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.75; }
+.fatherStory, .fatherStoryBody { display: grid; gap: 16px; min-width: 0; }
+.fatherStory h3 { color: var(--v5-text); font-family: var(--v5-font-display); font-size: 22px; font-weight: 500; line-height: 1.5; }
+.fatherStory ul { list-style: disc; padding-left: 1.4em; display: grid; gap: 12px; }
+@media (min-width: 900px) {
+  .fatherStory { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); align-items: start; }
+  .fatherStory h3 { grid-column: 1 / -1; }
+  .fatherStory > p { grid-column: 2; grid-row: 2; }
+  .fatherPhoto { grid-column: 1; grid-row: 2 / 4; }
+  .fatherStoryBody { grid-column: 2; }
+}
 .fatherPhoto img { display: block; width: 100%; height: auto; border-radius: var(--v5-radius); }
 
 .split { display: grid; gap: 24px 64px; }
