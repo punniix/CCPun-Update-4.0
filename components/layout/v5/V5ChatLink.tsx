@@ -1,7 +1,8 @@
 "use client";
 
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { V5_OPEN_CHAT_EVENT, type V5ChatPanelTrigger, type V5OpenChatDetail } from "./chat-events";
+import { exemptFromInert, restoreInert, type InertRecord } from "./chat-layer";
 
 const noSubscribe = () => () => undefined;
 
@@ -18,11 +19,32 @@ export function useHydrated(): boolean {
  * `trigger` names another control that opens the panel the same way (Coming Soon); `onActivate`
  * runs once per primary click before the panel opens (the control's own semantic event).
  */
-export default function V5ChatLink({ href, className, children, trigger = "article_cta", onActivate }: { href: string; className?: string; children: ReactNode; trigger?: V5ChatPanelTrigger; onActivate?: () => void }) {
+export default function V5ChatLink({ href, className, children, trigger = "article_cta", resultTool, onActivate }: { href: string; className?: string; children: ReactNode; trigger?: V5ChatPanelTrigger; resultTool?: V5OpenChatDetail["resultTool"]; onActivate?: () => void }) {
   const enhanced = useHydrated();
+  const linkRef = useRef<HTMLAnchorElement>(null);
+  useEffect(() => {
+    const link = linkRef.current;
+    if (!resultTool || !link) return;
+    const exempted: InertRecord[] = [];
+    const sync = () => {
+      if (document.querySelector('[role="dialog"][aria-labelledby^="cookie"]')) exemptFromInert(link, exempted);
+      else restoreInert(exempted);
+    };
+    // ponytail: MutationObserver already batches DOM changes; no animation-frame scheduler is needed.
+    const observer = new window.MutationObserver(sync);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["inert"] });
+    window.addEventListener("ccpun:consent", sync);
+    sync();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("ccpun:consent", sync);
+      restoreInert(exempted);
+    };
+  }, [resultTool]);
   return (
     <a
       href={href}
+      ref={linkRef}
       className={className}
       target="_blank"
       rel="noopener noreferrer"
@@ -32,6 +54,7 @@ export default function V5ChatLink({ href, className, children, trigger = "artic
         if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         try { onActivate?.(); } catch { /* the control's own event never blocks the chat */ }
         const detail: V5OpenChatDetail = { trigger, returnTo: event.currentTarget };
+        if (resultTool === "ci" || resultTool === "fhc") detail.resultTool = resultTool;
         // The dock cancels the event when it opened the panel; otherwise the LINE link opens.
         if (!window.dispatchEvent(new CustomEvent<V5OpenChatDetail>(V5_OPEN_CHAT_EVENT, { cancelable: true, detail }))) event.preventDefault();
       }}

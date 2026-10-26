@@ -7,8 +7,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Edit3, ExternalLink, MessageCircle, RefreshCw } from 'lucide-react';
 import MoneyComparison from '@/components/ui/MoneyComparison';
 import { trackEvent } from '@/lib/analytics';
+import V5ChatLink from '@/components/layout/v5/V5ChatLink';
+import { LINE_CHAT_DEFAULT_HEADLINE, resultChatHref } from '@/lib/line/chat-panel';
 import {
-  CI_LINE_OA_URL,
   CI_ASSESSMENT_VERSION,
 } from '@/features/ci-planning/calculator/constants';
 import type { CIEstimationMethod, CIResult as CIResultType } from '@/features/ci-planning/calculator/types';
@@ -244,25 +245,21 @@ export default function CIResult({ result, onEditData, onReset }: CIResultProps)
         <h3>{t.node("ci.result.heading2")}</h3>
         <p className="ccpun-ci-result-cta-copy">{t.node("ci.result.description17")}</p>
         <ResultImageDownloadButton result={result} selectedMethod={activeMethod} />
-        <a
-          href={CI_LINE_OA_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={t("ci.result.ariaLabel")}
+        <V5ChatLink
+          href={resultChatHref("ci")}
+          resultTool="ci"
           className="gold-button ccpun-motion-tactile ccpun-ci-result-cta-line inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3"
-          onClick={() => {
+          onActivate={() => {
             trackEvent('ci_contact_click', {
               tool_name: 'ci_planning',
               cta_location: 'ci_result',
               contact_channel: 'line',
               calculator_version: CI_ASSESSMENT_VERSION,
             });
-            // GTM's lin.ee click tag is paused (container v9), so the app owns line_oa_click here too.
-            trackEvent('line_oa_click', { contact_channel: 'line', cta_location: 'ci_result', surface_group: 'ci_planning' });
           }}
         >
           <MessageCircle className="h-5 w-5" aria-hidden="true" />
-          {t.node("ci.result.linkLabel")}</a>
+          {LINE_CHAT_DEFAULT_HEADLINE}</V5ChatLink>
       </div>
     </div>
 
