@@ -44,3 +44,13 @@ CCPun considers a backup valid only when restore has been tested. The intended r
 4. build a noindex Preview from the restored dataset;
 5. spot-check Blog, images, slugs, metadata, and redirects;
 6. record PASS/FAIL in the Backup Registry.
+
+## Readable content and media mirror
+
+Workflow: `.github/workflows/mirror-content-media.yml`
+
+Schedule: daily at 02:30 Asia/Bangkok (19:30 UTC), after the full export. It reads `kyfxgjnq/production` (Published and Draft variants) with `SANITY_BACKUP_READ_TOKEN`, builds a readable Markdown/JSON plus media mirror, and upserts it into `02 — Blog Content` and `03 — Article Media` on the CCPun Drive with `GOOGLE_BACKUP_SERVICE_ACCOUNT_JSON`. It never deletes Drive files. The versioned `.tar.gz` export above remains the recovery source.
+
+## Branch note
+
+GitHub runs `schedule` triggers only from the default branch. Until these workflows were brought onto `v4-production` (owner decision R11, 2026-10-25) they existed only on `uat` and never ran on schedule. The manual restore drill (`recovery-drill.yml`, resets only `ccb9lnw5/recovery`) is still only on `uat` and needs its own approval and `SANITY_RECOVERY_ADMIN_TOKEN` before it is brought over.
