@@ -17,7 +17,9 @@ export const adminPhase1QuickWinSources = Object.freeze({
   // BEGIN reviewed sources
   "apps/admin/app/(control-plane)/dashboard/inbox/[leadId]/page.tsx": { before: "f5033f0fef2e1e0c55c274588d64ab1a212e7eb594e42972e6d5304b8d739c81", after: "bd85e0fd0535ec8c9e5a40e27a07dbbda3332f5e53fd9e1410c9d61a7414570e" },
   "apps/admin/app/(control-plane)/dashboard/inbox/page.tsx": { before: "738969d2561c8423d836c6d67d68b10f9fbd18c94ac23496b81434baa7ead397", after: "acfd3ca62e74eaad3ab8eafd95fe122608a268d0fb83bbf9d08f92db2ef8d477" },
-  "apps/admin/app/(control-plane)/layout.tsx": { before: "ccc3ab6d96dbeda609dfe71133980ac26aa1d61310fc5c63c5c929eab24555bf", after: "6f75781df7ddd1712b39169cb0e99eaa23c7ae8ee155c7d9b2af39a422bde693" },
+  // Website v5 / LINE chat button (owner-approved 2026-10-25): Settings > ปุ่มแชท LINE joins the menu
+  // next to การเชื่อมต่อ. The layout's reviewed successor digest moves; its predecessor stays frozen.
+  "apps/admin/app/(control-plane)/layout.tsx": { before: "ccc3ab6d96dbeda609dfe71133980ac26aa1d61310fc5c63c5c929eab24555bf", after: "4b66fc82b05b981502dd25774bc2574113b76005d3463279023515a9c446a7af" },
   "apps/admin/app/(control-plane)/operations/privacy/page.tsx": { before: "88eb1fb34c49270d143f1cc2992609a510a4b3a5709fe3a3b024db68c00fb830", after: "c13b74fa6ec6590db3aff227a2a4e7dc54e0f2dd767df3931e4acc5f6b4ce5c5" },
   "apps/admin/app/(control-plane)/settings/[section]/page.tsx": { before: "77155b618c67fe777a4a0bfb545cbdb3808bfdbaf18701890e1b14d62a1e96dd", after: "93a2083155a2bf7ab35af6fe8c452882c5e5d4c090066ddc4070711f07fc5482" },
   "cms/sanity/policy/studio-policy.ts": { before: "037cdca400a76fe7c25a433b3ff49ef113a9416fa3de25103c0b9d10ecdc9211", after: "4cad6a03bc5befd47ef77937952f4c3ee50d7eb83cb0acc897dcc66518c45a7d" },
@@ -55,6 +57,8 @@ const exactPairs = [
   ['<span class="inline-flex whitespace-nowrap rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-white/70">', '<span class="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-white/70">'],
   // Navigation items passed to AdminNavigation
   [navChild('/analytics/performance/', 'ผลการตลาด &amp; สิ่งที่ควรทำ') + ',', ''],
+  // LINE chat button settings (owner-approved 2026-10-25).
+  [',' + navChild('/settings/line-chat/', 'ปุ่มแชท LINE'), ''],
   [navChild('/seo/opportunities/', 'โอกาสพัฒนา'), navChild('/seo/opportunities/', 'โอกาสพัฒนา') + ',' + navChild('/seo/audits/', 'ผลตรวจ')],
   // Article list action cell
   ['<div class="flex flex-wrap items-center gap-3">', '<div class="flex flex-wrap gap-3">'],

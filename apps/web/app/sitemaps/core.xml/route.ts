@@ -7,6 +7,8 @@ export function GET() {
     renderUrlSet([
       { loc: "https://ccpun.com/" },
       { loc: "https://ccpun.com/privacy/" },
+      // Owner-approved new URL (2026-10-25): the About page.
+      { loc: "https://ccpun.com/about/" },
     ]),
   );
 }

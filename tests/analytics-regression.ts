@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { getDeviceType, getGAAttribution } from '../lib/acquisition';
 import { buildSemanticDataLayerEvent, CCPUN_SITE_VERSION, clearPendingAnalyticsEvents, flushPendingAnalyticsEvents, getCIPlanningPageVersion, resolveEventMapping, sanitizeEventParams, trackEvent } from '../lib/analytics';
@@ -55,6 +56,14 @@ assert.deepEqual(buildSemanticDataLayerEvent('ci_calculator_start', safe, { anal
   campaign_id: null,
   campaign_placement: null,
   campaign_action: null,
+  // Owner-approved 2026-10-25 (L5): the LINE chat dimensions are cleared on every event too.
+  chat_topic_id: null,
+  page_group: null,
+  campaign_code: null,
+  // Owner-approved 2026-10-25: which control opened the chat panel is cleared on every event too.
+  panel_trigger: null,
+  // Owner-approved 2026-10-25 (Coming Soon): the planned-path dimension is cleared on every event too.
+  coming_soon_path: null,
 }, 'semantic event layer must be consent-labelled and contain only safe metadata');
 assert.equal(buildSemanticDataLayerEvent('ci_calculator_start', safe, { analytics: false, social: false }), null, 'semantic event layer must fail closed without consent');
 const semanticModel: Record<string, string | number | null> = {};
@@ -86,6 +95,58 @@ applySemanticEvent('health_happy_countdown_view', sanitizeEventParams({ campaign
 assert.equal(semanticModel.cta_location, null, 'countdown view must not inherit the preceding LINE CTA');
 assert.equal(semanticModel.contact_channel, null, 'countdown view must not inherit a contact action');
 assert.equal(semanticModel.surface_group, 'blog', 'countdown keeps its own approved surface');
+
+// LINE chat button (owner-approved 2026-10-25, L5): one new event and three safe line_oa_click tokens.
+// Existing event names and mappings above stay byte-identical.
+assert.deepEqual(resolveEventMapping('line_chat_panel_open', sanitizeEventParams({ page_group: 'home' })), { ga: ['line_chat_panel_open'], meta: 'none' }, 'chat panel open is GA4-only');
+assert.deepEqual(resolveEventMapping('line_oa_click', sanitizeEventParams({ contact_channel: 'line', cta_location: 'chat_panel' })), { ga: ['line_oa_click'], meta: 'none' }, 'chat topic clicks keep the existing line_oa_click event');
+assert.deepEqual(
+  sanitizeEventParams({ contact_channel: 'line', cta_location: 'chat_panel', surface_group: 'blog', chat_topic_id: 'smart-network-hospital', page_group: 'article', campaign_code: 'smartnetwork-2611', prefill: 'อยากเช็กโรงพยาบาล 0812345678', text: 'free text' }),
+  { contact_channel: 'line', cta_location: 'chat_panel', surface_group: 'blog', chat_topic_id: 'smart-network-hospital', page_group: 'article', campaign_code: 'smartnetwork-2611' },
+  'chat clicks send owner-defined tokens only: never the prefill text or anything a person typed',
+);
+for (const [key, value] of [['chat_topic_id', 'Has Spaces'], ['chat_topic_id', 'โรงพยาบาล'], ['page_group', 'article:secret-slug'], ['page_group', 'category:health-insurance'], ['campaign_code', 'https://evil.example'], ['campaign_code', 'a'], ['cta_location', 'chat_anything']] as const) {
+  assert.equal(sanitizeEventParams({ [key]: value })[key], undefined, `${key}=${value} must be discarded`);
+}
+// panel_trigger (owner-approved 2026-10-25): only the two named controls, nothing free-form.
+for (const trigger of ['dock', 'article_cta']) {
+  assert.equal(sanitizeEventParams({ panel_trigger: trigger }).panel_trigger, trigger, `approved panel trigger ${trigger}`);
+}
+for (const value of ['Dock', 'article', 'header', 'https://evil.example', 'อยากคุย', '']) {
+  assert.equal(sanitizeEventParams({ panel_trigger: value }).panel_trigger, undefined, `panel_trigger=${value} must be discarded`);
+}
+assert.deepEqual(resolveEventMapping('line_chat_panel_open', sanitizeEventParams({ page_group: 'article', panel_trigger: 'article_cta' })), { ga: ['line_chat_panel_open'], meta: 'none' }, 'the trigger never changes the GA4-only mapping');
+for (const location of ['chat_panel', 'chat_button', 'tools_hub']) {
+  assert.equal(sanitizeEventParams({ cta_location: location }).cta_location, location, `approved CTA location ${location}`);
+}
+assert.equal(sanitizeEventParams({ surface_group: 'tools' }).surface_group, 'tools', 'the /tools/ hub has its own approved surface');
+// AIA fund tool (2026-10-26): its LINE clicks reuse the existing line_oa_click with the main tool's "tools" surface.
+// Exact before -> after admission: removing only the AIA clause restores the previous reviewed successor byte for byte.
+{
+  const gaSource = readFileSync('features/analytics/components/GoogleAnalytics.tsx', 'utf8');
+  const aiaClause = " || path.startsWith('/tools/aia-fund-allocation')";
+  assert.equal(gaSource.split(aiaClause).length, 2, 'the AIA path clause occurs exactly once');
+  assert.match(gaSource, /: path === '\/tools' \|\| path === '\/tools\/' \|\| path\.startsWith\('\/tools\/investment-allocation'\) \|\| path\.startsWith\('\/tools\/aia-fund-allocation'\) \? 'tools'\n/, 'the AIA fund tool joins the existing tools surface, nothing else');
+  assert.equal(createHash('sha256').update(gaSource.replace(aiaClause, '')).digest('hex'), '8d615a8b3fb1dc2505c1c310e1a162b66895d0c8fc5a94a7c7ae314dedb66206', 'no other GoogleAnalytics.tsx byte changed');
+  assert.match(gaSource, /trackEvent\('line_oa_click', \{/, 'the event name is unchanged');
+}
+{
+  const model: Record<string, string | number | null> = {};
+  Object.assign(model, buildSemanticDataLayerEvent('line_oa_click', sanitizeEventParams({ contact_channel: 'line', cta_location: 'chat_panel', chat_topic_id: 'tax-deduction', page_group: 'home', campaign_code: 'bio-facebook' }), { analytics: true, social: false }));
+  assert.equal(model.chat_topic_id, 'tax-deduction');
+  Object.assign(model, buildSemanticDataLayerEvent('line_oa_click', sanitizeEventParams({ contact_channel: 'line', cta_location: 'navbar' }), { analytics: true, social: false }));
+  for (const key of ['chat_topic_id', 'page_group', 'campaign_code']) assert.equal(model[key], null, `a later LINE click must clear the preceding ${key}`);
+  Object.assign(model, buildSemanticDataLayerEvent('line_chat_panel_open', sanitizeEventParams({ page_group: 'article', panel_trigger: 'article_cta' }), { analytics: true, social: false }));
+  assert.equal(model.panel_trigger, 'article_cta');
+  Object.assign(model, buildSemanticDataLayerEvent('line_oa_click', sanitizeEventParams({ contact_channel: 'line', cta_location: 'chat_panel' }), { analytics: true, social: false }));
+  assert.equal(model.panel_trigger, null, 'a later event must clear the preceding panel_trigger');
+}
+
+// Coming Soon (owner-approved 2026-10-25): one new GA4-only event carrying only the registered planned path.
+assert.deepEqual(resolveEventMapping('coming_soon_interest', sanitizeEventParams({ coming_soon_path: '/tools/tax-deduction/' })), { ga: ['coming_soon_interest'], meta: 'none' });
+assert.deepEqual(sanitizeEventParams({ coming_soon_path: '/tools/tax-deduction/', email: 'a@b.co', phone: '0800000000' }), { coming_soon_path: '/tools/tax-deduction/' }, 'the interest event never carries personal data');
+for (const value of ['/tools/x/?email=a@b.co', 'https://ccpun.com/tools/x/', '/blog/a/b/']) assert.equal(sanitizeEventParams({ coming_soon_path: value }).coming_soon_path, undefined, value);
+assert.equal(sanitizeEventParams({ page_group: 'coming_soon' }).page_group, 'coming_soon', 'Coming Soon chat panels have their own page group');
 
 const acquisitionSource = readFileSync(new URL('../lib/acquisition.ts', import.meta.url), 'utf8');
 assert.equal(acquisitionSource.includes('fbclid'), false, 'click identifiers must not be parsed, stored, or sent');
@@ -150,6 +211,16 @@ try {
   analyticsConsent = false;
   trackEvent('line_oa_click', { contact_channel: 'line', cta_location: 'navbar', surface_group: 'ci_planning' });
   assert.equal(semanticRows.length, 2, 'semantic mode must stay consent-gated');
+  trackEvent('line_chat_panel_open', { page_group: 'home' });
+  assert.equal(semanticRows.length, 2, 'the new chat panel event is consent-gated like every other event');
+  trackEvent('line_chat_panel_open', { page_group: 'article', panel_trigger: 'article_cta' });
+  assert.equal(semanticRows.length, 2, 'panel_trigger does not bypass consent');
+  analyticsConsent = true;
+  trackEvent('line_chat_panel_open', { page_group: 'home', campaign_code: 'bio-facebook' });
+  assert.deepEqual([semanticRows[2].event_name, semanticRows[2].page_group, semanticRows[2].campaign_code], ['line_chat_panel_open', 'home', 'bio-facebook']);
+  trackEvent('line_chat_panel_open', { page_group: 'article', panel_trigger: 'article_cta' });
+  assert.deepEqual([semanticRows[3].event_name, semanticRows[3].page_group, semanticRows[3].panel_trigger, semanticRows[3].campaign_code], ['line_chat_panel_open', 'article', 'article_cta', null]);
+  analyticsConsent = false;
   analyticsConsent = true;
 } finally {
   clearPendingAnalyticsEvents();

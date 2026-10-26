@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
+import { cookieBannerTimingPredecessor } from './v5-cookie-banner-timing-proof.mjs';
 import { loadFixtureModule } from './phase1-fixture-loader.mjs';
 import { adminPhase1PredecessorDigest } from './admin-phase1-quick-wins-proof.mjs';
+import { isWebsiteV5RetainedSource, isWebsiteV5ReviewedSuccessor, websiteV5CopyPredecessor, websiteV5RendererSources } from './website-v5-phase-a-proof.mjs';
 
 // Exact b871b734 -> 05370957 same-word CMS capability admission. Historical
 // manifests and rendered/metadata/action goldens are deliberately unchanged.
@@ -239,6 +241,11 @@ export function canonicalNavigationPredecessor(file, source) {
 export function assertProductionCmsOwner(file, source = read(file)) {
   assert.equal(cmsSha(JSON.stringify(productionCmsOwners)), '1205b8e92dafafacff0a2ff3421f3acf7ff87e4d70c65a54a4ae5540aeb269fe', 'frozen CMS identities');
   assert.ok(hasProductionCmsOwner(file), 'Unknown CMS source owner: '+file);
+  // Website v5 Phase A (UAT prototype): an exact reviewed v5 route successor, or the
+  // exact additive v5 copy keys removed to reconstruct the frozen registry source.
+  source = cookieBannerTimingPredecessor(file, source);
+  if (isWebsiteV5ReviewedSuccessor(file, source)) return true;
+  source = websiteV5CopyPredecessor(file, source);
   if (file === 'lib/content/sanity.ts') {
     // Owner-approved article-body font-size marks (2026-10-24): only these exact
     // converter additions may be removed to reconstruct the frozen reader.
@@ -332,8 +339,10 @@ function allDefaults() {
 // only a constant registered default. Expressions, order, routes, aria and math
 // remain in the inspected candidate source. No baseline source is substituted.
 export function productionCmsDisplaySource(file, source = read(file)) {
-  if (!hasProductionCmsOwner(file)) return source;
-  assertProductionCmsOwner(file,source);
+  // Website v5 Phase B: an exact retained 4.3 presentation reads like its original owner.
+  const retained = isWebsiteV5RetainedSource(file, source) || websiteV5RendererSources.includes(file);
+  if (!hasProductionCmsOwner(file) && !retained) return source;
+  if (!retained) assertProductionCmsOwner(file,source);
   const legalOwners = {"apps/web/app/privacy/page.tsx":"features/legal/pages/PrivacyPage.tsx","apps/web/app/cookie-policy/page.tsx":"features/legal/pages/CookiePolicyPage.tsx"};
   if(Object.hasOwn(legalOwners,file)) return source+"\n"+productionCmsDisplaySource(legalOwners[file]);
   const values = allDefaults();

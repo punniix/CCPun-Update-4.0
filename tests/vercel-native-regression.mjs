@@ -168,7 +168,20 @@ const articlePresentation = read('features/blog/website-43/Website43Article.tsx'
 const website43Shell = read('components/layout/website-43/Website43Shared.tsx');
 assert.match(articlePage, /index:\s*false,\s*follow:\s*false/);
 assert.match(articlePage, /isArticleCanonicalAligned\(article\) \? buildArticleSchemaGraph\(article\) : null/);
-assert.match(articlePage, /Website43Article/);
+// Website v5 Phase A: the article route renders the v5 template (the 4.3 template stays unchanged).
+assert.match(articlePage, /<V5Article preview=\{includeDrafts\} article=\{article\}/);
+const v5ArticlePresentation = read('features/blog/v5/V5Article.tsx');
+const v5Primitives = read('components/layout/v5/V5Primitives.tsx');
+// Owner decision 2026-10-25: the v5 article's one LINE element is the chat dock (no gold band); its
+// LINE CTAs open the dock's panel and fall back to the page's LINE OA link without JavaScript.
+assert.doesNotMatch(v5ArticlePresentation, /V5ContactBand|analyticsLocation="blog_article"/);
+assert.doesNotMatch(v5Primitives, /V5_LINE_URL|V5ContactBand/);
+// 2026-10-26 (LINE chat per page): the article's chat context adds its logical id, live title and semantic topic.
+assert.match(v5ArticlePresentation, /const chatContext = chatContextForArticle\(path, article, topic\?\.slug\);\n[^\n]*\n  const chatHref = await getV5ChatFallbackHref\(chatContext\);/);
+assert.match(v5ArticlePresentation, /<V5Page current=\{path\} chat=\{chatContext\}>/);
+assert.match(read('components/layout/v5/constants.ts'), /V5_LINE_URL = "https:\/\/lin\.ee\/tqLCs4f"/);
+assert.match(v5ArticlePresentation, /renderV5ArticleBody\(article\.body, headingIds, copy, chatHref\)/);
+assert.match(read('features/blog/v5/V5ArticleBody.tsx'), /const id = headingIds\.get\(index\)/);
 assert.match(articlePage, /getArticleCanonical/);
 assert.match(articlePresentation, /href="https:\/\/lin\.ee\/tqLCs4f"/);
 assert.match(articlePresentation, /data-analytics-location="blog_article"/);
@@ -215,7 +228,8 @@ assert.match(categoryRegistry, /CATEGORY_STATUS_VALUES = \["draft", "active"\]/)
 assert.match(categoryRegistry, /resolveCategoryRoute/);
 assert.match(categoryRegistrySanity, /_type == "category"/);
 assert.match(blogArchivePage, /listCategoryRegistry/);
-assert.match(blogArchivePage, /listCategoryMenuEntries/);
+assert.match(blogArchivePage, /listLinkableTopics/);
+assert.match(read('lib/content/topic-navigation.ts'), /listCategoryMenuEntries\(registry, false\)/);
 assert.match(blogPresentation, /Website43BlogInteractive/);
 assert.match(blogData, /getArticlePath/);
 assert.match(blogData, /getArticleSemanticTopic/);
@@ -242,8 +256,10 @@ const fhcLanding = read('features/financial-health-check/components/FHCLandingIn
 assert.match(fhcLanding, /3 เรื่องที่ควรทบทวนให้เชื่อมกัน/);
 assert.doesNotMatch(fhcLanding, /7 เรื่องใน 3 กลุ่ม/);
 
-const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx');
-const privacyPolicy = read('apps/web/app/privacy/page.tsx');
+// Website v5 Phase B: the unchanged legal routes render the v5 legal pages; disclosures are asserted on the
+// active v5 renderer (same copy keys) together with the route and its metadata owner.
+const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx') + '\n' + read('features/legal/v5/V5CookiePolicy.tsx');
+const privacyPolicy = read('apps/web/app/privacy/page.tsx') + '\n' + read('features/legal/v5/V5Privacy.tsx');
 const consentUi = [read('features/analytics/components/CookieConsent.tsx'), read('features/analytics/components/CookieConsentPreferences.tsx')].join('\n');
 for (const disclosure of [cookiePolicy, privacyPolicy, consentUi]) {
   assert.match(disclosure, /Google Analytics/);

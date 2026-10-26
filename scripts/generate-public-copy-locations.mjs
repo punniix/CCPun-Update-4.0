@@ -16,6 +16,9 @@ const OUTPUT = path.join(ROOT, "lib/content/public-copy-locations.json");
 // still contribute; they sort after the listed ones.
 const PAGE_FILES = {
   site: [
+    // Website v5 shell renders first on Phase A pages; 4.3 files stay listed for Phase B pages.
+    "components/layout/v5/V5Header.tsx",
+    "components/layout/v5/V5Footer.tsx",
     "components/layout/website-43/Website43Navbar.tsx",
     "features/home/website-43/Website43HomeStatic.tsx",
     "components/layout/website-43/Website43Shared.tsx",
@@ -29,8 +32,10 @@ const PAGE_FILES = {
     "apps/web/app/not-found.tsx",
     "apps/web/app/layout.tsx",
   ],
-  home: ["features/home/website-43/Website43Home.tsx"],
+  home: ["features/home/v5/V5Home.tsx", "features/home/website-43/Website43Home.tsx"],
+  // Website v5 Phase B: the v5 renderer is what visitors meet first; 4.3 files stay listed as rollback.
   ci: [
+    "features/ci-planning/v5/V5CiPlanning.tsx",
     "features/ci-planning/page.tsx",
     "features/ci-planning/components/CILandingIntro.tsx",
     "features/ci-planning/components/CIWizard.tsx",
@@ -43,6 +48,7 @@ const PAGE_FILES = {
     "features/ci-planning/result-image.ts",
   ],
   fhc: [
+    "features/financial-health-check/v5/V5Fhc.tsx",
     "features/financial-health-check/page.tsx",
     "features/financial-health-check/components/FHCLandingIntro.tsx",
     "features/financial-health-check/components/ClientFHC.tsx",
@@ -50,6 +56,14 @@ const PAGE_FILES = {
     "features/financial-health-check/components/FHCLifeResultImageDownloadButton.tsx",
   ],
   blog: [
+    "features/blog/v5/V5BlogIndex.tsx",
+    "features/blog/v5/V5BlogSearch.tsx",
+    "features/blog/v5/V5GroupPager.tsx",
+    "features/blog/v5/V5Category.tsx",
+    "features/blog/v5/V5ArticleCardEngagement.tsx",
+    "features/blog/v5/V5Article.tsx",
+    "features/blog/v5/V5ArticleBody.tsx",
+    "features/blog/v5/V5ArticleEngagementMeta.tsx",
     "features/blog/website-43/Website43Blog.tsx",
     "features/blog/website-43/Website43BlogInteractive.tsx",
     "features/blog/website-43/ArticleCardEngagement.tsx",
@@ -63,9 +77,10 @@ const PAGE_FILES = {
     "features/blog/website-43/ArticleDetailAccess.tsx",
     "features/blog/website-43/blogData.ts",
   ],
-  privacy: ["features/legal/pages/PrivacyPage.tsx"],
-  cookies: ["features/legal/pages/CookiePolicyPage.tsx"],
+  privacy: ["features/legal/v5/V5Privacy.tsx", "features/legal/pages/PrivacyPage.tsx"],
+  cookies: ["features/legal/v5/V5CookiePolicy.tsx", "features/legal/pages/CookiePolicyPage.tsx"],
   moneyStory: [
+    "features/money-story/v5/V5MoneyStory.tsx",
     "features/money-story/page.tsx",
     "features/money-story/components/MoneyStoryScreens.tsx",
     "features/money-story/components/MoneyStoryGame.tsx",
@@ -75,6 +90,21 @@ const PAGE_FILES = {
 
 // Human section names for whole files that have no visible heading of their own.
 const FILE_SECTIONS = {
+  "components/layout/v5/V5Header.tsx": "เมนูด้านบน",
+  "components/layout/v5/V5Footer.tsx": "ท้ายเว็บและส่วนที่ใช้ร่วมกัน",
+  "features/blog/v5/V5BlogIndex.tsx": "หน้ารวมบทความ",
+  "features/blog/v5/V5BlogSearch.tsx": "หน้ารวมบทความ · ค้นหาและรายการ",
+  "features/blog/v5/V5GroupPager.tsx": "หน้ารวมบทความ · ตัวแบ่งหน้าในหมวด",
+  "features/blog/v5/V5Category.tsx": "หน้าหมวดหมู่บทความ",
+  "features/blog/v5/V5ArticleCardEngagement.tsx": "การ์ดบทความ · ยอดอ่านและหัวใจ",
+  "features/blog/v5/V5ArticleEngagementMeta.tsx": "หน้าอ่านบทความ · ยอดอ่าน",
+  "features/blog/v5/V5Article.tsx": "หน้าอ่านบทความ",
+  "features/blog/v5/V5ArticleBody.tsx": "หน้าอ่านบทความ · เนื้อหา",
+  "features/ci-planning/v5/V5CiPlanning.tsx": "หน้าวางแผนทุนโรคร้ายแรง",
+  "features/financial-health-check/v5/V5Fhc.tsx": "หน้าตรวจสุขภาพการเงิน",
+  "features/money-story/v5/V5MoneyStory.tsx": "หน้าเกม Money Story",
+  "features/legal/v5/V5Privacy.tsx": "หน้านโยบายความเป็นส่วนตัว",
+  "features/legal/v5/V5CookiePolicy.tsx": "หน้านโยบายคุกกี้",
   "components/layout/website-43/Website43Navbar.tsx": "เมนูด้านบน",
   "components/layout/website-43/Website43Shared.tsx": "ท้ายเว็บและส่วนที่ใช้ร่วมกัน",
   "features/home/website-43/Website43HomeStatic.tsx": "ท้ายเว็บและส่วนที่ใช้ร่วมกัน",

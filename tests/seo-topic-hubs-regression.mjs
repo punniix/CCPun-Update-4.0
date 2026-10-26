@@ -21,6 +21,13 @@ const articlePresentation = await read('features/blog/website-43/Website43Articl
 const blogPresentation = await read('features/blog/website-43/Website43Blog.tsx');
 const blogInteractive = await read('features/blog/website-43/Website43BlogInteractive.tsx');
 const blogData = await read('features/blog/website-43/blogData.ts');
+// Website v5 Phase A: blog routes render the v5 presentation; the 4.3 presentation
+// files above are unchanged and keep their own assertions for Phase B pages.
+const v5Category = await read('features/blog/v5/V5Category.tsx');
+const v5Article = await read('features/blog/v5/V5Article.tsx');
+const v5BlogSearch = await read('features/blog/v5/V5BlogSearch.tsx');
+const v5Cards = await read('components/layout/v5/article-card-data.ts');
+const topicNavigation = await read('lib/content/topic-navigation.ts');
 const sitemap = readPhase1Source('app/sitemaps/blog.xml/route.ts');
 const webSitemap = await read('apps/web/app/sitemaps/blog.xml/route.ts');
 
@@ -89,21 +96,26 @@ assert.match(categoryPage, /const hub = getBlogTopicHub\(slug\);[\s\S]*getLegacy
 assert.match(categoryPage, /getCategoryCanonical\(category\.slug\)/);
 assert.match(categoryPage, /!includeDrafts[\s\S]*category\.status === "active"/);
 assert.match(categoryPage, /const shouldIndexHub = !includeDrafts && hub\.indexable/);
-assert.match(categoryPage, /activeCategorySlug=\{category\.slug\}/);
-assert.match(categoryPage, /activeCategorySlug=\{hub\.slug\}/);
-assert.match(categoryPage, /heroDescription=\{category\.description \?\? hub\?\.description\}/);
-assert.match(categoryPage, /heroDescription=\{hub\.description\}/);
-assert.match(categoryPage, /topicContent=\{buildTopicIntro\(hub, copyText\)\}/);
-assert.match(categoryPage, /hub\.intro\.map/);
-assert.match(categoryPage, /styles\.storyCopy/);
+assert.match(categoryPage, /slug=\{category\.slug\}/);
+assert.match(categoryPage, /slug=\{hub\.slug\}/);
+assert.match(categoryPage, /description=\{category\.description \?\? hub\?\.description\}/);
+assert.match(categoryPage, /description=\{hub\.description\}/);
+assert.match(categoryPage, /hub=\{hub\}/);
+assert.match(v5Category, /hub\.intro\.map/);
+assert.match(v5Category, /styles\.introCopy/);
 assert.match(blogPresentation, /heroDescription\?: string/);
 assert.match(blogPresentation, /<p>\{heroDescription \?\? 'เข้าใจเรื่องการเงิน\ ประกัน\ การลงทุนได้ง่าย\ แม้จะเริ่มจาก\ 0'\}<\/p>/);
-assert.match(categoryPage, /categories=\{categoryMenu\(registry, includeDrafts\)\}/);
+assert.match(categoryPage, /topics=\{linkableTopics\(registry, visibleArticles\)\}/);
+assert.match(categoryPage, /topics=\{linkableTopics\(registry, publishedArticles\)\}/);
 
 // Article routing/canonical functions stay intact while visible topic navigation is semantic.
 assert.match(articlePage, /getArticleCategorySlug\(article\)/);
 assert.match(articlePresentation, /getArticleSemanticTopic/);
 assert.match(articlePresentation, /href=\{topicHref\}/);
+assert.match(v5Article, /getArticleSemanticTopic/);
+assert.match(v5Article, /href: topicHref, label: topicName/);
+assert.match(v5Cards, /const href = getArticlePath\(article\)/);
+assert.match(v5Cards, /getArticleSemanticTopic/);
 assert.doesNotMatch(articlePage, /\/blog\/\?category=/);
 assert.match(blogData, /const articlePath = getArticlePath\(article\)/);
 assert.match(blogData, /getArticleSemanticTopic/);
@@ -137,13 +149,18 @@ for (const sitemapSource of [sitemap, webSitemap]) {
 // Main Blog dropdown is injected from the server-side registry; query filters
 // remain UX state and are never canonical SEO destinations.
 assert.match(blogPage, /listCategoryRegistry/);
-assert.match(blogPage, /listCategoryMenuEntries/);
-assert.match(blogPage, /categories=\{categories\}/);
+// v5 (plan T11): the menu lists active registry categories that own indexable articles.
+assert.match(blogPage, /listLinkableTopics\(registry, articles\)/);
+assert.match(topicNavigation, /listCategoryMenuEntries\(registry, false\)/);
+assert.match(blogPage, /topics=\{topics\}/);
 assert.doesNotMatch(blogPage, /BLOG_TOPIC_HUBS/);
 assert.match(blogPresentation, /categories\?: Website43BlogCategoryItem\[\]/);
 assert.match(blogPresentation, /ทุกหมวดหมู่/);
 assert.match(blogInteractive, /nativeReplaceState\.call\(window\.history/);
 assert.match(blogInteractive, /url\.searchParams\.set\('q'/);
+assert.match(v5BlogSearch, /window\.history\.replaceState\(window\.history\.state/);
+assert.match(v5BlogSearch, /url\.searchParams\.set\("q"/);
+assert.match(v5BlogSearch, /url\.searchParams\.delete\("page"\)/);
 assert.match(blogPage, /filters\.category/);
 assert.match(blogPage, /filters\.tag/);
 

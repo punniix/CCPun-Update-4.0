@@ -1,0 +1,54 @@
+/* /about/ (owner-approved 2026-10-25). v5 tokens come from the shell root (.root in V5.module.css). */
+.hero { background: var(--v5-bg-alt); padding-block: 32px 56px; }
+@media (min-width: 1024px) { .hero { padding-block: 48px 96px; } }
+.heroGrid { display: grid; gap: 32px; align-items: center; margin-top: 24px; }
+@media (min-width: 900px) { .heroGrid { grid-template-columns: minmax(0, 1fr) minmax(280px, 440px); gap: 64px; } }
+.identity { margin-top: 16px; display: grid; gap: 4px; }
+.identity strong { font-size: 18px; font-weight: 500; font-family: var(--v5-font-display); }
+.identity span { color: var(--v5-muted); font-size: 16px; line-height: 1.6; }
+.credentials { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; margin: 24px 0 0; padding: 20px; border-radius: var(--v5-radius); border: 1px solid var(--v5-border); background: var(--v5-bg); }
+.credentials { list-style: none; }
+.credentials > li { display: grid; min-width: 0; }
+/* Phones: one credential card per row, so the flip-card backs (the TFPA name) never split mid-phrase. */
+@media (max-width: 479px) { .credentials { grid-template-columns: minmax(0, 1fr); } }
+.credentials dt { font-size: 15px; font-weight: 500; font-family: var(--v5-font-display); }
+.credentials dd { margin: 4px 0 0; color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.55; overflow-wrap: anywhere; }
+.portraitFrame { width: 100%; max-width: 440px; justify-self: center; }
+@media (max-width: 899px) { .portraitFrame { max-width: 360px; } }
+.portrait { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; object-position: top; border-radius: var(--v5-radius-lg); background: var(--v5-surface); }
+/* One portrait per theme (lazy, so the hidden one is never fetched). */
+.portraitLight { display: none; }
+:global(html[data-theme="light"]) .portraitDark { display: none; }
+:global(html[data-theme="light"]) .portraitLight { display: block; }
+
+/* UAT-only father photo inside the father-story slot (removed from Production until the owner's text arrives). */
+.fatherPhoto { margin: 0; max-width: 420px; }
+.fatherPhoto img { display: block; width: 100%; height: auto; border-radius: var(--v5-radius); }
+
+.split { display: grid; gap: 24px 64px; }
+@media (min-width: 900px) { .split { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } }
+.story { display: grid; gap: 16px; color: var(--v5-muted); font-size: 17px; line-height: 1.85; max-width: 40em; }
+
+/* UAT-only owner-copy slot: clearly a placeholder, never rendered in Production builds. */
+.slot { padding: 12px 16px; border: 1px dashed var(--v5-field-edge); border-radius: var(--v5-radius-sm); color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.6; margin-top: 16px; }
+.story .slot { margin-top: 0; }
+.slot strong { color: var(--v5-gold-text); font-weight: 500; margin-right: 4px; }
+
+.partners { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--v5-list-gap); margin: var(--v5-head-gap) 0 0; padding: 0; list-style: none; }
+@media (min-width: 640px) { .partners { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .partners { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.partner { display: grid; justify-items: center; gap: 8px; padding: 16px 12px; border-radius: var(--v5-radius-sm); background: #fffdf9; border: 1px solid rgba(91, 72, 72, 0.18); color: #352727; text-align: center; }
+.partner img { width: auto; max-width: 100%; height: 40px; object-fit: contain; }
+.partner strong { font-size: 14px; font-weight: 500; font-family: var(--v5-font-display); }
+.partner span { font-size: var(--v5-text-meta); color: #5f4c4c; line-height: 1.45; }
+
+.quotes { display: grid; gap: 36px; margin-top: var(--v5-head-gap); align-items: start; }
+@media (min-width: 900px) { .quotes { grid-template-columns: 1.4fr 1fr; gap: 56px; } }
+.quote { margin: 0; padding: 4px 0 4px 24px; border-left: 3px solid var(--v5-gold); }
+.quote blockquote { margin: 0; font-size: 18px; line-height: 1.75; font-weight: 500; font-family: var(--v5-font-display); }
+.quote blockquote::before { content: "“"; }
+.quote blockquote::after { content: "”"; }
+.quote figcaption { margin-top: 16px; color: var(--v5-gold-text); font-size: 14px; font-weight: 500; font-family: var(--v5-font-display); }
+.quote figcaption::before { content: "— "; }
+
+.next { display: flex; flex-wrap: wrap; gap: 8px 32px; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--v5-border-soft); }

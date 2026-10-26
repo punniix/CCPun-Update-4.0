@@ -1,0 +1,320 @@
+/*
+  Website v5 tool, legal and Investment pages (FigCraft review-v3 pages 07-11, 14).
+  Text-first heroes (no hero image, so the H1 is the LCP element), split calculator
+  stage, FAQ and info cards. Shares the tokens defined on the v5 shell root.
+*/
+/* Compact hero (audit #5): on wide screens the tool itself starts inside the first screen. */
+.hero { padding-block: 40px 40px; background: var(--v5-bg-alt); }
+@media (min-width: 1024px) { .hero { padding-block: 56px 56px; } }
+/* Wide screens: heading on the left, lead and action on the right, so the hero has no empty half. */
+@media (min-width: 1024px) {
+  .heroGrid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 64px; align-items: end; }
+  .heroAside .heroLead:first-child { margin-top: 0; }
+  .heroAside > div { margin-top: 24px; }
+}
+.heroTitle { font-size: clamp(30px, 6vw, 48px); line-height: 1.3; max-width: 900px; }
+.heroTitle span { color: var(--v5-gold-text); }
+.heroSubtitle { font-size: clamp(20px, 3vw, 28px); line-height: 1.4; margin-top: 12px; }
+/* 17px on phones (design QA 2026-10-25): easier Thai reading, and on short heroes such as /tools/ the
+   lead stays the largest early paint, so the later cookie notice never becomes the LCP element. */
+.heroLead { color: var(--v5-muted); font-size: clamp(17px, 1.7vw, 19px); line-height: 1.75; margin-top: 16px; max-width: 760px; }
+/* Phones (UAT 2026-10-26): 18px with a 2.0 line height, so on /ci-planning/, FHC and /tools/ the hero lead
+   paints a larger box than the cookie notice description (about 32.8-34.6k vs 31.3k px2 at 390, 30.6k+ vs
+   27.7k at 360) and the notice no longer becomes LCP. The line height holds that margin whichever font paints first. */
+@media (max-width: 639px) { .heroLead { font-size: 18px; line-height: 2; } }
+.heroMeta { color: var(--v5-muted); font-size: var(--v5-text-meta); margin-top: 16px; }
+.heroBreadcrumbs { margin-bottom: 20px; }
+
+/* Two-column intro: heading left, story right. */
+.split { display: grid; gap: 24px 64px; }
+@media (min-width: 900px) { .split { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } }
+.story { display: grid; gap: 16px; color: var(--v5-muted); font-size: 16px; line-height: 1.85; }
+.story p { margin: 0; }
+
+.infoGrid { display: grid; gap: var(--v5-list-gap); margin-top: var(--v5-head-gap); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .infoGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.infoCard { padding: 20px; border-radius: var(--v5-radius-sm); background: var(--v5-card); border: 1px solid var(--v5-border-soft); }
+.sectionAltCard .infoCard, :global(.v5-alt) .infoCard { background: var(--v5-card-alt); }
+.infoCard h3 { font-size: 16px; line-height: 1.45; }
+.infoCard p { color: var(--v5-muted); font-size: 15px; line-height: 1.7; margin-top: 8px; }
+.infoNum { display: block; color: var(--v5-gold-text); font-size: var(--v5-text-meta); font-weight: 500; font-family: var(--v5-font-display); margin-bottom: 8px; }
+
+/* Calculator section: stage on the left, reading notes on the right (desktop). */
+/* The calculator follows the hero directly (audit #5), so its section starts closer to the hero. */
+.calcFirst.calcFirst { padding-top: 32px; }
+@media (min-width: 1024px) { .calcFirst.calcFirst { padding-top: 40px; } }
+.calcHeader { max-width: 760px; margin-bottom: 28px; }
+.calcGrid { display: grid; gap: 20px; align-items: start; }
+@media (min-width: 1024px) { .calcGrid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 32px; } }
+.calcGridSolo { max-width: 780px; }
+.calcAside { display: grid; gap: 12px; }
+@media (min-width: 1024px) { .calcAside { position: sticky; top: 100px; } }
+.asideCard { padding: 20px 24px; border-radius: var(--v5-radius); background: var(--v5-card-alt); border: 1px solid var(--v5-border-soft); }
+.asideCard h3 { font-size: 17px; }
+.asideCard p { color: var(--v5-muted); font-size: 15px; line-height: 1.7; margin-top: 8px; }
+
+/* FAQ (native details: works without JS, server-rendered answers). */
+.faq { display: grid; gap: var(--v5-list-gap); margin-top: var(--v5-head-gap); }
+.faq details { border: 1px solid var(--v5-border); border-radius: var(--v5-radius-sm); background: var(--v5-card-alt); }
+.faq summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 16px 20px; cursor: pointer; list-style: none; font-size: 17px; font-weight: 500; font-family: var(--v5-font-display); }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; color: var(--v5-gold-text); font-size: 20px; line-height: 1; flex: none; }
+.faq details[open] summary::after { content: "–"; }
+.faq details p { padding: 0 20px 20px; color: var(--v5-muted); font-size: 15px; line-height: 1.75; }
+
+.note { color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.75; margin-top: 24px; max-width: 900px; }
+.note a, .inlineLink { color: var(--v5-gold-text); text-decoration: underline; text-underline-offset: 3px; }
+.badgeRow { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 24px; }
+.badgeRow img { display: block; height: auto; max-width: 240px; }
+
+/* Guides block: tool page -> owner articles (internal linking). */
+.guides { margin-top: 0; }
+
+/*
+  Calculator theming scope. The reused calculators keep their markup, formulas and
+  analytics; this maps the 4.3 tokens and the Tailwind theme colours they read onto
+  the v5 tokens, so the same components follow the v5 dark and light themes.
+*/
+.calcScope {
+  --w43-deep: #251818;
+  --w43-bg: #352727;
+  --w43-surface: #4a3a3a;
+  --w43-border: #5b4848;
+  --w43-gold: #e0c985;
+  --w43-gold-bright: #ebd9a2;
+  --w43-ink: #faf9f9;
+  --w43-muted: #baabab;
+  min-width: 0;
+  font-family: var(--v5-font);
+}
+.calcScope [data-ui="human-centered-calculator-card"] { max-width: none; border-radius: var(--v5-radius-lg); padding: clamp(20px, 3vw, 28px); background: var(--v5-card-alt) !important; border-color: var(--v5-border-soft) !important; }
+.calcScope input:not([type="range"]):not([type="radio"]):not([type="checkbox"]), .calcScope select { border-radius: var(--v5-radius-sm); }
+/*
+  Thai readability floor inside the reused calculators (design QA 2026-10-25): Tailwind text-xs (12px)
+  hints, step labels and helper copy read at 14px, and the one 11px caption at 13px. v5 scope only;
+  the calculator markup, formulas and analytics are unchanged.
+*/
+.calcScope :global(.text-xs) { font-size: 14px; line-height: 1.6; }
+.calcScope :global(.text-\[11px\]) { font-size: 14px; line-height: 1.5; }
+/*
+  Site type and button scale inside the reused calculators (audit #7, 2026-10-25): body copy and form
+  fields read at 16px on every width (no Tailwind md:text-sm step-down), helper text at 14px, and the
+  primary/secondary actions use the site button: 48px tall, the shared button radius, display face.
+*/
+.calcScope :global(.text-sm) { font-size: 16px; line-height: 1.6; }
+.calcScope input:not([type="range"]):not([type="radio"]):not([type="checkbox"]):not([type="hidden"]), .calcScope select, .calcScope textarea { font-size: 16px; }
+.calcScope :global(:is(.gold-button, .glass-button)) { min-height: 48px; height: auto; padding: 12px 28px; font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; line-height: 1.3; }
+.calcScope :focus-visible { outline: 3px solid var(--v5-focus); outline-offset: 2px; }
+/*
+  v5 polish (UAT): Thai button labels stay on one line on narrow phones without changing the copy. Buttons sized by
+  their label keep their label width (they never shrink beside a heading; the row wraps instead), full-width buttons
+  use a narrower side padding on phones, and a label that still has to wrap breaks into balanced lines.
+*/
+.calcScope :global(:is(.gold-button, .glass-button)) { text-wrap: balance; }
+.calcScope :global(:is(.gold-button, .glass-button):not(.w-full)) { flex-shrink: 0; max-width: 100%; }
+.calcScope :global(.justify-between:has(> .glass-button)) { flex-wrap: wrap; }
+.calcScope :global(.justify-between:has(> .glass-button) > div:first-child) { flex: 1 1 240px; min-width: 0; }
+@media (max-width: 479px) { .calcScope :global(:is(.gold-button, .glass-button).w-full) { padding-inline: 12px; } }
+@media (max-width: 359px) { .calcScope [data-ui="human-centered-calculator-card"] { padding: 16px; } }
+/* Form fields: a visible edge in both themes (>= 3:1) and the focus colour while typing. */
+.calcScope input:not([type="range"]):not([type="radio"]):not([type="checkbox"]):not([type="hidden"]), .calcScope select, .calcScope textarea { border: 1px solid var(--v5-field-edge); }
+.calcScope input:not([type="range"]):not([type="radio"]):not([type="checkbox"]):not([type="hidden"]):focus, .calcScope select:focus, .calcScope textarea:focus { border-color: var(--v5-focus); }
+
+:global(html[data-theme="light"]) .calcScope {
+  --w43-deep: #fffdf9;
+  --w43-bg: #f2ebe1;
+  --w43-surface: #e9dfd2;
+  --w43-border: #dccdb9;
+  --w43-gold: #7a5c14;
+  --w43-gold-bright: #5c430c;
+  --w43-ink: #251818;
+  --w43-muted: #5f4c4c;
+  --background: 36 50% 96%;
+  --foreground: 0 21% 12%;
+  --card: 36 100% 99%;
+  --card-foreground: 0 21% 12%;
+  --primary: 42 72% 28%;
+  --primary-foreground: 36 100% 99%;
+  --secondary: 34 30% 88%;
+  --secondary-foreground: 0 21% 12%;
+  --muted: 34 30% 88%;
+  --muted-foreground: 0 11% 34%;
+  --border: 34 32% 79%;
+  --input: 34 32% 79%;
+  --ring: 42 72% 28%;
+  --destructive: 0 62% 38%;
+  --color-background: hsl(36 50% 96%);
+  --color-foreground: hsl(0 21% 12%);
+  --color-card: hsl(36 100% 99%);
+  --color-card-foreground: hsl(0 21% 12%);
+  --color-primary: hsl(42 72% 28%);
+  --color-primary-foreground: hsl(36 100% 99%);
+  --color-secondary: hsl(34 30% 88%);
+  --color-muted: hsl(34 30% 88%);
+  --color-muted-foreground: hsl(0 11% 34%);
+  --color-border: hsl(34 32% 79%);
+  --color-input: hsl(34 32% 79%);
+  --color-ring: hsl(42 72% 28%);
+  --color-destructive: hsl(0 62% 38%);
+  /* White-alpha utilities (text-white/70, bg-white/5) become ink-alpha on cream. */
+  --color-white: #251818;
+  --color-gold-400: #7a5c14;
+  --color-gold-500: #7a5c14;
+  color: #251818;
+}
+:global(html[data-theme="light"]) .calcScope :global(.gold-button) { color: #fffdf9; background: #7a5c14; box-shadow: none; }
+:global(html[data-theme="light"]) .calcScope :global(.glass-button),
+:global(html[data-theme="light"]) .calcScope :global(.glass-card) { background: #fffdf9; color: #251818; border-color: #dccdb9; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+:global(html[data-theme="light"]) .calcScope :global(.text-gold-gradient) { color: #7a5c14; background: none; -webkit-text-fill-color: currentColor; }
+:global(html[data-theme="light"]) .calcScope [role="progressbar"] { background: #dccdb9 !important; }
+:global(html[data-theme="light"]) .calcScope :global(.text-\[\#ffb4b4\]) { color: #9b1c1c; }
+
+/* Legal pages (FigCraft 10/11): table of contents + readable column. */
+.legalGrid { display: grid; gap: 32px; }
+/* v5 polish (UAT): 256px so the longest contents entry (4.1) stays on one line. */
+@media (min-width: 1024px) { .legalGrid { grid-template-columns: 256px minmax(0, 720px); justify-content: center; gap: 56px; } }
+.toc { font-size: var(--v5-text-meta); }
+.toc h2 { font-size: 15px; margin-bottom: 8px; }
+.toc ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.toc a { display: inline-flex; align-items: center; min-height: 44px; color: var(--v5-muted); text-decoration: none; line-height: 1.5; text-wrap: balance; }
+.toc a:hover { color: var(--v5-gold-text); }
+@media (min-width: 1024px) { .toc { position: sticky; top: 100px; align-self: start; } }
+@media (max-width: 1023px) { .toc { padding: 16px; border: 1px solid var(--v5-border-soft); border-radius: var(--v5-radius-sm); background: var(--v5-card-alt); } }
+.legalBody { min-width: 0; color: var(--v5-muted); font-size: 16px; line-height: 1.85; }
+.legalBody > p:first-child { color: var(--v5-text); }
+.legalBody section { padding-block: 28px; border-top: 1px solid var(--v5-border-soft); scroll-margin-top: 96px; }
+.legalBody h2 { color: var(--v5-text); font-size: 20px; line-height: 1.45; margin-bottom: 12px; }
+.legalBody h3 { color: var(--v5-text); font-size: 17px; margin: 20px 0 8px; }
+.legalBody p + p, .legalBody p + ul, .legalBody ul + p { margin-top: 12px; }
+.legalBody ul { margin: 12px 0 0; padding-left: 1.25rem; display: grid; gap: 8px; }
+.legalBody li::marker { color: var(--v5-gold-text); }
+.legalBody strong { color: var(--v5-text); font-weight: 500; font-family: var(--v5-font-display); }
+.legalBody a { color: var(--v5-gold-text); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.legalBody table { width: 100%; border-collapse: collapse; font-size: var(--v5-text-meta); margin-top: 12px; }
+.legalBody th, .legalBody td { text-align: left; vertical-align: top; padding: 12px 12px; border: 1px solid var(--v5-border-soft); }
+.legalBody th { color: var(--v5-text); font-weight: 500; font-family: var(--v5-font-display); background: var(--v5-card-alt); }
+.tableScroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.legalBody button { min-height: 44px; }
+
+/*
+  Investment Allocation (FigCraft 14): the reused builders read the 4.3 token names
+  from their own module; the scope above maps them to v5 tokens in both themes.
+*/
+.iaScope :global(section) { scroll-margin-top: 96px; }
+
+/* Money Story (FigCraft 09): the game keeps its own module; this neutralises its page-root box. */
+.msWrap.msWrap { min-height: 0; overflow-x: visible; background: transparent; font-family: var(--v5-font); }
+
+/* Cookie categories (FigCraft 11). */
+.policyCard { margin-top: 16px; padding: 20px 20px; border-radius: var(--v5-radius-sm); background: var(--v5-card-alt); border: 1px solid var(--v5-border-soft); }
+.policyCard header { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 12px; }
+.policyCard header > div { flex: 1 1 220px; min-width: 0; }
+.policyTag { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--v5-border); color: var(--v5-gold-text); font-size: var(--v5-text-meta); font-weight: 500; font-family: var(--v5-font-display); }
+.policyCard header p { margin: 0; }
+.policyCard header p:first-child { color: var(--v5-text); font-weight: 500; font-family: var(--v5-font-display); }
+.policyCard table td:first-child { width: 9rem; color: var(--v5-text); }
+@media (max-width: 479px) { .policyCard table td:first-child { width: 6.5rem; } }
+
+/*
+  Calculator result and button skin. These rules lived in the Website 4.3 module (scoped to its
+  calculator stage) and are carried over to the v5 tool scope with v5 weights and radii, so the
+  reused result views keep their hierarchy without loading the 4.3 stylesheet.
+*/
+.calcScope :global([data-ui="human-centered-ci-expenses"] .text-xs),
+.calcScope :global([data-ui="human-centered-ci-resources"] .text-xs) { font-size: 14px; }
+.calcScope :global(.glass-card) { border-color: var(--w43-border); background: var(--w43-surface); box-shadow: none; }
+.calcScope :global(.gold-button) { border: 1px solid var(--w43-gold); border-radius: var(--v5-radius-button); background: var(--w43-gold); background-image: none; color: var(--w43-deep); box-shadow: none; }
+.calcScope :global(.gold-button:hover) { background: var(--w43-gold-bright); box-shadow: none; transform: none; }
+.calcScope :global(.glass-button) { border: 1px solid var(--w43-gold); border-radius: var(--v5-radius-button); background: transparent; color: var(--w43-gold); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.calcScope :global(.glass-button:hover) { border-color: var(--w43-gold-bright); background: rgba(224,201,133,.06); color: var(--w43-gold-bright); box-shadow: none; transform: none; }
+.calcScope :global(.ccpun-calculator-result) { width: min(704px,100%); margin: 0 auto; display: flex; flex-direction: column; gap: 20px; color: var(--w43-ink); }
+.calcScope :global(.ccpun-calculator-result-lead) { padding: 24px; border: 1px solid var(--w43-border); border-radius: var(--v5-radius); background: var(--w43-surface); }
+.calcScope :global(.ccpun-calculator-result-eyebrow) { margin: 0; color: var(--w43-gold); font-size: 14px; font-weight: 500; line-height: 1.45; }
+.calcScope :global(.ccpun-calculator-result-title) { margin: 8px 0 0; color: var(--w43-ink); font-size: 30px; font-weight: 500; line-height: 1.3; }
+.calcScope :global(.ccpun-calculator-result-amount) { display: block; margin-top: 12px; color: var(--w43-gold); font-size: 44px; font-weight: 500; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.calcScope :global(.ccpun-calculator-result-amount) small { font-size: 17px; font-weight: 500; }
+.calcScope :global(.ccpun-calculator-result-body) { margin: 16px 0 0; color: var(--w43-muted); font-size: 14px; line-height: 1.65; }
+.calcScope :global(.ccpun-calculator-result-panel) { padding: 20px; border: 1px solid var(--w43-border); border-radius: var(--v5-radius); background: var(--v5-card-alt); }
+.calcScope :global(.ccpun-calculator-result-difference) { font-size: clamp(22px,5vw,30px); line-height: 1.25; }
+.calcScope :global(.ccpun-calculator-result-panel-title) { margin: 0; color: var(--w43-ink); font-size: 18px; font-weight: 500; line-height: 1.45; }
+.calcScope :global(.ccpun-calculator-result-rows) { border-block: 1px solid var(--w43-border); }
+.calcScope :global(.ccpun-calculator-result-breakdown) { margin: 0; border: 0; }
+.calcScope :global(.ccpun-calculator-result-row) { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 16px 0; border-bottom: 1px solid var(--w43-border); }
+.calcScope :global(.ccpun-calculator-result-row:last-child) { border-bottom: 0; }
+.calcScope :global(.ccpun-calculator-result-row) dt { color: var(--w43-muted); font-size: 14px; line-height: 1.5; }
+.calcScope :global(.ccpun-calculator-result-row) dd { margin: 0; color: var(--w43-ink); font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
+.calcScope :global(.ccpun-calculator-result-breakdown .ccpun-calculator-result-row) dd { white-space: nowrap; }
+.calcScope :global(.ccpun-calculator-result-notice) { padding: 16px 20px; border: 1px solid var(--w43-border); border-radius: 12px; background: var(--v5-bg-alt); color: var(--w43-muted); font-size: 14px; line-height: 1.65; }
+.calcScope :global(.ccpun-calculator-result-cta) { padding: 24px; border: 1px solid var(--w43-border); border-radius: var(--v5-radius); background: var(--w43-deep); text-align: center; }
+.calcScope :global(.ccpun-calculator-result-cta) h3 { margin: 16px 0 0; color: var(--w43-ink); font-size: 18px; font-weight: 500; }
+.calcScope :global(.ccpun-calculator-result-cta) p { margin: 8px 0 0; color: var(--w43-muted); font-size: 14px; line-height: 1.6; }
+.calcScope :global(.ccpun-ci-result-cta) { text-align: left; }
+.calcScope :global(.ccpun-ci-result-cta-inner) { width: min(560px,100%); margin-inline: auto; }
+.calcScope :global(.ccpun-ci-result-cta) h3 { margin: 0; line-height: 1.45; }
+.calcScope :global(.ccpun-ci-result-cta) :global(.ccpun-ci-result-cta-copy) { margin-top: 8px; }
+.calcScope :global(.ccpun-ci-result-cta) :global(.ccpun-ci-result-image-actions) { margin-top: 20px; }
+.calcScope :global(.ccpun-ci-result-cta) :global(#ci-result-image-privacy) { margin-top: 12px; font-size: 13px; line-height: 1.55; }
+.calcScope :global(.ccpun-ci-result-cta) :global(#ci-result-image-status) { margin-top: 8px; font-size: 13px; line-height: 1.5; }
+.calcScope :global(.ccpun-ci-result-cta) :global(.ccpun-ci-result-cta-line) { margin-top: 20px; }
+.calcScope :global(.ccpun-calculator-result-method-grid) { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.calcScope :global(.ccpun-calculator-result-method) { min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 1px solid var(--w43-border); border-radius: 12px; background: var(--v5-bg-alt); cursor: pointer; }
+.calcScope :global(.ccpun-calculator-result-method-selected) { border-color: rgba(224,201,133,.56); background: rgba(224,201,133,.07); }
+.calcScope :global(.ccpun-calculator-result-details) { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--w43-border); }
+.calcScope :global(.ccpun-calculator-result-details) summary { cursor: pointer; color: var(--w43-ink); font-size: 14px; font-weight: 500; }
+.calcScope :global(.ccpun-calculator-result) :global(.money-comparison) { padding: 4px 0; }
+.calcScope :global(.ccpun-calculator-result) :global(.money-comparison) dl { border-color: var(--w43-border); background: var(--v5-bg-alt); }
+@media (max-width: 639px) {
+  .calcScope :global(.ccpun-calculator-result-lead) { padding: 20px; }
+  .calcScope :global(.ccpun-calculator-result-title) { font-size: 26px; }
+  .calcScope :global(.ccpun-calculator-result-amount) { font-size: 38px; }
+  .calcScope :global(.ccpun-calculator-result-row) { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .calcScope :global(.ccpun-calculator-result-row) dd { text-align: left; }
+  .calcScope :global(.ccpun-calculator-result-breakdown .ccpun-calculator-result-row) { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 12px; }
+  .calcScope :global(.ccpun-calculator-result-breakdown .ccpun-calculator-result-row) dd { text-align: right; }
+  .calcScope :global(.ccpun-calculator-result-method-grid) { grid-template-columns: 1fr; }
+  .calcScope :global(.ccpun-calculator-result-cta) { padding: 20px; }
+}
+
+/*
+  No eyebrows (owner decision 2026-10-25). The shared calculator result views are protected
+  sources, so the v5 scope stops rendering a result eyebrow that sits directly above a heading.
+  A label that names a figure (for example the CI shortfall amount) is not followed by a heading
+  and stays visible.
+*/
+.calcScope :global(.ccpun-calculator-result-eyebrow):has(+ :is(h2, h3)) { display: none; }
+.calcScope :global(.ccpun-calculator-result-eyebrow + :is(h2, h3)) { margin-top: 0; }
+/* Money Story result screen: the game is a protected source; its result label above the title is not rendered in v5. */
+.msWrap [data-character] + p:has(+ h2) { display: none; }
+
+/*
+ * v5 motion round (owner-approved idea #1, UAT prototype): the result comparison explains the gap in
+ * about a second. Only transform and opacity animate; each bar keeps its final width from the first
+ * frame, so nothing reflows. The keyframes replay when the bar remounts with new amounts (method
+ * switch). Reduced motion: no animation, the final state shows at once.
+ */
+/* Motion smoothing (2026-10-26): shared tokens. The gap bar and the count-up (useCountUp) share one delay,
+   duration and curve, so both land together at 1s; `data-reveal="wait"` holds the first frame until the
+   comparison is on screen (set and cleared by useCountUp; without JavaScript it is never set). */
+.calcScope :global(.ccpun-money-have) { transform-origin: left center; animation: moneyGrow var(--v5-motion-reveal) var(--v5-ease-emphasized) both; }
+.calcScope :global(.ccpun-money-gap) { transform-origin: left center; animation: moneyGrow var(--v5-motion-reveal) var(--v5-ease-emphasized) var(--v5-motion-slow) both; }
+.calcScope :global(.ccpun-money-divider) { animation: moneyFade var(--v5-motion-fast) ease-out var(--v5-motion-slow) both; }
+.calcScope :global([data-reveal="wait"] :is(.ccpun-money-have, .ccpun-money-gap, .ccpun-money-divider)) { animation-play-state: paused; }
+@keyframes moneyGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes moneyFade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .calcScope :global(.ccpun-money-have), .calcScope :global(.ccpun-money-gap), .calcScope :global(.ccpun-money-divider) { animation: none; }
+}
+@media print {
+  .calcScope :global(.ccpun-money-have), .calcScope :global(.ccpun-money-gap), .calcScope :global(.ccpun-money-divider) { animation: none; }
+}
+/* Reused calculator buttons: the 4.3 critical CSS animates `all` for 300ms; v5 hover states use the shared colour timing. */
+.calcScope :global(:is(.gold-button, .glass-button)) { transition: transform var(--v5-motion-micro) ease, background-color var(--v5-motion-fast) ease, border-color var(--v5-motion-fast) ease, color var(--v5-motion-fast) ease; }
+@media (prefers-reduced-motion: reduce) { .calcScope :global(:is(.gold-button, .glass-button)) { transition: none; } }
+
+/* C8: completed result, one reveal per mount. The default styles are the final no-motion state. */
+.resultTick { display: inline-flex; width: 24px; height: 24px; margin-inline-end: 8px; vertical-align: middle; color: var(--v5-gold-text); opacity: 1; transform: none; animation: v5ResultTickReveal var(--v5-motion-base) var(--v5-ease-standard) both; }
+.resultTick svg { width: 100%; height: 100%; }
+.resultTick path { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 0; animation: v5ResultTickDraw var(--v5-motion-slow) var(--v5-ease-emphasized) both; }
+@keyframes v5ResultTickReveal { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes v5ResultTickDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .resultTick, .resultTick path { animation: none; } }

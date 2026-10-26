@@ -1,0 +1,55 @@
+/*
+ * v5 motion round (owner-approved idea #4, UAT prototype): credential and licence cards flip on tap, click, Enter or Space.
+ * Both faces share one grid cell, so the card is as tall as its taller face from the server render on:
+ * flipping never changes layout. Only the inner transform animates. Reduced motion swaps faces instantly.
+ */
+.card {
+  display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: none; color: inherit;
+  font: inherit; text-align: left; cursor: pointer; perspective: 800px; border-radius: var(--v5-radius);
+}
+.inner { display: grid; height: 100%; transform-style: preserve-3d; transition: transform var(--v5-motion-slow) var(--v5-ease-standard); }
+.card[aria-pressed="true"] .inner { transform: rotateY(180deg); }
+.face {
+  grid-area: 1 / 1; display: flex; flex-direction: column; gap: 4px; padding: 12px 16px;
+  border: 1px solid var(--v5-border); border-radius: var(--v5-radius); background: var(--v5-card);
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+}
+.back { transform: rotateY(180deg); border-color: var(--v5-gold-text); }
+/*
+ * The face turned away is also fully transparent (it stays in the accessibility tree), so the stacked back text is
+ * never painted under the front. Motion smoothing (2026-10-26): the face coming into view turns opaque at once and
+ * the face going away only after the whole turn (backface-visibility hides it meanwhile). A fixed mid-turn swap
+ * missed the edge-on moment with an easing curve and on a second tap mid-turn, leaving 4 to 9 blank frames;
+ * now the face toward the viewer is always opaque, whenever the card is tapped. Reduced motion swaps at once.
+ */
+.front, .back { transition: opacity 0s linear 0s; }
+.back { opacity: 0; transition-delay: var(--v5-motion-slow); }
+.card[aria-pressed="true"] .back { opacity: 1; transition-delay: 0s; }
+.card[aria-pressed="true"] .front { opacity: 0; transition-delay: var(--v5-motion-slow); }
+.term { font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; line-height: 1.45; }
+.number, .label, .verify { color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.55; overflow-wrap: anywhere; }
+/* Label and value share a line where they fit (v5 polish, UAT): the back face, which sets the card height, stays short. */
+.line { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
+.backValue { font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
+/* A phrase that must not split mid-phrase (the TFPA name); the phone layout gives each card the full row so it fits. */
+.keep { white-space: nowrap; }
+.hint { display: inline-flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 8px; color: var(--v5-gold-text); font-size: var(--v5-text-meta); font-weight: 500; }
+.hint svg { flex: none; width: 14px; height: 14px; }
+
+/* Phones (one card per row): the turn hint sits at the right of the front face instead of under it. */
+@media (max-width: 479px) {
+  .front { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: center; column-gap: 12px; row-gap: 4px; }
+  .front > .term, .front > .number { grid-column: 1; }
+  .front > .hint { grid-column: 2; grid-row: 1 / span 2; align-self: center; margin-top: 0; padding-top: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inner { transition: none; }
+  .front, .back { transition: none; }
+}
+/* No 3D support: swap the faces with opacity instead of turning them. */
+@supports not ((backface-visibility: hidden) or (-webkit-backface-visibility: hidden)) {
+  .card[aria-pressed="true"] .inner { transform: none; }
+  .back { transform: none; opacity: 0; }
+  .card[aria-pressed="true"] .front { opacity: 0; }
+  .card[aria-pressed="true"] .back { opacity: 1; }
+}

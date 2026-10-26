@@ -1,0 +1,24 @@
+{
+  "_fixture_note": "Contract fixture for offline tests. Field names and envelope follow the SEC Open API v2 responses consumed by features/investment-allocation/server/sec-v2.ts (live-verified in PR #165). Values are synthetic, not a live recording; scripts/qa/investment-allocation-live.mjs checks the live API on UAT.",
+  "message": "success",
+  "items": [
+    {
+      "unique_id": "C0002",
+      "comp_name_th": "บลจ. ข้าวหอม จำกัด",
+      "comp_name_en": "Khaohom AM",
+      "last_upd_date": "2026-09-01"
+    },
+    {
+      "unique_id": "C0001",
+      "comp_name_th": "บลจ. กรุงสยาม จำกัด",
+      "comp_name_en": "Krungsiam AM",
+      "last_upd_date": "2026-09-01"
+    },
+    {
+      "unique_id": "",
+      "comp_name_th": "invalid row without id"
+    }
+  ],
+  "next_cursor": "amc-page-2",
+  "page_size": 100
+}

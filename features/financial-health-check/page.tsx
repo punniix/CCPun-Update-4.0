@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
-import ClientFHC from '@/features/financial-health-check/components/ClientFHC';
-import { getFhcFaqs } from '@/lib/content/tool-copy-defaults';
+import V5Fhc from '@/features/financial-health-check/v5/V5Fhc';
 import { getPublicCopy } from '@/lib/content/public-copy';
-import { publicCopyText, type PublicCopyValues } from '@/lib/content/public-copy-registry';
+import type { PublicCopyValues } from '@/lib/content/public-copy-registry';
 import { IS_REVIEW_ENVIRONMENT } from '@/lib/deployment-environment';
 
 
@@ -58,51 +57,10 @@ export const metadata: Metadata = {
 
 
 
+// Website v5 (UAT prototype): the existing render owner now renders the v5 page (FigCraft 08),
+// which carries the same breadcrumb, WebApplication and FAQPage JSON-LD. Metadata is unchanged.
 export async function renderFinancialHealthCheckPage(copyOverride?: PublicCopyValues, siteCopyOverride?: PublicCopyValues) {
-  const t = publicCopyText(copyOverride ?? await getPublicCopy('fhc'));
-const breadcrumbSchema = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": t("fhc.breadcrumb.home"), "item": "https://ccpun.com/" },
-    { "@type": "ListItem", "position": 2, "name": t("fhc.breadcrumb.tool"), "item": "https://ccpun.com/tools/financial-health-check/" },
-  ],
-};
-
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": t("fhc.schema.name"),
-  "url": "https://ccpun.com/tools/financial-health-check/",
-  "applicationCategory": "FinanceApplication",
-  "operatingSystem": "Web",
-  "author": {
-    "@type": "Organization",
-    "name": "CCPun Financial Advisor",
-    "url": "https://ccpun.com"
-  },
-  "description": t("fhc.schema.description")
-};
-  const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: getFhcFaqs(t).map((faq) => ({
-    '@type': 'Question',
-    name: faq.question,
-    acceptedAnswer: { '@type': 'Answer', text: faq.answer },
-  })),
-};
-  return (
-    <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <ClientFHC copy={copyOverride} siteCopy={siteCopyOverride} />
-    </>
-  );
+  return <V5Fhc copy={copyOverride ?? await getPublicCopy('fhc')} siteCopy={siteCopyOverride} />;
 }
 
 export default function FinancialHealthCheckPage() {

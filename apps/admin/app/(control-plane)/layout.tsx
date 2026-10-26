@@ -50,6 +50,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermissio
   ] },
   { href: "/settings/", label: "ตั้งค่า", permission: "settings:read", children: [
       { href: "/settings/integrations/", label: "การเชื่อมต่อ" },
+      { href: "/settings/line-chat/", label: "ปุ่มแชท LINE" },
       { href: "/settings/access/", label: "สิทธิ์ผู้ใช้" },
       { href: "/settings/system/", label: "ข้อมูลระบบ", technical: true },
   ] },

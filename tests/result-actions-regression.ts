@@ -6,6 +6,7 @@ import { readFileSync as rawReadFileSync } from 'node:fs';
 const readFileSync = (file: URL, encoding: 'utf8'): string => productionCmsDisplaySource(relative(process.cwd(),fileURLToPath(file)),rawReadFileSync(file,encoding));
 import {
   CI_LINE_OA_DESTINATION,
+  CI_LINE_OA_PREFILL,
   CI_LINE_OA_URL,
   INITIAL_CI_FORM_DATA,
 } from '../features/ci-planning/calculator/constants';
@@ -29,7 +30,14 @@ function equal(actual: unknown, expected: unknown, message: string): void {
 
 equal(RESULT_IMAGE_WIDTH, 1080, 'result image width must be stable');
 
-equal(CI_LINE_OA_URL, 'https://lin.ee/tqLCs4f', 'CI must always use the approved LINE OA URL');
+// owner-approved change 2026-10-25 (L6): the CI result opens the @ccpun chat with a fixed prefill
+// instead of https://lin.ee/tqLCs4f. The destination stays the one official account, and the text
+// never carries a number (no calculated amount, answer or reference digits).
+equal(CI_LINE_OA_URL.startsWith('https://line.me/R/oaMessage/%40ccpun/?'), true, 'CI must always open the approved @ccpun LINE OA chat');
+const ciPrefill = decodeURIComponent(CI_LINE_OA_URL.slice('https://line.me/R/oaMessage/%40ccpun/?'.length));
+equal(ciPrefill, CI_LINE_OA_PREFILL, 'CI prefill is the fixed owner-written sentence');
+assert(!/[0-9๐-๙]/.test(ciPrefill), 'CI LINE prefill must never contain a number');
+assert(!/[?&#=]|https?:/.test(ciPrefill), 'CI LINE prefill must not carry query parameters or links');
 equal(CI_LINE_OA_DESTINATION, 'line_oa', 'CI analytics destination must always be direct LINE OA');
 
 const protectedCalculation = calculateCI({
@@ -275,7 +283,11 @@ const ciResultSource = readFileSync(
   'utf8',
 );
 const ciConstantsSource = readFileSync(new URL('../features/ci-planning/calculator/constants.ts', import.meta.url), 'utf8');
-const ciPageSource = readFileSync(new URL('../features/ci-planning/page.tsx', import.meta.url), 'utf8');
+// Website v5 Phase B: /ci-planning/ renders features/ci-planning/v5 (asserted in website-v5-regression);
+// these Website 4.3 landing contracts now pin the retained, byte-identical 4.3 presentation plus the
+// unchanged metadata owner, so a rollback restores exactly what was reviewed.
+const ciPageSource = readFileSync(new URL('../features/ci-planning/page.tsx', import.meta.url), 'utf8') + '\n'
+  + readFileSync(new URL('../features/ci-planning/website-43/Website43CiPlanningPage.tsx', import.meta.url), 'utf8');
 const ciLandingSource = readFileSync(
   new URL('../features/ci-planning/components/CILandingIntro.tsx', import.meta.url),
   'utf8',

@@ -1,10 +1,7 @@
 'use client';
 import { usePublicCopy } from '@/components/ui/PublicCopyProvider';
 import { useEffect, useRef, useState } from 'react';
-import { preload } from 'react-dom';
 import { trackEvent } from '@/lib/analytics';
-import shared from '@/components/layout/website-43/Website43.module.css';
-import countdownArtwork from '@/public/assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.lossless.webp';
 import styles from './HealthHappyCountdown.module.css';
 
 const TARGET = Date.parse('2026-11-30T23:59:59+07:00');
@@ -62,9 +59,6 @@ export default function HealthHappyCountdown({ placement }: { placement: Placeme
     };
   }, []);
   if (now !== null && now >= TARGET) return null;
-  if (placement === 'blog') {
-    preload(countdownArtwork.src, { as: 'image', fetchPriority: 'high' });
-  }
 
   const left = now === null ? null : remaining(now);
   const values = [
@@ -96,8 +90,8 @@ export default function HealthHappyCountdown({ placement }: { placement: Placeme
           ))}
         </div>
         <div className={styles.actions}>
-          <a className={shared.primaryButton} href={LINE_URL} target="_blank" rel="noopener noreferrer" data-campaign-action="line" data-analytics-location="campaign" onClick={() => recordClick('line')}>{text.node("site.extra.a")}</a>
-          <a className={shared.outlineButton} href={placement === 'article' ? '#health-happy-details' : ARTICLE_URL} data-campaign-action={placement === 'article' ? 'read-details' : 'article'} onClick={() => recordClick(placement === 'article' ? 'read_details' : 'article')}>
+          <a className={styles.primaryButton} href={LINE_URL} target="_blank" rel="noopener noreferrer" data-campaign-action="line" data-analytics-location="campaign" onClick={() => recordClick('line')}>{text.node("site.extra.a")}</a>
+          <a className={styles.outlineButton} href={placement === 'article' ? '#health-happy-details' : ARTICLE_URL} data-campaign-action={placement === 'article' ? 'read-details' : 'article'} onClick={() => recordClick(placement === 'article' ? 'read_details' : 'article')}>
             {placement === 'article' ? text("site.extra.healthHappyCountdownText") : text("site.extra.healthHappyCountdownText2")}
           </a>
         </div>

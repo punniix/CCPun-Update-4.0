@@ -5,6 +5,9 @@ import { createRoot } from 'react-dom/client';
 import { JSDOM } from 'jsdom';
 
 const require = createRequire(import.meta.url);
+// The cookie notice imports its CSS module (visual-only skin, 2026-10-25); class names resolve to their keys here,
+// as in article-engagement-ui.test.mjs. No consent or analytics assertion depends on styling.
+require.extensions['.css'] = module => { module.exports = { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) }; };
 const GoogleAnalytics = require('../features/analytics/components/GoogleAnalytics.tsx').default;
 const GoogleTagManager = require('../features/analytics/components/GoogleTagManager.tsx').default;
 // No external resources execute: this checks the app's loader and consent lifecycle, not provider hits.
@@ -105,6 +108,16 @@ try {
   clickFixture('/privacy/', '<a href="https://lin.ee/test" data-analytics-location="navbar">LINE</a>', null);
   clickFixture('/cookie-policy/', '<a href="https://lin.ee/test" data-analytics-location="navbar">LINE</a>', null);
   clickFixture('/missing/', '<a href="https://lin.ee/test" data-analytics-location="navbar">LINE</a>', null);
+  // v5 (owner-approved 2026-10-25): GTM's lin.ee click tag is paused, so Money Story, the /tools/
+  // hub and Investment Allocation emit the semantic line_oa_click from their header/hub CTAs.
+  clickFixture('/play/money-story/', '<nav><a href="https://lin.ee/test" data-analytics-location="navbar">LINE</a></nav>', ['navbar', 'money_story']);
+  clickFixture('/tools/', '<section><a href="https://lin.ee/test" data-analytics-location="tools_hub">LINE</a></section>', ['tools_hub', 'tools']);
+  clickFixture('/tools/investment-allocation/', '<nav id="mobile-navigation"><a href="https://lin.ee/test" data-analytics-location="navbar_mobile">LINE</a></nav>', ['navbar_mobile', 'tools']);
+  clickFixture('/tools/aia-fund-allocation/', '<nav><a href="https://lin.ee/test" data-analytics-location="navbar">LINE</a></nav>', ['navbar', 'tools']);
+  clickFixture('/tools/', '<section><a href="https://lin.ee/test" data-analytics-location="untrusted">LINE</a></section>', null);
+  // The chat button opens line.me oaMessage links and emits its own richer event; the lin.ee
+  // listener never double-counts it.
+  clickFixture('/', '<section id="home"><a href="https://line.me/R/oaMessage/%40ccpun/?x" data-analytics-location="navbar">LINE</a></section>', null);
 
   process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED = 'false';
   await consent(true);

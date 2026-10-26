@@ -1,4 +1,5 @@
 'use client';
+import V5ResultTick from '@/components/layout/v5/V5ResultTick';
 import { usePublicCopy } from '@/components/ui/PublicCopyProvider';
 import { FHC_COPY_DEFAULTS } from '@/lib/content/tool-copy-defaults';
 
@@ -10,6 +11,8 @@ import CurrencyInput from '@/components/ui/CurrencyInput';
 import HumanCalculatorCard from '@/components/ui/HumanCalculatorCard';
 import MoneyComparison from '@/components/ui/MoneyComparison';
 import { trackEvent } from '@/lib/analytics';
+import V5ChatLink from '@/components/layout/v5/V5ChatLink';
+import { LINE_CHAT_DEFAULT_HEADLINE, resultChatHref } from '@/lib/line/chat-panel';
 import { getConsentData } from '@/lib/cookie-consent';
 import { calculateLifeCoverage, formatLifeCoverageMoney, LIFE_COVERAGE_INITIAL_VALUES, type LifeCoverageValues } from './lifeCoverageModel';
 
@@ -120,7 +123,7 @@ export default function LifeCoverageWizard() {
   if (showResult) return <section ref={viewRef} aria-labelledby="life-result-title" data-ui="human-centered-fhc-result" className="ccpun-calculator-result ccpun-motion-result-reveal">
     <div className="ccpun-calculator-result-lead">
       <p className="ccpun-calculator-result-eyebrow">{t.node("fhc.wizard.description")}</p>
-      <h2 id="life-result-title" tabIndex={-1} className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{t.node("fhc.wizard.lifeResultTitle.heading")}<span className="whitespace-nowrap">{t.node("fhc.wizard.label")}</span><span className="sr-only"> {formatLifeCoverageMoney(result.gap)} {t.node("fhc.wizard.label2")}</span></h2>
+      <h2 id="life-result-title" tabIndex={-1} className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><V5ResultTick />{t.node("fhc.wizard.lifeResultTitle.heading")}<span className="whitespace-nowrap">{t.node("fhc.wizard.label")}</span><span className="sr-only"> {formatLifeCoverageMoney(result.gap)} {t.node("fhc.wizard.label2")}</span></h2>
       <p className="ccpun-calculator-result-amount">{formatLifeCoverageMoney(result.gap)} <small>{t.node("fhc.wizard.label2")}</small></p>
       <p className="ccpun-calculator-result-body">{t.node("fhc.wizard.description2")}</p>
     </div>
@@ -143,7 +146,7 @@ export default function LifeCoverageWizard() {
       <FHCLifeResultImageDownloadButton summary={{ familySupport: result.familySupport, debtAndEducation: values.debt + values.education, resources: result.resources, gap: result.gap }} />
       <h3>{t.node("fhc.wizard.heading")}</h3>
       <p>{t.node("fhc.wizard.description3")}</p>
-      <a href="https://lin.ee/tqLCs4f" target="_blank" rel="noreferrer" aria-label={t("fhc.wizard.ariaLabel2")} onClick={() => trackEvent('fhc_contact_click', { tool_name: 'fhc', contact_channel: 'line', cta_location: 'fhc_result', surface_group: 'fhc' })} className="gold-button ccpun-motion-tactile mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 sm:w-auto"><MessageCircle className="h-5 w-5" aria-hidden="true" />{t.node("fhc.wizard.linkLabel")}</a>
+      <V5ChatLink href={resultChatHref("fhc")} resultTool="fhc" onActivate={() => trackEvent('fhc_contact_click', { tool_name: 'fhc', contact_channel: 'line', cta_location: 'fhc_result', surface_group: 'fhc' })} className="gold-button ccpun-motion-tactile mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 sm:w-auto"><MessageCircle className="h-5 w-5" aria-hidden="true" />{LINE_CHAT_DEFAULT_HEADLINE}</V5ChatLink>
     </div>
 
     <div className="grid gap-3 sm:grid-cols-2"><button type="button" onClick={() => { setShowResult(false); setError(''); setErrorField(''); }} className="glass-button ccpun-motion-tactile flex min-h-12 items-center justify-center gap-2"><Edit3 className="h-4 w-4" aria-hidden="true" />{t.node("fhc.wizard.action")}</button><button type="button" onClick={() => { setValues(LIFE_COVERAGE_INITIAL_VALUES); setStep(1); setShowResult(false); setError(''); setErrorField(''); startedRef.current = false; completedRef.current = false; trackedStepsRef.current.clear(); }} className="glass-button ccpun-motion-tactile flex min-h-12 items-center justify-center gap-2"><RefreshCw className="h-4 w-4" aria-hidden="true" />{t.node("fhc.wizard.action2")}</button></div>

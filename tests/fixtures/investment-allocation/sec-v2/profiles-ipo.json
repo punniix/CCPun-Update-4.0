@@ -1,0 +1,30 @@
+{
+  "_fixture_note": "Contract fixture for offline tests. Field names and envelope follow the SEC Open API v2 responses consumed by features/investment-allocation/server/sec-v2.ts (live-verified in PR #165). Values are synthetic, not a live recording; scripts/qa/investment-allocation-live.mjs checks the live API on UAT.",
+  "message": "success",
+  "items": [
+    {
+      "proj_id": "M0008_2567",
+      "proj_abbr_name": "KS-NEW",
+      "proj_name_th": "กองทุนเปิดกรุงสยามหุ้นใหม่",
+      "proj_name_en": "KS-NEW Fund",
+      "unique_id": "C0001",
+      "comp_name_th": "บลจ. กรุงสยาม จำกัด",
+      "comp_name_en": "C0001 AMC",
+      "fund_status": "IPO",
+      "policy_desc": "ตราสารทุน",
+      "invest_country_flag": "3",
+      "management_style": "AN",
+      "feederfund_master_fund": null,
+      "feederfund_country": null,
+      "last_upd_date": "2026-09-30",
+      "fund_class_name": "main",
+      "fund_class_detail": "ชนิดหน่วย main",
+      "fund_class_description": null,
+      "fund_class_tax_incentive_type": null,
+      "fund_class_isin_code": "TH-M0008_2567-main",
+      "raw_unused_field": "must not be stored"
+    }
+  ],
+  "next_cursor": null,
+  "page_size": 100
+}

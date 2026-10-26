@@ -88,7 +88,7 @@ What this system explicitly rejects: the cold institutional aesthetic of Thai st
 - Gold as signal of care, not of wealth
 - Glass reserved for interactive elevation, not decoration
 - Kanit for all type: Thai/Latin parity at one typeface weight range
-- Framer Motion for transitions that feel intentional, not reflexive
+- CSS motion tokens in `components/layout/v5/motion-tokens.ts` and `V5.module.css` for purposeful transitions; the v5 root reduced-motion rule removes animation immediately.
 
 ## 2. Colors: The Compass Palette
 
@@ -109,6 +109,8 @@ Two poles define the system: deep warm charcoal at the base, muted gold at the s
 
 ### Named Rules
 **The One Compass Rule.** Warm Gold appears on at most one primary CTA per viewport. It is a signal, not a decoration. If every button is gold, none of them are.
+
+**The One LINE Element Rule** (owner decision 2026-10-25). Each page has exactly one LINE OA button: the floating chat dock, visible from page load (it sits above the cookie notice while that is open), which opens the topic panel with the page's prefill and campaign code. The header, hero, content and page endings carry no other LINE button or link; an article-body LINE CTA renders as an inline text link that opens the same panel. Because the dock is on every viewport, it is an outline control, so the One Compass Rule still leaves gold for the page's own primary action.
 
 **The Temperature Rule.** Never introduce a neutral that trends toward cool grey or blue-grey. All neutrals — surface, bg, ink — must carry the red-orange hue of the charcoal base. Mixing in a cool neutral breaks the room.
 
@@ -161,6 +163,10 @@ Tactile and confident — pressing a CCPun button should feel like using a quali
 - **Ghost:** Transparent background, Warm Gold border (1px) and text. Used for secondary CTAs.
 - **Transition:** All transitions 200ms ease-out. No bounce, no spring.
 
+### Page endings
+- No full-width gold closing band (owner decision 2026-10-25). A page that needs an ending uses existing approved links (related articles, the About page) on the normal surface colour.
+- No eyebrow label above section headings or tool-hero titles (owner decision 2026-10-25).
+
 ### Cards / Glass Panels
 - **Corner Style:** 16px radius (rounded-lg)
 - **Background:** Surface (`#4a3a3a`) at 60% opacity with backdrop-blur-md
@@ -189,7 +195,8 @@ The main conversion surface. Dark glass panel, large display headline, body copy
 - **Do** use Warm Gold on at most one primary CTA per viewport. Its scarcity is the point.
 - **Do** apply `text-wrap: balance` to all headlines (h1–h3) to prevent ragged breaks.
 - **Do** use the inset white highlight (`inset 0 1px 0 rgba(255,255,255,0.1)`) on every glass element — it is what makes glass read as glass.
-- **Do** apply Framer Motion's `ease-out` easing (no bounce, no elastic) for all entrance animations.
+- **Do** use the v5 CSS motion tokens from `components/layout/v5/motion-tokens.ts` and `V5.module.css`: micro/fast/base/slow durations with `--v5-ease-standard` or `--v5-ease-emphasized`; reduced motion ends immediately through the v5 root rule. Animate transform/opacity only, with stroke-dashoffset for decorative SVG drawing; no blur, bounce, overshoot, rotation or layout animation.
+- **Toast motion pattern (future UI):** enter with `--v5-motion-base` and an 8px slide, exit with `--v5-motion-micro`, using `--v5-ease-standard`. Use `role="status"` and `aria-live="polite"`; no blur or scale. Reduced motion shows the final state immediately. This pattern adds no toast UI.
 - **Do** add `@media (prefers-reduced-motion: reduce)` alternatives for every animation — Thai Gen X users on desktop may be in accessibility contexts.
 - **Do** verify `ink-muted` (#baabab) passes 4.5:1 against Surface (#4a3a3a) before using it for body copy. It is borderline; increase weight if it fails.
 - **Do** use Kanit 300 (light) for body copy — it reads cleanly at Thai paragraph density.

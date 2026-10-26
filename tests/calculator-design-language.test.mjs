@@ -7,7 +7,9 @@ const read = (path) => productionCmsDisplaySource(path, readFileSync(path, 'utf8
 
 const fhcShell = read('features/financial-health-check/components/ClientFHC.tsx');
 const fhcIntro = read('features/financial-health-check/components/FHCLandingIntro.tsx');
-const ciShell = read('features/ci-planning/page.tsx');
+// Website v5 Phase B: /ci-planning/ renders the v5 page; the 4.3 shell contracts below pin the retained,
+// byte-identical 4.3 presentation (rollback target). The reused calculator components stay asserted directly.
+const ciShell = read('features/ci-planning/website-43/Website43CiPlanningPage.tsx');
 const ciIntro = read('features/ci-planning/components/CILandingIntro.tsx');
 const ciRecoverySection = read('features/ci-planning/components/steps/RecoveryReserveSection.tsx');
 const card = read('components/ui/HumanCalculatorCard.tsx');

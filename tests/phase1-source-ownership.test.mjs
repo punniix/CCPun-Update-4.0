@@ -155,6 +155,16 @@ test('root and Web keep their original complete metadata and layout/first-paint/
         assert.equal(entry[1].display, 'optional', 'original display policy retained');
         entry[1].display = 'swap';
       }
+      // Website v5 Phase B (reviewed, deliberate): three Kanit weights, only the Kanit 500 LCP face
+      // preloaded (Thai + Latin subset files), and the 4.3 responsive stylesheet no longer mounted in the v5 shell. Everything
+      // else in the Web layout (metadata, first paint, schema, analytics props) stays byte-exact.
+      font[1].weight = ['400', '500', '600'];
+      critical[1].weight = ['500'];
+      assert.deepEqual(critical[1].subsets, ['thai'], 'original critical subset retained');
+      critical[1].subsets = ['thai', 'latin'];
+      const responsive = '<style data-fixture-responsive="true"></style>';
+      assert.equal(original.html.split(responsive).length, 2, 'original layout mounted the 4.3 responsive styles once');
+      original.html = original.html.replace(responsive, '');
     }
     assert.deepEqual(await render(false), original, JSON.stringify({ file, admin, review, draft }));
   }

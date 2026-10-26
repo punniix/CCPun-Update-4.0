@@ -3,6 +3,8 @@ import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { websiteV5PhaseBRenderGoldens } from '../qa/website-v5-phase-a-proof.mjs';
+import { inverseWebsiteV5C11Header } from '../qa/website-v5-c11-render-successor.mjs';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 const require = createRequire(import.meta.url);
 const React = require('react');
@@ -42,7 +44,7 @@ const files = {
   moneyStory:'features/money-story/page.tsx',
   site:'components/layout/website-43/Website43Shared.tsx',
 };
-const serverNames = new Set(['Website43Home','HomeFooter','Website43Footer','Website43Blog','renderWebsite43Blog','Website43Article','Website43ArticleToc','ClientFHC','Website43Navbar','Website43ToolHero','Website43Brand']);
+const serverNames = new Set(['V5ChatDockServer','V5Page','V5BlogIndex','V5Header','V5Footer','V5CiPlanning','V5Fhc','V5MoneyStory','V5Privacy','V5CookiePolicy','Website43Home','HomeFooter','Website43Footer','Website43Blog','renderWebsite43Blog','Website43Article','Website43ArticleToc','ClientFHC','Website43Navbar','Website43ToolHero','Website43Brand']);
 async function resolveServer(node) {
   if (Array.isArray(node)) return Promise.all(node.map(resolveServer));
   if (!React.isValidElement(node)) return node;
@@ -64,10 +66,14 @@ export async function renderFixture(scope, props = {}, {sources = new Map(), ove
     ['@/lib/cookie-consent',{getConsentData:()=>null}],
     ['next/headers',{draftMode:async()=>({isEnabled:false})}],
     ['next/navigation',{usePathname:()=> '/',notFound:()=>{throw new Error('fixture-not-found')}}],
+    // LINE chat button (owner-approved 2026-10-25): render the dock from a fixed config, and the
+    // v5 nav with Investment Allocation off, exactly as Production keeps it.
+    ['@/lib/content/line-chat-config',{getLineChatConfig:async()=>({config:{enabled:true,topics:[],placements:[],campaigns:[]},source:'default',invalid:false})}],
+    ['@/lib/runtime/investment-availability',{INVESTMENT_ALLOCATION_ENABLED:false}],
   ]);
   // Existing fixture loader intentionally does not load assets. Stable named CSS
   // projections retain class identity so a layout change changes these goldens.
-  const allFiles = [...new Set([...Object.values(files),'features/ci-planning/components/CILandingIntro.tsx','features/financial-health-check/components/FHCLandingIntro.tsx','features/financial-health-check/components/ClientFHC.tsx','features/home/website-43/Website43HomeStatic.tsx','features/blog/website-43/Website43Blog.tsx','features/blog/website-43/Website43BlogInteractive.tsx','features/blog/website-43/Website43Article.tsx','features/blog/website-43/Website43ArticleBody.tsx','features/money-story/components/MoneyStoryGame.tsx','features/money-story/components/MoneyStoryScreens.tsx','features/money-story/components/MoneyStoryStatusSidebar.tsx','features/ci-planning/components/CIWizard.tsx','features/financial-health-check/components/LifeCoverageWizard.tsx'])];
+  const allFiles = [...new Set([...Object.values(files),'features/ci-planning/components/CILandingIntro.tsx','features/financial-health-check/components/FHCLandingIntro.tsx','features/financial-health-check/components/ClientFHC.tsx','features/home/website-43/Website43HomeStatic.tsx','features/blog/website-43/Website43Blog.tsx','features/blog/website-43/Website43BlogInteractive.tsx','features/blog/website-43/Website43Article.tsx','features/blog/website-43/Website43ArticleBody.tsx','features/money-story/components/MoneyStoryGame.tsx','features/money-story/components/MoneyStoryScreens.tsx','features/money-story/components/MoneyStoryStatusSidebar.tsx','features/ci-planning/components/CIWizard.tsx','features/financial-health-check/components/LifeCoverageWizard.tsx','components/layout/v5/V5Page.tsx','components/layout/v5/V5ChatDockServer.tsx','components/layout/v5/V5ChatDock.tsx','components/layout/v5/V5Header.tsx','components/layout/v5/V5Footer.tsx','components/layout/v5/V5Primitives.tsx','components/layout/v5/V5LegacyBridge.tsx','features/blog/v5/V5BlogIndex.tsx','features/blog/v5/V5BlogSearch.tsx','features/blog/v5/V5GroupPager.tsx','components/layout/v5/V5ToolParts.tsx','features/ci-planning/v5/V5CiPlanning.tsx','features/financial-health-check/v5/V5Fhc.tsx','features/money-story/v5/V5MoneyStory.tsx','features/legal/v5/V5Privacy.tsx','features/legal/v5/V5CookiePolicy.tsx','features/blog/website-43/ArticleShareActions.tsx','features/blog/website-43/ArticleEngagement.tsx','features/blog/website-43/ArticleDetailAccess.tsx'])];
   for (const file of allFiles) {
     const source = sources.get(file) ?? readFileSync(file,'utf8');
     for (const [,id] of source.matchAll(/from ['"]([^'"]+\.(?:css|svg))['"]/g)) {
@@ -156,6 +162,10 @@ const cases = [
 test('eight original scopes retain exact b871 public HTML, current design and six-card archive',async()=>{
   assert.deepEqual(Object.keys(registry.PUBLIC_COPY_SCOPES),['site','home','ci','fhc','blog','privacy','cookies','moneyStory']);
   for (const [index,[scope,props]] of cases.entries()) {
+    // Website v5 Phase A: /blog/ now renders the v5 index, so its b871 HTML golden (cases 5-7)
+    // is retired deliberately and replaced by the v5 archive assertions below. The unchanged
+    // Website 4.3 Blog presentation keeps its own render contract in website43-blog-article-regression.
+    if (scope === 'blog') continue;
     let html = await renderFixture(scope,props);
     if (scope === 'blog') {
       const hint = '<link rel="preload" href="/assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.lossless.webp" as="image" fetchPriority="high"/>';
@@ -164,10 +174,19 @@ test('eight original scopes retain exact b871 public HTML, current design and si
       assert.equal(html.split(hint).length, 2, 'Blog emits the approved hint exactly once');
       html = html.replace(hint, '');
     }
+    // Website v5 Phase B: tool/legal scopes render the v5 shell; their reviewed v5 digest replaces the b871 golden.
+    if (Object.hasOwn(websiteV5PhaseBRenderGoldens.v5, index)) { assert.equal(digest(inverseWebsiteV5C11Header(html, index)), websiteV5PhaseBRenderGoldens.v5[index], `${index}:${scope} (v5)` ); continue; }
     html = inverseCanonicalShellLinks(html, scope);
-    assert.equal(digest(html),baseline[index],`${index}:${scope}`);
+    assert.equal(digest(html),websiteV5PhaseBRenderGoldens.retained[index] ?? baseline[index],`${index}:${scope}`);
   }
-  assert.equal((await renderFixture('blog',{})).match(/class="articleCard"/g)?.length,6);
+  // v5 archive (plan T02): every published article is linked in the /blog/ HTML, ?q= is
+  // preserved in the search field, and ?page= never creates another listing owner.
+  const archive = await renderFixture('blog',{searchParams:Promise.resolve({})});
+  const articleHrefs = new Set([...archive.matchAll(/href="(\/blog\/personal-finance\/fixture-\d\/)"/g)].map(m=>m[1]));
+  assert.equal(articleHrefs.size, 8);
+  assert.doesNotMatch(archive, /[?&]page=/);
+  assert.match(await renderFixture('blog',{searchParams:Promise.resolve({q:'ไม่มีผล'})}), /value="ไม่มีผล"/);
+  assert.equal(await renderFixture('blog',{searchParams:Promise.resolve({page:'2'})}), archive);
 });
 test('seven original metadata objects preserve every field in ordinary and review lanes',async()=>{
   for (const scope of Object.keys(files).filter(scope=>scope!=='site')) for (const review of [false,true]) assert.equal(digest(JSON.stringify(await metadataFixture(scope,review))),metadataBaseline[scope+':'+review]);
@@ -292,6 +311,8 @@ test('protected preview page cannot start its author query before scoped authori
     ['@/lib/admin/public-copy-preview',{getPublicCopyPreview:async()=>{throw new Error('fixture-denied');}}],
     ['@/lib/content/sanity',{getPrimaryAuthorPreviewProfile:async()=>{authorReads++;return null;}}],
     ['@/features/home/website-43/Website43Home',{__esModule:true,default:()=>null}],
+    // Website v5 Phase A: the preview renders the same v5 Home as the candidate Web release.
+    ['@/features/home/v5/V5Home',{__esModule:true,default:()=>null}],
     ['@/features/ci-planning/page',{renderCiPlanningPage:()=>null}],
     ['@/features/financial-health-check/page',{renderFinancialHealthCheckPage:()=>null}],
     ['@/features/blog/pages/BlogArchivePage',{renderBlogPage:()=>null}],
@@ -429,4 +450,31 @@ test('native Presentation selects the exact page copy or SEO form for every priv
   for(const requested of ['home','ci','site','seo-home','seo-moneyStory'])assert.equal((await(await route({params:Promise.resolve({scope:requested})})).props.searchParams).scope,requested.replace(/^seo-/,''));
   const filtered=await route({params:Promise.resolve({scope:'blog'}),searchParams:Promise.resolve({scope:'investment',q:'คำค้น',page:'2'})});assert.deepEqual(await filtered.props.searchParams,{scope:'blog',q:'คำค้น',page:'2'});
   for(const requested of ['investment','seo-site','unknown','home/evil'])await assert.rejects(route({params:Promise.resolve({scope:requested})}),/fixture404/);
+});
+
+// C11 inverses only complete approved default-shell renders. Existing literal CMS edit tests
+// above continue to inspect the actual current header, labels, destinations and markup.
+test('C11 header inverse preserves all old goldens and rejects unknown, duplicate, moved and unrelated render mutations', async () => {
+  for (const [index, scope] of [[3, 'ci'], [4, 'fhc'], [8, 'privacy'], [9, 'cookies'], [10, 'moneyStory']]) {
+    const current = await renderFixture(scope, {});
+    const restored = inverseWebsiteV5C11Header(current, index);
+    assert.equal(digest(restored), websiteV5PhaseBRenderGoldens.v5[index]);
+    assert.equal(inverseWebsiteV5C11Header(restored, index), restored, 'exact historical output remains accepted');
+    const header = current.match(/<header\b[^>]*data-v5-header=""[\s\S]*?<\/header>/)?.[0];
+    assert.ok(header);
+    for (const mutation of [
+      current.replace('aria-label="ธีม"', 'aria-label="ธีมเปลี่ยน"'),
+      current.replace(header, header + header),
+      current.replace(header, '') + header,
+      current.replace('</main>', 'unrelated-body-change</main>'),
+      current.replace('aria-checked="true"', 'aria-checked="false"'),
+      current.replace('href="/tools/"', 'href="/unowned/"'),
+    ]) assert.throws(() => inverseWebsiteV5C11Header(mutation, index), /unknown full render/);
+  }
+  const edited = await renderFixture('ci', {}, { overrides: { 'site.nav.home': 'ข้อความเมนูเจ้าของ' } });
+  assert.match(edited, /ข้อความเมนูเจ้าของ/, 'CMS test observes the actual edited label');
+  assert.throws(() => inverseWebsiteV5C11Header(edited, 3), /unknown full render/, 'never replace an edited header with default copy');
+  const current = await renderFixture('ci', {});
+  assert.throws(() => inverseWebsiteV5C11Header(current, 4), /unknown full render/, 'cases cannot borrow a different pin');
+  assert.throws(() => inverseWebsiteV5C11Header(current, 5), /unregistered render case/);
 });
