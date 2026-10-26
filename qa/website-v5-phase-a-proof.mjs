@@ -241,3 +241,18 @@ export const websiteV5PhaseBRenderGoldens = Object.freeze({
   v5: { "3": "03a1a395a7cee5b3f560b8b2df290309589292931f5e735f66fbb532a025a503", "4": "1195bb0ba17c93e06a75ff2c71ea0ec42852fe66e4d01749a12284f068a4dd6f", "8": "6d13f0d686028bd55d1c07c244c595720baac42449796761e04eac202a7872a8", "9": "867ce47566f483595627e0f8feae9895d4fb99649f0f32d9af3d903c6390c902", "10": "4ac66d0de94c24351a396db99317bf0117d08d36f74ecb68ca0c7ab84d74ad58" },
   // END Phase B render goldens
 });
+
+// C11 (owner-approved 2026-10-26): the simpler mobile menu and direct theme controls change
+// only the exact shared header. Keep every Phase B golden above unchanged. The inverse first
+// admits a complete pinned default render, replaces one exact pinned header, then rechecks
+// the complete predecessor digest. Non-default CMS renders never pass through this inverse.
+export const websiteV5C11RenderSuccessors = Object.freeze({
+  fixtureSha256: "bf4223a6c3bab77f8db9c79ed1c0b437c3d884e1b6f4facd4c2bfe5cf528dd7b",
+  renders: Object.freeze({
+    "3": Object.freeze({"before": "03a1a395a7cee5b3f560b8b2df290309589292931f5e735f66fbb532a025a503","after": "61f1a6e85d6de01def25c36d6f709ab5142bc065c2a93007d2634aba1792858b"}),
+    "4": Object.freeze({"before": "1195bb0ba17c93e06a75ff2c71ea0ec42852fe66e4d01749a12284f068a4dd6f","after": "c612b43c9aec116d8427c993b68ded550655253115777f7df9f9aaa0893c2266"}),
+    "8": Object.freeze({"before": "6d13f0d686028bd55d1c07c244c595720baac42449796761e04eac202a7872a8","after": "cff0f55cff146bd4800fd8e6e82c0c3926f17382c5c2dd9d2e10e6cab3ff60be"}),
+    "9": Object.freeze({"before": "867ce47566f483595627e0f8feae9895d4fb99649f0f32d9af3d903c6390c902","after": "e7bda04b3c68389e400271ee67907dec911a952f1c9f3017969cd592f0fad2b5"}),
+    "10": Object.freeze({"before": "4ac66d0de94c24351a396db99317bf0117d08d36f74ecb68ca0c7ab84d74ad58","after": "5a9bc4a67ff1b84deb3c70627b45031c01733cde02d303ed10e504a5f880893f"}),
+  }),
+});

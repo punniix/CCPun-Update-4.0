@@ -4,6 +4,8 @@ import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy
 import styles from "./V5.module.css";
 import { getShellTopics } from "./shell-data";
 import V5HeaderEnhancer from "./V5HeaderEnhancer";
+import V5ChatLink from "./V5ChatLink";
+import { LINE_OA_CHAT_URL } from "@/lib/line/oa-link";
 import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
 import { V5_INVESTMENT_TOOL, V5_TOOL_LINKS, V5_TOOLS_HUB, V5_THEME_STORAGE_KEY } from "./constants";
 
@@ -23,7 +25,7 @@ export function V5Brand() {
 }
 
 /**
- * Server-rendered site header. Every tool and topic link is present in the HTML
+ * Server-rendered site header. Desktop tool and topic links remain in the HTML
  * (plan T04); CSS and a small enhancer only control visibility. `current` is the
  * physical path of the page so aria-current never depends on client rendering.
  */
@@ -68,12 +70,22 @@ export default async function V5Header({ current = "", siteCopy }: { current?: s
           </ul>
         </nav>
         <div className={styles.headerActions}>
-          <button type="button" className={styles.iconButton} data-v5-theme-toggle="" aria-label={text("site.theme.toggle")} title={text("site.theme.toggle")} data-labels={JSON.stringify(THEME_CHOICE_LABELS)}>
-            <svg className={styles.themeIconSystem} viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="11.5" rx="2" fill="none" stroke="currentColor" strokeWidth="1.6" /><path d="M9 20h6M12 16v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+          <div className={styles.themeSegments} role="radiogroup" aria-label="ธีม" data-v5-theme-group="">
+            <button type="button" className={styles.themeOption} role="radio" aria-label="สว่าง" aria-checked="false" tabIndex={-1} data-v5-theme-choice="light">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="1.6" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg><span>สว่าง</span>
+            </button>
+            <button type="button" className={styles.themeOption} role="radio" aria-label="อัตโนมัติ" aria-checked="true" tabIndex={0} data-v5-theme-choice="system">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="11.5" rx="2" fill="none" stroke="currentColor" strokeWidth="1.6" /><path d="M9 20h6M12 16v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg><span>อัตโนมัติ</span>
+            </button>
+            <button type="button" className={styles.themeOption} role="radio" aria-label="มืด" aria-checked="false" tabIndex={-1} data-v5-theme-choice="dark">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg><span>มืด</span>
+            </button>
+          </div>
+          <button type="button" className={`${styles.iconButton} ${styles.mobileThemeToggle}`} data-v5-theme-toggle="" aria-label={text("site.theme.toggle")} title={text("site.theme.toggle")} data-labels={JSON.stringify(THEME_CHOICE_LABELS)}>
             <svg className={styles.themeIconDark} viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>
             <svg className={styles.themeIconLight} viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="1.6" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
-            <span className={styles.srOnly} data-v5-theme-status="" aria-live="polite">{THEME_CHOICE_LABELS.system}</span>
           </button>
+          <span className={styles.srOnly} data-v5-theme-status="" aria-live="polite">{THEME_CHOICE_LABELS.system}</span>
           <button type="button" className={`${styles.iconButton} ${styles.menuButton}`} data-v5-menu-toggle="" aria-controls="mobile-navigation" aria-expanded="false" aria-label={text("site.nav.open")} data-label-open={text("site.nav.open")} data-label-close={text("site.nav.close")}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
           </button>
@@ -83,18 +95,14 @@ export default async function V5Header({ current = "", siteCopy }: { current?: s
         <ul className={styles.mobileGroup}>
           <li><Link href="/" aria-current={isCurrent("/")}>{text.node("site.nav.home")}</Link></li>
           <li><Link href="/blog/" aria-current={blogCurrent === "page" ? "page" : undefined}>{text.node("site.nav.allArticles")}</Link></li>
+          <li><Link href={V5_TOOLS_HUB.href} aria-current={isCurrent(V5_TOOLS_HUB.href)}>{V5_TOOLS_HUB.label}</Link></li>
           <li><Link href="/about/" aria-current={isCurrent("/about/")}>{text.node("site.footer.about")}</Link></li>
         </ul>
-        {topics.length > 0 && <div className={styles.mobileGroup}>
-          <p className={styles.mobileGroupTitle}>{text.node("site.nav.topics")}</p>
-          <ul>{topics.map((topic) => <li key={topic.slug}><Link href={topic.href} aria-current={current === topic.href ? "page" : undefined}>{topic.title}</Link></li>)}</ul>
-        </div>}
-        <div className={styles.mobileGroup}>
-          <p className={styles.mobileGroupTitle}>{text.node("site.nav.tools")}</p>
-          <ul>
-            <li><Link href={V5_TOOLS_HUB.href} aria-current={isCurrent(V5_TOOLS_HUB.href)}>{V5_TOOLS_HUB.label}</Link></li>
-            {tools.map((tool) => <li key={tool.href}><Link href={tool.href} aria-current={isCurrent(tool.href)}>{tool.label}</Link></li>)}
-          </ul>
+        <div className={styles.mobilePreferences}>
+          <button type="button" className={styles.themeSystemSwitch} role="switch" aria-checked="true" data-v5-theme-system="">
+            <span>ใช้ธีมตามเครื่อง</span><span className={styles.switchTrack} aria-hidden="true" />
+          </button>
+          <V5ChatLink href={LINE_OA_CHAT_URL} className={`${styles.button} ${styles.mobileLine}`} trigger="dock">คุยกับปั้นทาง LINE</V5ChatLink>
         </div>
       </nav>
       <V5HeaderEnhancer storageKey={V5_THEME_STORAGE_KEY} />
