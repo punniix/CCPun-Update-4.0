@@ -85,10 +85,14 @@ export default async function AdminDashboardPage({ searchParams }: DashboardProp
 
       {afptReminder ? (
         <section role="status" aria-labelledby="afpt-renewal-heading" data-afpt-reminder={afptReminder.expired ? "expired" : "due"} className="mt-6 rounded-2xl border border-amber-200/20 bg-amber-200/10 p-5 text-amber-50">
-          <h2 id="afpt-renewal-heading" className="text-lg font-semibold">{AFPT_CREDENTIAL.name}{afptReminder.expired ? " หมดอายุแล้ว" : " ใกล้ครบกำหนดต่ออายุ"}</h2>
+          <h2 id="afpt-renewal-heading" className="text-lg font-semibold">เตือนต่ออายุคุณวุฒิ</h2>
           <p className="mt-2 text-sm">{AFPT_CREDENTIAL.issuer} · เลขที่ {AFPT_CREDENTIAL.number}</p>
           <p className="mt-1 text-sm">มีผล {thaiDisplayDate(AFPT_CREDENTIAL.issuedOn)} · ใช้ได้ถึง {thaiDisplayDate(AFPT_CREDENTIAL.expiresOn)}</p>
-          <p className="mt-2 text-sm font-medium">{afptReminder.expired ? "โปรดตรวจการต่ออายุ" : afptReminder.daysRemaining === 0 ? "ใช้ได้ถึงวันนี้" : `เหลืออีก ${afptReminder.daysRemaining} วัน`}</p>
+          <p className="mt-2 text-sm font-medium">{afptReminder.expired
+            ? `${AFPT_CREDENTIAL.name} หมดอายุแล้ว ตั้งแต่ ${thaiDisplayDate(new Date(Date.parse(`${AFPT_CREDENTIAL.expiresOn}T00:00:00Z`) + 86_400_000).toISOString())}`
+            : afptReminder.daysRemaining === 0
+              ? `${AFPT_CREDENTIAL.name} ใช้ได้ถึงวันนี้ (${thaiDisplayDate(AFPT_CREDENTIAL.expiresOn)})`
+              : `${AFPT_CREDENTIAL.name} ต้องต่ออายุภายใน ${thaiDisplayDate(AFPT_CREDENTIAL.expiresOn)} (เหลือ ${afptReminder.daysRemaining} วัน)`}</p>
         </section>
       ) : null}
 
