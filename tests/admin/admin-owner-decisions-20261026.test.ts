@@ -13,6 +13,7 @@ import {
 } from "../../features/admin/components/admin-navigation-model";
 import { LINE_RICH_MENU_ITEMS } from "../../lib/line/ecosystem";
 import {
+  adminFaRoomMenu20261026Sources,
   adminOwnerDecisions20261026DomPredecessor,
   adminOwnerDecisions20261026PredecessorDigest,
   adminOwnerDecisions20261026Sources,
@@ -216,15 +217,44 @@ test("owner-decision admissions are exact, chain to the 2026-10-25 successors an
     "features/admin/components/admin-navigation-model.ts",
   ]);
   const reviewed = adminOps20261025Sources as Record<string, { before: string; after: string }>;
+  const menu = adminFaRoomMenu20261026Sources as Record<string, { before: string; after: string }>;
+  assert.deepEqual(Object.keys(menu), [LAYOUT]);
   for (const [file, { before, after }] of entries) {
     const source = read(file);
-    assert.equal(sha(source), after, `${file}: byte-identical to the reviewed owner-decision successor`);
+    // 8.2 replaced the layout successor once more; it must name the owner-decision successor it replaced.
+    if (menu[file]) {
+      assert.equal(sha(source), menu[file].after, `${file}: byte-identical to the reviewed FA room menu successor`);
+      assert.equal(menu[file].before, after);
+      assert.equal(adminOwnerDecisions20261026PredecessorDigest(file, menu[file].after), before);
+    } else assert.equal(sha(source), after, `${file}: byte-identical to the reviewed owner-decision successor`);
     assert.equal(before, reviewed[file]!.after, `${file}: names the 2026-10-25 successor it replaced`);
     assert.equal(adminOwnerDecisions20261026PredecessorDigest(file, after), before);
     assert.equal(adminOps20261025PredecessorDigest(file, after), reviewed[file]!.before, `${file}: chains to its original predecessor`);
+    const current = sha(source);
+    assert.equal(adminOps20261025PredecessorDigest(file, current), reviewed[file]!.before, `${file}: current bytes chain to the original predecessor`);
     const tampered = sha(source + "\n// tamper");
     assert.equal(adminOps20261025PredecessorDigest(file, tampered), tampered, `${file}: unreviewed bytes are not admitted`);
   }
+});
+
+test("8.2: the financial planning room is an owner-only menu group and its pages exist", () => {
+  const groups = navigationGroups();
+  const planning = groups.find((group) => group.href === "/dashboard/planning/")!;
+  assert.ok(planning, "ห้องวางแผน FA is in the menu");
+  assert.equal(planning.label, "ห้องวางแผน FA");
+  assert.equal(planning.permission, "planning:read");
+  assert.deepEqual(planning.children!.map((child) => child.href), ["/dashboard/planning/", "/dashboard/planning/retention/"]);
+  assert.equal(activeNavigationGroup(groups, "/dashboard/planning/hh-1/")?.href, "/dashboard/planning/", "not the วันนี้ group");
+  assert.equal(activeMobileTab(groups, "/dashboard/planning/"), "all");
+  const rbac = read("lib/admin/rbac.ts");
+  assert.match(rbac, /"planning:read",\n\s*"planning:write",/);
+  // Only the owner holds planning permissions (owner: new Set(ADMIN_PERMISSIONS)); no other role lists them.
+  assert.equal(rbac.match(/"planning:read"/g)?.length, 1);
+  assert.match(read("lib/admin/financial-planning/access.ts"), /identity\.role === "owner"/);
+  for (const page of ["page.tsx", "[householdId]/page.tsx", "retention/page.tsx"]) assert.match(read(`apps/admin/app/(control-plane)/dashboard/planning/${page}`), /export const dynamic = "force-dynamic";|PlanningPages/);
+  const q = "&quot;";
+  const planningJson = `,{${q}href${q}:${q}/dashboard/planning/${q},${q}label${q}:${q}ห้องวางแผน FA${q},${q}permission${q}:${q}planning:read${q},${q}children${q}:[{${q}href${q}:${q}/dashboard/planning/${q},${q}label${q}:${q}ครอบครัวลูกค้า${q}},{${q}href${q}:${q}/dashboard/planning/retention/${q},${q}label${q}:${q}ข้อมูลที่ครบกำหนดตรวจ${q}}]}`;
+  assert.equal(adminOwnerDecisions20261026DomPredecessor(`[A${planningJson},B]`), "[A,B]");
 });
 
 test("DOM inverse rebuilds only the renamed/regrouped menu, the shell marker and the toggle", () => {

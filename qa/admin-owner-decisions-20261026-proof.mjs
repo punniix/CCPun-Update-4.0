@@ -22,11 +22,22 @@ export const adminOwnerDecisions20261026Sources = Object.freeze({
   // END reviewed owner-decision sources
 });
 
+// Owner decision 8.2 (2026-10-26): the financial planning room (cherry-picked from PR #491,
+// claude/feat/fa-room-20261025) gets an owner-only "ห้องวางแผน FA" menu group. `before` is the
+// owner-decision successor admitted above, so the layout chains back through that entry.
+export const adminFaRoomMenu20261026Sources = Object.freeze({
+  // BEGIN reviewed FA room menu sources
+  "apps/admin/app/(control-plane)/layout.tsx": { before: "87387368d6ab031ef8424cc0561798212bd563ef82d30f7f47ee588e37b18a18", after: "d23ed766c6b675224b15995772048da6c69c9910894b51917afb85902ab6ac63" },
+  // END reviewed FA room menu sources
+});
+
 // Maps the digest of an exact owner-decision successor to the reviewed successor it replaced;
 // any other digest is returned unchanged (so an unreviewed edit still fails).
 export function adminOwnerDecisions20261026PredecessorDigest(file, digest) {
+  const menu = Object.hasOwn(adminFaRoomMenu20261026Sources, file) ? adminFaRoomMenu20261026Sources[file] : null;
+  const menuReviewed = menu && digest === menu.after ? menu.before : digest;
   const entry = Object.hasOwn(adminOwnerDecisions20261026Sources, file) ? adminOwnerDecisions20261026Sources[file] : null;
-  return entry && digest === entry.after ? entry.before : digest;
+  return entry && menuReviewed === entry.after ? entry.before : menuReviewed;
 }
 
 export function adminOwnerDecisions20261026SourceDigest(source) {
@@ -44,7 +55,11 @@ const CAMPAIGNS = child('/dashboard/campaigns/', 'ข้อความแจ้
 const LINE_CHAT = child('/settings/line-chat/', 'ปุ่มแชท LINE');
 const group = (href, label, permission, children) => `{${q}href${q}:${q}${href}${q},${q}label${q}:${q}${label}${q},${q}permission${q}:${q}${permission}${q},${q}children${q}:[${children.join(',')}]}`;
 
+const PLANNING = group('/dashboard/planning/', 'ห้องวางแผน FA', 'planning:read', [child('/dashboard/planning/', 'ครอบครัวลูกค้า'), child('/dashboard/planning/retention/', 'ข้อมูลที่ครบกำหนดตรวจ')]);
+
 const rules = [
+  // 8.2 (owner, full capability only: planning:read is owner-only): the FA room menu group.
+  [',' + PLANNING, ''],
   // 5.3 + 5.2 (owner, full capability): วันนี้ keeps งานรอตรวจ; ลูกค้า LINE and ข้อความแจ้งลูกค้า move
   // into "ลูกค้า & LINE" next to the new ปุ่มแชท LINE entry. Predecessor: one ภาพรวม group.
   [group('/dashboard/', 'วันนี้', 'dashboard:read', [REVIEWS]) + ',' + group('/dashboard/inbox/', 'ลูกค้า &amp; LINE', 'advisor:read', [INBOX, CAMPAIGNS, LINE_CHAT]),

@@ -45,6 +45,12 @@ const NAV_ITEMS: Array<{ href: string; label: string; permission: AdminPermissio
       { href: "/analytics/conversions/", label: "เส้นทางลูกค้า" },
       { href: "/analytics/exports/", label: "ส่งออกข้อมูล", permission: "settings:read" },
   ] },
+  // Owner decision 8.2 (2026-10-26): the financial planning room is in the menu, owner only
+  // (planning:read is an owner-only permission and the room itself re-checks role === "owner").
+  { href: "/dashboard/planning/", label: "ห้องวางแผน FA", permission: "planning:read", children: [
+      { href: "/dashboard/planning/", label: "ครอบครัวลูกค้า" },
+      { href: "/dashboard/planning/retention/", label: "ข้อมูลที่ครบกำหนดตรวจ" },
+  ] },
   { href: "/operations/", label: "สถานะระบบ", permission: "settings:read", children: [
       { href: "/operations/health/", label: "ภาพรวมระบบ" },
       { href: "/operations/deployments/", label: "เวอร์ชันที่ใช้งาน", technical: true },
