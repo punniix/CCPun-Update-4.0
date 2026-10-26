@@ -1,5 +1,6 @@
 import type { Article } from "../content/types";
-import { getArticlePath } from "../content/url";
+import { getArticleCategorySlug, getArticlePath, isArticleCanonicalAligned } from "../content/url";
+import { articleBelongsToPhysicalCategory } from "../content/category-registry";
 import type { LineJourneyId } from "./ecosystem";
 
 export const LINE_DISCOVERY_CONFIG: Record<
@@ -8,12 +9,14 @@ export const LINE_DISCOVERY_CONFIG: Record<
     label: string;
     campaign: string;
     articleSlugs: readonly string[];
+    categorySlugs: readonly string[];
     maxCards: number;
   }
 > = {
   life_health_policy_review: {
     label: "ประกันชีวิต",
     campaign: "rich_menu_v3_life",
+    categorySlugs: ["life-insurance", "health-insurance", "critical-illness-insurance"],
     articleSlugs: [
       "critical-illness-insurance",
       "aia-health-ci-hero-guide",
@@ -24,12 +27,14 @@ export const LINE_DISCOVERY_CONFIG: Record<
   motor_quote_review: {
     label: "ประกันรถ",
     campaign: "rich_menu_v3_motor",
+    categorySlugs: ["motor-insurance"],
     articleSlugs: ["car-insurance-types"],
     maxCards: 3,
   },
   investment_before_you_act: {
     label: "เรื่องลงทุน",
     campaign: "rich_menu_v3_investment",
+    categorySlugs: ["investment"],
     // No published Investment-category article exists yet. Financial Pyramid is
     // an approved published bridge article until the Investment pillar is live.
     articleSlugs: ["financial-pyramid"],
@@ -54,14 +59,42 @@ export type LineArticleCardSource = Pick<
   | "status"
   | "noindex"
   | "featuredImage"
->;
+> & Partial<Pick<Article, "id" | "publishedAt" | "canonical">>;
 
-function trimCardText(value: string, max: number) {
+export function trimCardText(value: string, max: number) {
   const normalized = value.replace(/\s+/g, " ").trim();
+  if (max < 1) return "";
   const graphemes = [...new Intl.Segmenter("th", { granularity: "grapheme" }).segment(normalized)]
     .map(({ segment }) => segment);
   if (graphemes.length <= max) return normalized;
-  return `${graphemes.slice(0, Math.max(1, max - 1)).join("").trimEnd()}…`;
+  const prefix = graphemes.slice(0, max).join("");
+  let boundary = 0;
+  for (const word of new Intl.Segmenter("th", { granularity: "word" }).segment(normalized)) {
+    const end = word.index + word.segment.length;
+    if (end > prefix.length) break;
+    if (word.isWordLike) boundary = end;
+  }
+  // A single word longer than the card limit still needs non-empty Flex text.
+  return (boundary ? normalized.slice(0, boundary) : prefix).trimEnd();
+}
+
+/** Keep the original asset path; request JPEG bytes rather than auto WebP. */
+export function buildLineArticleImageUrl(src?: string) {
+  if (!src) return null;
+  try {
+    const url = new URL(src);
+    if (!["http:", "https:"].includes(url.protocol)
+      || url.hostname !== "cdn.sanity.io"
+      || url.username || url.password || url.port) return null;
+    url.protocol = "https:";
+    url.searchParams.delete("auto");
+    url.searchParams.set("fm", "jpg");
+    url.searchParams.set("w", "1040");
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 export function buildLineArticleUrl(
@@ -78,11 +111,10 @@ export function buildLineArticleUrl(
 }
 
 function articleBubble(journey: LineJourneyId, article: LineArticleCardSource) {
-  const config = LINE_DISCOVERY_CONFIG[journey];
   const bodyContents: Record<string, unknown>[] = [
     {
       type: "text",
-      text: config.label,
+      text: article.category,
       size: "xs",
       weight: "bold",
       color: "#E0C985",
@@ -99,7 +131,7 @@ function articleBubble(journey: LineJourneyId, article: LineArticleCardSource) {
     },
     {
       type: "text",
-      text: trimCardText(article.lineDescription?.trim() || article.excerpt || article.title, 90),
+      text: trimCardText(article.lineDescription?.trim() || article.excerpt?.trim() || article.title, 90),
       size: "sm",
       color: "#BAABAB",
       wrap: true,
@@ -140,10 +172,11 @@ function articleBubble(journey: LineJourneyId, article: LineArticleCardSource) {
     },
   };
 
-  if (article.featuredImage?.src?.startsWith("https://")) {
+  const imageUrl = buildLineArticleImageUrl(article.featuredImage?.src);
+  if (imageUrl) {
     bubble.hero = {
       type: "image",
-      url: article.featuredImage.src,
+      url: imageUrl,
       size: "full",
       aspectRatio: "1.91:1",
       aspectMode: "cover",
@@ -157,17 +190,33 @@ export function selectLineDiscoveryArticles(
   journey: LineJourneyId,
   articles: readonly LineArticleCardSource[],
   selection?: LineDiscoverySelection,
+  now = Date.now(),
 ) {
   const config = LINE_DISCOVERY_CONFIG[journey];
   const bySlug = new Map(
     articles
-      .filter((article) => article.status === "published" && article.noindex !== true)
+      .filter((article) => article.status === "published" && article.noindex !== true
+        && !article.id?.startsWith("drafts.")
+        && (!article.publishedAt || (Number.isFinite(Date.parse(article.publishedAt))
+          && Date.parse(article.publishedAt) <= now)))
       .map((article) => [article.slug, article] as const),
   );
+  const maxCards = selection?.maxCards ?? config.maxCards;
+  if (selection?.items.length === 0) {
+    return [...bySlug.values()]
+      .filter((article) => {
+        // Reuse the public indexability/URL contract without changing public policy.
+        if (!article.publishedAt || !isArticleCanonicalAligned(article)) return false;
+        const categorySlug = getArticleCategorySlug(article);
+        return config.categorySlugs.some((slug) =>
+          articleBelongsToPhysicalCategory({ ...article, categorySlug }, { slug }));
+      })
+      .sort((left, right) => Date.parse(right.publishedAt!) - Date.parse(left.publishedAt!))
+      .slice(0, maxCards);
+  }
   const slugs = selection
     ? selection.items.filter((item) => item.enabled).map((item) => item.slug)
     : config.articleSlugs;
-  const maxCards = selection?.maxCards ?? config.maxCards;
   return slugs
     .map((slug) => bySlug.get(slug))
     .filter((article): article is LineArticleCardSource => Boolean(article))
