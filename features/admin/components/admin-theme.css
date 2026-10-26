@@ -74,6 +74,9 @@
 
   /* Solid light buttons (bg-white + text-black) stay a filled button: ink fill, warm-white label. */
   html[data-admin-theme="light"] .admin-theme-scope .bg-white.text-black { color: #faf6f0; }
+  /* Status tokens become dark ink in light mode; solid status buttons need a light label. */
+  html[data-admin-theme="light"] .admin-theme-scope :is(.bg-emerald-200, .bg-cyan-200, .bg-red-200).text-\[\#111827\] { color: #faf6f0; }
+  html[data-admin-theme="light"] .admin-theme-scope .bg-rose-950\/45 { background-color: rgb(155 27 60 / 0.06); }
   html[data-admin-theme="light"] .admin-theme-scope .file\:text-black::file-selector-button { color: #faf6f0; }
   /* The Google result preview keeps a real white card. */
   html[data-admin-theme="light"] .admin-theme-scope .bg-white.text-\[\#202124\] { background-color: #ffffff; border: 1px solid #e4d8cc; }
@@ -144,9 +147,9 @@
   html[data-admin-theme="light"] .admin-theme-scope .text-\[\#b6f3dc\] { color: #1d6a4c; }
   html[data-admin-theme="light"] .admin-theme-scope .text-\[\#baabab\] { color: #5f4f4c; }
   html[data-admin-theme="light"] .admin-theme-scope .text-\[\#e0c985\] { color: #765612; }
-  html[data-admin-theme="light"] .admin-theme-scope .text-\[\#e0c985\]\/70 { color: rgb(118 86 18 / 0.7); }
+  html[data-admin-theme="light"] .admin-theme-scope .text-\[\#e0c985\]\/70 { color: #765612; }
   html[data-admin-theme="light"] .admin-theme-scope .text-\[\#f4df9b\] { color: #6a4e0f; }
-  html[data-admin-theme="light"] .admin-theme-scope .text-\[\#f4df9b\]\/70 { color: rgb(106 78 15 / 0.7); }
+  html[data-admin-theme="light"] .admin-theme-scope .text-\[\#f4df9b\]\/70 { color: #6a4e0f; }
   html[data-admin-theme="light"] .admin-theme-scope .text-gold-400 { color: #6a4e0f; }
   html[data-admin-theme="light"] .admin-theme-scope .text-gold-500 { color: #765612; }
 }

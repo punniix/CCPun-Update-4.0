@@ -73,3 +73,18 @@
   background: rgb(254 205 211 / 0.06);
   color: rgb(255 241 242 / 0.85);
 }
+
+@media screen {
+  :global(html[data-admin-theme="light"] .admin-theme-scope) .row { border-color: rgb(37 24 24 / 0.12); }
+  :global(html[data-admin-theme="light"] .admin-theme-scope) .header { color: #5f4f4c; }
+  :global(html[data-admin-theme="light"] .admin-theme-scope) .presentingBanner {
+    border-color: rgb(11 86 121 / 0.25);
+    background: rgb(11 86 121 / 0.06);
+    color: #0b5679;
+  }
+  :global(html[data-admin-theme="light"] .admin-theme-scope) .alertBanner {
+    border-color: rgb(155 27 60 / 0.25);
+    background: rgb(155 27 60 / 0.06);
+    color: #9b1b3c;
+  }
+}

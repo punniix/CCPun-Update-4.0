@@ -1,6 +1,7 @@
 # v5 release manifest
 
-Status: UAT. Nothing here is in Production yet. Production needs the owner's separate release
+Status: code release inventory. Live/deployed state was not verified in this code-only task.
+Production needs the owner's separate release
 approval, merges into `v4-production` and a Production deploy; none of that is authorised by this
 document. Last updated 2026-10-26.
 

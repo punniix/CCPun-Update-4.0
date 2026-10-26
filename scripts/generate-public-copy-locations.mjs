@@ -5,10 +5,11 @@
 // Run: node --import tsx scripts/generate-public-copy-locations.mjs [--check]
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { PUBLIC_COPY_SCOPES } from "../lib/content/public-copy-registry.ts";
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUTPUT = path.join(ROOT, "lib/content/public-copy-locations.json");
 
 // Source files in the order a visitor meets them on each page. Files not listed
