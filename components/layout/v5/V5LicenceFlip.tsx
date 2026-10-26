@@ -66,7 +66,7 @@ export default function V5LicenceFlip({ term, detail, hint, back, note = null }:
         </span>
       </button>
       {/* No JavaScript: the back face shows on hover or keyboard focus, so its text stays readable. */}
-      <noscript><style>{`.${styles.card}:is(:hover,:focus-visible) .${styles.inner}{transform:rotateY(180deg)}.${styles.card}:is(:hover,:focus-visible) .${styles.back}{opacity:1}.${styles.card}:is(:hover,:focus-visible) .${styles.front}{opacity:0}`}</style></noscript>
+      <noscript><style>{`.${styles.card}:is(:hover,:focus-visible) .${styles.inner}{transform:rotateY(180deg)}.${styles.card}:is(:hover,:focus-visible) .${styles.back}{opacity:1;transition-delay:0s}.${styles.card}:is(:hover,:focus-visible) .${styles.front}{opacity:0;transition-delay:var(--v5-motion-slow)}`}</style></noscript>
     </>
   );
 }

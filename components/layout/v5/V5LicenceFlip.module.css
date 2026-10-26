@@ -7,7 +7,7 @@
   display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: none; color: inherit;
   font: inherit; text-align: left; cursor: pointer; perspective: 800px; border-radius: var(--v5-radius);
 }
-.inner { display: grid; height: 100%; transform-style: preserve-3d; transition: transform 420ms cubic-bezier(0.4, 0, 0.2, 1); }
+.inner { display: grid; height: 100%; transform-style: preserve-3d; transition: transform var(--v5-motion-slow) var(--v5-ease-standard); }
 .card[aria-pressed="true"] .inner { transform: rotateY(180deg); }
 .face {
   grid-area: 1 / 1; display: flex; flex-direction: column; gap: 4px; padding: 12px 16px;
@@ -17,13 +17,15 @@
 .back { transform: rotateY(180deg); border-color: var(--v5-gold-text); }
 /*
  * The face turned away is also fully transparent (it stays in the accessibility tree), so the stacked back text is
- * never painted under the front. The swap happens at the half-turn, when the card is edge-on, so it is never seen;
- * reduced motion swaps at once.
+ * never painted under the front. Motion smoothing (2026-10-26): the face coming into view turns opaque at once and
+ * the face going away only after the whole turn (backface-visibility hides it meanwhile). A fixed mid-turn swap
+ * missed the edge-on moment with an easing curve and on a second tap mid-turn, leaving 4 to 9 blank frames;
+ * now the face toward the viewer is always opaque, whenever the card is tapped. Reduced motion swaps at once.
  */
-.front, .back { transition: opacity 0s linear 210ms; }
-.back { opacity: 0; }
-.card[aria-pressed="true"] .back { opacity: 1; }
-.card[aria-pressed="true"] .front { opacity: 0; }
+.front, .back { transition: opacity 0s linear 0s; }
+.back { opacity: 0; transition-delay: var(--v5-motion-slow); }
+.card[aria-pressed="true"] .back { opacity: 1; transition-delay: 0s; }
+.card[aria-pressed="true"] .front { opacity: 0; transition-delay: var(--v5-motion-slow); }
 .term { font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; line-height: 1.45; }
 .number, .label, .verify { color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.55; overflow-wrap: anywhere; }
 /* Label and value share a line where they fit (v5 polish, UAT): the back face, which sets the card height, stays short. */

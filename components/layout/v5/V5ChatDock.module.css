@@ -2,7 +2,7 @@
   LINE chat dock (owner decisions 2026-10-25: L8 + D1 + D3, and one LINE OA button per page). One
   bottom element only: on phones a glass bar (D1 allows glass on the header and this bar only), on
   desktop a floating button. It is fixed-position and server-rendered visible, so it never moves page
-  content (no CLS); the cookie-notice offset and the tuck-away use transform only. The One Compass
+  content (no CLS); the cookie-notice offset (`translate`) and the tuck-away (`transform`) are compositor-only. The One Compass
   rule keeps gold for the page's own primary action, so the dock is a solid outline control with a
   gold edge (a one-class change if the owner wants it gold). v5 tokens only.
 */
@@ -14,15 +14,20 @@
   padding: 12px var(--v5-gutter) calc(12px + env(safe-area-inset-bottom, 0px));
   background: var(--v5-header); border-top: 1px solid var(--v5-border-soft);
   backdrop-filter: saturate(140%) blur(10px); -webkit-backdrop-filter: saturate(140%) blur(10px);
-  transform: translateY(calc(-1 * var(--v5-dock-offset, 0px))); visibility: visible;
-  transition: transform 220ms ease, visibility 0s linear 0s;
+  /*
+    Motion smoothing (2026-10-26): the cookie-notice lift is `translate` and jumps with the notice (the notice
+    itself appears without motion, so a sliding dock used to show behind it for ~300ms); only the tuck/return
+    (`transform`) animates. Hidden adds the lift back so the dock always leaves the screen fully.
+  */
+  translate: 0 calc(-1 * var(--v5-dock-offset, 0px)); transform: none; visibility: visible;
+  transition: transform var(--v5-motion-base) var(--v5-ease-standard), visibility 0s linear 0s;
 }
-.dock[data-state="hidden"] { transform: translateY(110%); visibility: hidden; transition: transform 220ms ease, visibility 0s linear 220ms; }
+.dock[data-state="hidden"] { transform: translateY(calc(110% + var(--v5-dock-offset, 0px))); visibility: hidden; transition: transform var(--v5-motion-base) var(--v5-ease-standard), visibility 0s linear var(--v5-motion-base); }
 .trigger {
   display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 48px; padding: 12px 24px;
   border: 1px solid var(--v5-gold-text); border-radius: var(--v5-radius-button); background: var(--v5-card); color: var(--v5-text);
   font-family: var(--v5-font-display); font-size: 16px; font-weight: 500; line-height: 1.3; text-decoration: none; cursor: pointer;
-  transition: background-color 160ms ease, border-color 160ms ease;
+  transition: background-color var(--v5-motion-fast) ease, border-color var(--v5-motion-fast) ease;
 }
 .trigger:hover { background: var(--v5-surface); }
 .trigger svg { width: 20px; height: 20px; flex: none; color: var(--v5-gold-text); }
@@ -33,13 +38,17 @@
 
 /* Panel: bottom sheet on phones, popover above the button on desktop. Solid surfaces (D1). Once open it
    is the top layer, above the cookie notice (z-index 70), so every topic stays visible and tappable. */
-.backdrop { position: fixed; inset: 0; z-index: 71; background: rgba(37, 24, 24, 0.6); }
+.backdrop { position: fixed; inset: 0; z-index: 71; background: rgba(37, 24, 24, 0.6); animation: v5ChatFade var(--v5-motion-fast) ease-out both; }
 .panel {
   position: fixed; inset: auto 0 0 0; z-index: 72; max-height: min(86vh, 640px); overflow-y: auto;
   padding: 20px var(--v5-gutter) calc(24px + env(safe-area-inset-bottom, 0px));
   background: var(--v5-bg); color: var(--v5-text); border: 1px solid var(--v5-border); border-bottom: 0;
   border-radius: var(--v5-radius-lg) var(--v5-radius-lg) 0 0; box-shadow: var(--v5-shadow);
+  /* Entrance only (opacity + transform); closing stays instant so the trigger is usable again at once. */
+  animation: v5ChatRise var(--v5-motion-base) var(--v5-ease-standard) both;
 }
+@keyframes v5ChatRise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes v5ChatFade { from { opacity: 0; } to { opacity: 1; } }
 .panelHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .panelTitle { font-size: 19px; line-height: 1.4; }
 .close {
@@ -72,4 +81,11 @@
   .qr { display: flex; align-items: center; gap: 16px; margin: 16px 0 0; padding-top: 16px; border-top: 1px solid var(--v5-border-soft); }
   .qr svg { width: 168px; height: 168px; flex: none; border-radius: 8px; background: #ffffff; color: #000000; }
   .qr p { color: var(--v5-muted); font-size: 14px; line-height: 1.5; }
+}
+/* The desktop popover rises a little less than the phone sheet. */
+@keyframes v5ChatPop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (min-width: 1024px) { .panel { animation-name: v5ChatPop; } }
+@media (prefers-reduced-motion: reduce) {
+  .dock, .dock[data-state="hidden"] { transition: none; }
+  .backdrop, .panel { animation: none; }
 }

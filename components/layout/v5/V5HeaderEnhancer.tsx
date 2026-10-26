@@ -61,15 +61,28 @@ export default function V5HeaderEnhancer({ storageKey }: { storageKey: string })
       if (status) status.textContent = labels[root.getAttribute("data-theme-choice") ?? "system"] ?? "";
     };
     applyTheme(root.getAttribute("data-theme-choice") ?? "system");
+    // Motion smoothing (2026-10-26): a theme change swaps every surface in one frame. Hover-state colour
+    // transitions are switched off (V5.module.css) until the new theme has painted, then come back.
+    let switching = 0;
+    const switchTheme = (choice: string) => {
+      root.setAttribute("data-v5-theme-switching", "");
+      applyTheme(choice);
+      window.cancelAnimationFrame(switching);
+      switching = window.requestAnimationFrame(() => { switching = window.requestAnimationFrame(() => root.removeAttribute("data-v5-theme-switching")); });
+    };
+    // Client navigations jump to the top of the next page instead of smooth-scrolling there under the page
+    // transition (the global html { scroll-behavior: smooth } stays for in-page anchors). Next 16 reads this
+    // attribute on every navigation, so setting it after hydration is enough.
+    root.dataset.scrollBehavior = "smooth";
     const onThemeClick = () => {
       const current = root.getAttribute("data-theme-choice") ?? "system";
       const next = current === "system" ? "light" : current === "light" ? "dark" : "system";
-      applyTheme(next);
+      switchTheme(next);
       try {
         if (next === "system") localStorage.removeItem(storageKey); else localStorage.setItem(storageKey, next);
       } catch { /* Storage is optional. */ }
     };
-    const onSchemeChange = () => { if ((root.getAttribute("data-theme-choice") ?? "system") === "system") applyTheme("system"); };
+    const onSchemeChange = () => { if ((root.getAttribute("data-theme-choice") ?? "system") === "system") switchTheme("system"); };
     // An explicit close wins over hover/focus only until the pointer or focus leaves the item.
     const resetIntent = (event: Event) => {
       const item = event.currentTarget as HTMLElement;
@@ -87,6 +100,8 @@ export default function V5HeaderEnhancer({ storageKey }: { storageKey: string })
     desktop.addEventListener("change", onBreakpoint);
     scheme.addEventListener("change", onSchemeChange);
     return () => {
+      window.cancelAnimationFrame(switching);
+      root.removeAttribute("data-v5-theme-switching");
       scheme.removeEventListener("change", onSchemeChange);
       header.removeEventListener("click", onClick);
       document.removeEventListener("click", onDocumentClick);

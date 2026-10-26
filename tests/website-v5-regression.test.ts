@@ -329,7 +329,11 @@ test("D3/L8 + one LINE button: the dock is visible from load, tucks away below t
   // Cookie-sheet offset (transform only, so no layout shift). Owner requirement 2026-10-26: the chat does not
   // depend on consent, so the dock no longer steps aside for a tall notice; the lift is capped to keep it on screen.
   assert.match(dock, /const COOKIE_DIALOG = '\[role="dialog"\]\[aria-labelledby\^="cookie"\]';/);
-  assert.match(dock, /setCookieOffset\(Math\.round\(Math\.max\(0, Math\.min\(height, room\)\)\)\);/);
+  assert.match(dock, /const offset = Math\.round\(Math\.max\(0, Math\.min\(height, room\)\)\);/);
+  // Motion smoothing (2026-10-26): the same capped offset is also written onto the layer before the notice's first
+  // paint (no frame with the dock behind the notice); React state carries the identical value for the render.
+  assert.match(dock, /if \(offset > 0\) layerRef\.current\?\.style\.setProperty\("--v5-dock-offset", `\$\{offset\}px`\);\n      else layerRef\.current\?\.style\.removeProperty\("--v5-dock-offset"\);\n      setCookieOffset\(offset\);/);
+  assert.match(dock, /new MutationObserver\(\(\) => \{ if \(document\.querySelector\(COOKIE_DIALOG\) !== observed\) measure\(\); else schedule\(\); \}\)/);
   assert.doesNotMatch(dock, /cookieCovers/);
   assert.match(dock, /const state = open \|\| shown \? "shown" : "hidden";/);
   // It never stays hidden: back on scroll up, at the page end, and when the panel closes.
@@ -346,8 +350,11 @@ test("D3/L8 + one LINE button: the dock is visible from load, tucks away below t
   }
   assert.match(read("components/layout/v5/V5.module.css"), /@media \(prefers-reduced-motion: reduce\) \{\n  \.root \*, \.root \*::before, \.root \*::after \{ transition: none !important;/);
   const css = read("components/layout/v5/V5ChatDock.module.css");
-  assert.match(css, /transform: translateY\(calc\(-1 \* var\(--v5-dock-offset, 0px\)\)\);/);
-  assert.match(css, /\.dock\[data-state="hidden"\] \{ transform: translateY\(110%\); visibility: hidden;/);
+  // Motion smoothing (2026-10-26): the notice lift is `translate` (instant, with the notice); only the tuck/return
+  // `transform` animates, and hidden adds the lift back so the dock still leaves the screen fully. Both compositor-only.
+  assert.match(css, /translate: 0 calc\(-1 \* var\(--v5-dock-offset, 0px\)\); transform: none;/);
+  assert.match(css, /\.dock\[data-state="hidden"\] \{ transform: translateY\(calc\(110% \+ var\(--v5-dock-offset, 0px\)\)\); visibility: hidden;/);
+  assert.match(css, /transition: transform var\(--v5-motion-base\) var\(--v5-ease-standard\), visibility 0s linear 0s;/);
   // One Compass: the dock is an outline control, so each viewport keeps gold for the page's own primary action.
   assert.match(css, /\.trigger \{[^}]*border: 1px solid var\(--v5-gold-text\); border-radius: var\(--v5-radius-button\); background: var\(--v5-card\);/);
 });

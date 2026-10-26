@@ -100,7 +100,8 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
     let observed: Element | null = null;
     let frame = 0;
     const exempted: InertRecord[] = [];
-    const boxObserver = typeof ResizeObserver === "function" ? new ResizeObserver(() => schedule()) : null;
+    // Resize callbacks run after layout and before paint, so the dock follows a growing notice in the same frame.
+    const boxObserver = typeof ResizeObserver === "function" ? new ResizeObserver(() => measure()) : null;
     const measure = () => {
       frame = 0;
       const dialog = document.querySelector(COOKIE_DIALOG);
@@ -113,13 +114,19 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
       // covers reflow when the window width changes), capped so the dock itself stays on screen.
       const height = dialog ? dialog.getBoundingClientRect().height : 0;
       const room = window.innerHeight - (dockRef.current?.getBoundingClientRect().height ?? 0);
-      setCookieOffset(Math.round(Math.max(0, Math.min(height, room))));
+      const offset = Math.round(Math.max(0, Math.min(height, room)));
+      // Written straight onto the layer as well, so the dock moves in the frame the notice paints (the React
+      // state below carries the same value one render later); no frame shows the dock behind the notice.
+      if (offset > 0) layerRef.current?.style.setProperty("--v5-dock-offset", `${offset}px`);
+      else layerRef.current?.style.removeProperty("--v5-dock-offset");
+      setCookieOffset(offset);
       // While the notice is open it makes the rest of the page inert; the chat layer stays out of it.
       if (dialog && layerRef.current) exemptFromInert(layerRef.current, exempted);
       else if (!dialog) restoreInert(exempted);
     };
     const schedule = () => { if (!frame) frame = window.requestAnimationFrame(measure); };
-    const mutations = new MutationObserver(schedule);
+    // A notice that just mounted or unmounted is handled before the next paint; other page mutations stay frame-throttled.
+    const mutations = new MutationObserver(() => { if (document.querySelector(COOKIE_DIALOG) !== observed) measure(); else schedule(); });
     // The notice sets inert in an effect after it mounts, so inert changes are watched too.
     mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["inert"] });
     window.addEventListener("ccpun:consent", schedule);
