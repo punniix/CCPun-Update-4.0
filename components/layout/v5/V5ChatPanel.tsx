@@ -28,6 +28,7 @@ function Arrow() {
  */
 export default function V5ChatPanel({ config, context, trigger, resultTool, closing, onClose, onClosed }: { config: LineChatConfig; context: ChatPageContext; trigger: V5ChatPanelTrigger; resultTool?: LineChatResultTool; closing: boolean; onClose: () => void; onClosed: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const qrViewedTopics = useRef(new Set<string>());
   const [newTab] = useState(() => !window.matchMedia("(pointer: coarse)").matches);
   const [desktop] = useState(() => window.matchMedia("(hover: hover) and (pointer: fine)").matches
     && !/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
@@ -71,6 +72,19 @@ export default function V5ChatPanel({ config, context, trigger, resultTool, clos
     }).catch(() => { if (!cancelled) setQr({ href: qrHref, failed: true }); });
     return () => { cancelled = true; };
   }, [qrHref]);
+
+  useEffect(() => {
+    // Effects run after the successful SVG commit. Stale/failed/closing/mobile choices never count.
+    if (!desktop || closing || !selectedTopic || !qr?.path || qr.failed || qr.href !== qrHref) return;
+    const dialog = dialogRef.current;
+    if (!dialog || dialog.inert || dialog.dataset.chatState === 'closing' || dialog.querySelector('svg[role="img"] path')?.getAttribute('d') !== qr.path) return;
+    if (qrViewedTopics.current.has(selectedTopic.id)) return;
+    // Consume even a denied view: granting consent later must not replay an earlier interaction.
+    qrViewedTopics.current.add(selectedTopic.id);
+    try {
+      trackEvent("line_chat_qr_view", { panel_trigger: trigger, topic: selectedTopic.id, cta_location: "chat_panel", page_type: panel.pageGroup });
+    } catch { /* never blocks the panel */ }
+  }, [desktop, closing, selectedTopic, qr, qrHref, trigger, panel.pageGroup]);
 
   useEffect(() => {
     const dialog = dialogRef.current;

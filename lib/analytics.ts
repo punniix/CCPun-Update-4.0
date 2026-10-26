@@ -52,6 +52,9 @@ const ALLOWED_STRINGS: Record<string, Set<string> | RegExp> = {
   campaign_code: /^[a-z0-9][a-z0-9_-]{1,63}$/,
   // Which control opened the LINE chat panel (owner-approved 2026-10-25): the dock or an article-body LINE CTA.
   panel_trigger: new Set(['dock', 'article_cta']),
+  // C12: registered internal IDs only, never CMS text, prefill, answers or customer values.
+  topic: new Set(['check-existing-policy', 'health-plan', 'tax-deduction', 'smart-network-hospital', 'which-plan-fits', 'ci-result-chat', 'ci-plan', 'book-a-chat', 'fhc-result-chat', 'life-cover', 'investment-before', 'fund-allocation', 'motor-quote', 'money-plan', 'type-own']),
+  page_type: new Set(['home', 'blog_index', 'blog_category', 'article', 'tool_ci', 'tool_fhc', 'tool_money_story', 'tool_investment_allocation', 'tools_hub', 'about', 'coming_soon', 'default']),
   calculator_version: new Set(['ci_planning_v6', 'ci_planning_v7_recovery_sources_2025_2026']),
   page_version: CI_PAGE_VERSIONS,
   utm_source: /^[a-z0-9][a-z0-9_-]{0,63}$/,
@@ -88,6 +91,7 @@ export function resolveEventMapping(eventName: string, params: SafeParams): { ga
   const fhc = params.tool_name === 'fhc';
   if (eventName === 'cta_click' && params.contact_channel === 'line') return { ga: [], meta: 'none' };
   if (eventName === 'line_oa_click' && params.contact_channel === 'line') return { ga: ['line_oa_click'], meta: 'none' };
+  if (eventName === 'line_chat_qr_view') return { ga: ['line_chat_qr_view'], meta: 'none' };
   if (eventName === 'line_chat_panel_open') return { ga: ['line_chat_panel_open'], meta: 'none' };
   if (eventName === 'ci_landing_view' && ci) return { ga: ['ci_landing_view'], meta: 'none' };
   if ((eventName === 'ci_calculator_start' || eventName === 'tool_start') && ci) return { ga: ['ci_calculator_start'], meta: 'custom', metaName: 'StartCIPlanning' };
@@ -162,6 +166,8 @@ export function buildSemanticDataLayerEvent(eventName: string, params: SafeParam
     page_group: null,
     campaign_code: null,
     panel_trigger: null,
+    topic: null,
+    page_type: null,
     coming_soon_path: null,
     ...params,
   };
@@ -186,6 +192,8 @@ export function trackEvent(eventName: string, params: EventParams = {}): void {
   if (typeof window === 'undefined') return;
   const consent = getConsentData();
   if (!consent) return;
+  // C12 is GA4-only: social permission alone must never enqueue or emit this event.
+  if (eventName === 'line_chat_qr_view' && consent.analytics !== true) return;
   const sanitized = sanitizeEventParams({ ...params, site_version: CCPUN_SITE_VERSION });
   const safe = sanitized.tool_name === 'ci_planning'
     ? sanitizeEventParams({ ...sanitized, page_version: getCIPlanningPageVersion() })

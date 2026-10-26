@@ -153,7 +153,7 @@ test("Analytics/consent: v5 emits only through trackEvent with existing event na
   const events = v5Files.flatMap((file) => [...read(file).matchAll(/trackEvent\("([a-z_]+)"/g)].map((match) => match[1]));
   // Owner-approved 2026-10-25 (L5): the LINE chat button adds line_chat_panel_open and reuses the
   // existing line_oa_click; no other event name is introduced.
-  assert.deepEqual([...new Set(events)].sort(), ["ci_calculator_cta_click", "line_chat_panel_open", "line_oa_click"], "only the approved chat events are new");
+  assert.deepEqual([...new Set(events)].sort(), ["ci_calculator_cta_click", "line_chat_panel_open", "line_chat_qr_view", "line_oa_click"], "only the approved chat events are new");
   assert.match(read("lib/analytics.ts"), /eventName === 'ci_calculator_cta_click' && ci\) return \{ ga: \['ci_calculator_cta_click'\], meta: 'none' \}/, "existing GA4-only mapping is reused unchanged");
 });
 
