@@ -339,7 +339,11 @@ test("D3/L8 + one LINE button: the dock is visible from load, tucks away below t
   assert.match(dock, /const state = open \|\| shown \? "shown" : "hidden";/);
   // It never stays hidden: back on scroll up, at the page end, and when the panel closes.
   assert.match(dock, /y \+ window\.innerHeight >= document\.documentElement\.scrollHeight - 4/);
-  assert.match(dock, /setPanel\(null\);\n    revealRef\.current\(\);/);
+  // C8: release the dock immediately, retain the inert exit until animationend/token fallback.
+  assert.match(dock, /setPanel\(current => current \? \{ \.\.\.current, closing: true \} : null\);\n    revealRef\.current\(\);/);
+  assert.match(dock, /const finishClose = useCallback\(\(\) => setPanel\(current => current\?\.closing \? null : current\), \[\]\);/);
+  assert.match(dock, /triggerRef\.current\?\.focus\(\{ preventScroll: true \}\);/);
+  assert.match(read("components/layout/v5/V5ChatPanel.tsx"), /const timeout = window\.setTimeout\(onClosed, V5_MOTION_MS\.micro\);/);
   assert.match(dock, /"--v5-dock-offset": `\$\{cookieOffset\}px`/);
   // No-JS fallback: the dock is a real LINE OA link (this page's prefill), enhanced into the panel button.
   assert.match(dock, /href=\{fallbackHref\} target="_blank" rel="noopener noreferrer"/);
@@ -662,7 +666,7 @@ test("Article LINE CTAs open the dock's chat panel; no-JS falls back to the page
   assert.doesNotMatch(link, /trackEvent/, "the panel owns the tracking");
   const dock = read("components/layout/v5/V5ChatDock.tsx");
   assert.match(dock, /window\.addEventListener\(V5_OPEN_CHAT_EVENT, onOpenChat\)/);
-  assert.match(dock, /setPanel\(\{ trigger: "dock", returnTo: null \}\)/);
+  assert.match(dock, /setPanel\(\{ instance: \+\+panelSequence\.current, trigger: "dock", returnTo: null \}\)/, "C8: each reopening gets its own panel instance, so stale exits cannot dismiss it");
   const panel = read("components/layout/v5/V5ChatPanel.tsx");
   assert.match(panel, /trackEvent\("line_chat_panel_open", \{ page_group: panel\.pageGroup, panel_trigger: trigger, \.\.\.\(campaignCode \? \{ campaign_code: campaignCode \} : \{\}\) \}\);/);
   assert.match(panel, /trackEvent\("line_oa_click", \{\n\s+contact_channel: "line", cta_location: "chat_panel", chat_topic_id: topic\.id, page_group: panel\.pageGroup,/, "topic clicks keep line_oa_click unchanged");

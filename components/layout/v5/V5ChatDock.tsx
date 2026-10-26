@@ -39,7 +39,8 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
   const [shown, setShown] = useState(true);
   const enhanced = useHydrated();
   const [cookieOffset, setCookieOffset] = useState(0);
-  const [panel, setPanel] = useState<{ trigger: V5ChatPanelTrigger; returnTo: HTMLElement | null; resultTool?: V5OpenChatDetail["resultTool"] } | null>(null);
+  const [panel, setPanel] = useState<{ trigger: V5ChatPanelTrigger; returnTo: HTMLElement | null; closing?: boolean; instance: number; resultTool?: V5OpenChatDetail["resultTool"] } | null>(null);
+  const panelSequence = useRef(0);
   const triggerRef = useRef<HTMLAnchorElement>(null);
   const layerRef = useRef<HTMLDivElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
@@ -153,20 +154,26 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
         return;
       }
       event.preventDefault();
-      setPanel({ trigger: detail.trigger, returnTo: detail.returnTo ?? null, ...(resultTool ? { resultTool } : {}) });
+      setPanel({ instance: ++panelSequence.current, trigger: detail.trigger, returnTo: detail.returnTo ?? null, ...(resultTool ? { resultTool } : {}) });
     };
     window.addEventListener(V5_OPEN_CHAT_EVENT, onOpenChat);
     return () => window.removeEventListener(V5_OPEN_CHAT_EVENT, onOpenChat);
   }, [config.enabled, token]);
 
   const close = useCallback(() => {
-    const returnTo = panel?.returnTo;
-    setPanel(null);
+    setPanel(current => current ? { ...current, closing: true } : null);
     revealRef.current();
-    window.requestAnimationFrame(() => (returnTo && returnTo.isConnected ? returnTo : triggerRef.current)?.focus());
-  }, [panel]);
+    // Release the hit area and focus in this event, before React paints the closing frame.
+    layerRef.current?.querySelectorAll<HTMLElement>("[data-chat-state]").forEach(node => {
+      node.dataset.chatState = "closing";
+      node.inert = true;
+    });
+    dockRef.current?.setAttribute("data-state", "shown");
+    triggerRef.current?.focus({ preventScroll: true });
+  }, []);
+  const finishClose = useCallback(() => setPanel(current => current?.closing ? null : current), []);
 
-  const open = panel !== null;
+  const open = panel !== null && !panel.closing;
   const state = open || shown ? "shown" : "hidden";
   const style = cookieOffset > 0 ? { "--v5-dock-offset": `${cookieOffset}px` } as CSSProperties : undefined;
 
@@ -191,16 +198,16 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
           onClick={(event) => {
             if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
             event.preventDefault();
-            setPanel({ trigger: "dock", returnTo: null });
+            setPanel({ instance: ++panelSequence.current, trigger: "dock", returnTo: null });
           }}
           onKeyDown={(event) => {
             // role="button": Space activates it like a button (Enter already follows the click).
-            if (event.key === " ") { event.preventDefault(); setPanel({ trigger: "dock", returnTo: null }); }
+            if (event.key === " ") { event.preventDefault(); setPanel({ instance: ++panelSequence.current, trigger: "dock", returnTo: null }); }
           }}>
           <ChatIcon />{LABEL}
         </a>
       </div>
-      {panel ? <Suspense fallback={null}><V5ChatPanel config={config} context={context} trigger={panel.trigger} resultTool={panel.resultTool} onClose={close} /></Suspense> : null}
+      {panel ? <Suspense fallback={null}><V5ChatPanel key={panel.instance} config={config} context={context} trigger={panel.trigger} resultTool={panel.resultTool} closing={panel.closing === true} onClose={close} onClosed={finishClose} /></Suspense> : null}
     </div>
   );
 }

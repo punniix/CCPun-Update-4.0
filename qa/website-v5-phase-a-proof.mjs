@@ -164,6 +164,12 @@ export const websiteV5ResultLineSources = Object.freeze({
   "features/financial-health-check/components/LifeCoverageWizard.tsx": { before: "9238203d154b3d296a78e4bfefb4f3d9bb31a491b0a05ba339d4417a7df6caa1", after: "6283ac485db757f6b6f2837f8d99e517fda372a037dc3afe9c386e4c3d1d2c43" },
 });
 
+// C8 (owner-approved 2026-10-26): decorative result tick only. All C6 pins remain frozen.
+export const websiteV5MotionSources = Object.freeze({
+  'features/ci-planning/components/result/CIResult.tsx': { before: 'c8480aedfb87812afbd42c67d5a246b163f3c3e4f99937835f41f04d9c623de0', after: 'd52e93f39f48b7ea7a2b43d0164b7c6baa6c9e558ff14c25a245695c830a1aac' },
+  'features/financial-health-check/components/LifeCoverageWizard.tsx': { before: '6283ac485db757f6b6f2837f8d99e517fda372a037dc3afe9c386e4c3d1d2c43', after: '88e6dddd92a860dbde4f00b9ad9ed127964c1a60b0d8b23ed872adc05e258814' },
+});
+
 /** Digest the frozen proofs should compare: the reviewed predecessor for an exact v5 successor, else the file's own digest. */
 export function websiteV5PredecessorDigest(file, source) {
   const restored = websiteV5CopyPredecessor(file, source);
@@ -175,6 +181,8 @@ export function websiteV5PredecessorDigest(file, source) {
 }
 
 export function isWebsiteV5ReviewedSuccessor(file, source) {
+  const motion = Object.hasOwn(websiteV5MotionSources, file) ? websiteV5MotionSources[file] : null;
+  if (motion && motion.before === websiteV5ResultLineSources[file]?.after && sha(source) === motion.after) return true;
   const result = Object.hasOwn(websiteV5ResultLineSources, file) ? websiteV5ResultLineSources[file] : null;
   if (result && sha(source) === result.after) return true;
   const entry = Object.hasOwn(websiteV5PhaseASources, file) ? websiteV5PhaseASources[file] : null;

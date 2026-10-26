@@ -338,7 +338,8 @@ test("website: one merged bottom LINE element, panel and QR load on interaction,
   // Owner decision 2026-10-25: visible from load; it sits above the cookie notice instead of waiting for it.
   assert.match(dock, /document\.querySelector\(COOKIE_DIALOG\)/, "the bar sits above the cookie notice instead of stacking on it");
   const panel = read("components/layout/v5/V5ChatPanel.tsx");
-  assert.match(panel, /role="dialog" aria-modal="true"/);
+  assert.match(panel, /role="dialog" aria-modal=\{closing \? undefined : true\}/, "C8: only the active panel owns modal focus");
+  assert.match(panel, /inert=\{closing\} aria-hidden=\{closing \|\| undefined\}/, "C8: the closing panel leaves the accessibility and focus trees");
   assert.match(panel, /event\.key === "Escape"/);
   assert.match(panel, /event\.key !== "Tab"/);
   assert.match(panel, /import\("\.\/qr-code"\)/);

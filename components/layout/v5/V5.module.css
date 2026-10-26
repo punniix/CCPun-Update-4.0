@@ -345,3 +345,7 @@
   themes and keep their existing opaque-enough fills, so text sits on a predictable background.
 */
 .root :global(:is(.glass-card, .glass-button, .glass-button-sm)) { backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+/* C8: native details keep their built-in no-JS toggle; only the newly exposed content moves. */
+.root details[open] > :not(summary) { animation: v5DetailsReveal var(--v5-motion-fast) var(--v5-ease-standard) both; }
+@keyframes v5DetailsReveal { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }

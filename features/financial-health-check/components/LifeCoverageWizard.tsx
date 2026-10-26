@@ -1,4 +1,5 @@
 'use client';
+import V5ResultTick from '@/components/layout/v5/V5ResultTick';
 import { usePublicCopy } from '@/components/ui/PublicCopyProvider';
 import { FHC_COPY_DEFAULTS } from '@/lib/content/tool-copy-defaults';
 
@@ -122,7 +123,7 @@ export default function LifeCoverageWizard() {
   if (showResult) return <section ref={viewRef} aria-labelledby="life-result-title" data-ui="human-centered-fhc-result" className="ccpun-calculator-result ccpun-motion-result-reveal">
     <div className="ccpun-calculator-result-lead">
       <p className="ccpun-calculator-result-eyebrow">{t.node("fhc.wizard.description")}</p>
-      <h2 id="life-result-title" tabIndex={-1} className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{t.node("fhc.wizard.lifeResultTitle.heading")}<span className="whitespace-nowrap">{t.node("fhc.wizard.label")}</span><span className="sr-only"> {formatLifeCoverageMoney(result.gap)} {t.node("fhc.wizard.label2")}</span></h2>
+      <h2 id="life-result-title" tabIndex={-1} className="ccpun-calculator-result-title scroll-mt-28 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><V5ResultTick />{t.node("fhc.wizard.lifeResultTitle.heading")}<span className="whitespace-nowrap">{t.node("fhc.wizard.label")}</span><span className="sr-only"> {formatLifeCoverageMoney(result.gap)} {t.node("fhc.wizard.label2")}</span></h2>
       <p className="ccpun-calculator-result-amount">{formatLifeCoverageMoney(result.gap)} <small>{t.node("fhc.wizard.label2")}</small></p>
       <p className="ccpun-calculator-result-body">{t.node("fhc.wizard.description2")}</p>
     </div>
