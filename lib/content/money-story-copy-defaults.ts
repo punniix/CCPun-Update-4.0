@@ -145,7 +145,7 @@ export const MONEY_STORY_COPY_DEFAULTS = {
   "moneyStory.resultLeadText2": " เพราะเงินสดรับภาระที่เข้ามาต่อไม่ไหว",
   "moneyStory.resultLeadText3": "จบรอบด้วยเงินสำรอง ",
   "moneyStory.resultLeadText4": " เดือน และเงินสำหรับเป้าหมาย ",
-  "moneyStory.kicker3": "ผลลัพธ์ · ",
+  "moneyStory.kicker3": "ชีวิตของ",
   "moneyStory.h3": "หลังรอบนี้ เงินอยู่ตรงไหน",
   "moneyStory.small7": "เงินสำรอง",
   "moneyStory.strong9": "/ 3 เดือน",

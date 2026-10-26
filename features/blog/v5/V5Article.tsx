@@ -180,6 +180,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
 
           {nextSteps.length > 0 && <section className={shell.section} style={{ paddingTop: 0 }} aria-label={text("blog.nextStep.eyebrow")}>
             <div className={`${shell.inner} ${shell.narrow}`}>
+              <h2 className={shell.h2}>{text.node("blog.nextStep.eyebrow")}</h2>
               <div className={styles.nextStep}>
                 {nextSteps.map((step) => (
                   <div className={styles.nextCard} key={step.key}>

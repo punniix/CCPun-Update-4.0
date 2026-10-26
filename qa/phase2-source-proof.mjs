@@ -1,3 +1,4 @@
+import { eyebrowPredecessor } from "./v5-eyebrow-proof.mjs";
 import { assertProductionCmsOwner, hasProductionCmsOwner } from './production-cms-source-proof.mjs';
 import { websiteV5PredecessorDigest } from './website-v5-phase-a-proof.mjs';
 import assert from 'node:assert/strict';
@@ -228,7 +229,7 @@ export function assertPhase2MoneyComposition(file, expectedBaselineDigest, readC
     assert.equal(sha(original),expectedBaselineDigest,'frozen original Money controller');
     assert.equal(expectedBaselineDigest,composition.baselineSha256);
     assert.equal(composition.test,'tests/money-story-presentation-parity.test.mjs');
-    assert.equal(sha(readCurrent(composition.test)),'2fab8aac076c4fe2f2dbe4a1acfbfe1dc0c19beab4f714495b55324bb5644b5b','unchanged six-output/action fixture with only default CMS context');
+    assert.equal(sha(eyebrowPredecessor(composition.test, readCurrent(composition.test))),'2fab8aac076c4fe2f2dbe4a1acfbfe1dc0c19beab4f714495b55324bb5644b5b','unchanged six-output/action fixture with only default CMS context');
     return true;
   }
   assert.equal(sha(current), composition.controllerSha256, 'Unreviewed controller composition');
@@ -237,7 +238,7 @@ export function assertPhase2MoneyComposition(file, expectedBaselineDigest, readC
   assert.equal(sha(original), expectedBaselineDigest, 'Original f703 output fixture must match the unchanged protected manifest');
   assert.equal(sha(original), composition.baselineSha256);
   assert.equal(composition.test, 'tests/money-story-presentation-parity.test.mjs');
-  assert.equal(sha(readCurrent(composition.test)), composition.outputTestSha256, 'Actual output/action test drift');
+  assert.equal(sha(eyebrowPredecessor(composition.test, readCurrent(composition.test))), composition.outputTestSha256, 'Actual output/action test drift');
   const oldTree = parse(file, original), currentTree = parse(file, resetPresentationProjection(current)), ownerTree = parse(ownerPath, owner);
   const expectedImports = imports(oldTree).map(item => ({ ...item, bindings: item.bindings.filter(([imported, local]) => !['Car', 'HeartPulse', 'House', 'ShieldCheck', 'Users'].includes(imported) || imported !== local) }));
   expectedImports.push({ module: './MoneyStoryStatusSidebar', typeOnly: false, default: null, namespace: null, bindings: ['money', 'MoneyStoryStatusSidebar', 'percentLabel'].map(name => [name, name, false]) });

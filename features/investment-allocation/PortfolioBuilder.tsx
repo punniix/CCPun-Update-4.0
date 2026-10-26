@@ -396,7 +396,7 @@ export default function PortfolioBuilder({ scope = "main" }: { scope?: FundScope
         </div>
 
         <aside className={`${styles.summary} ${styles.summarySticky}`} aria-label="สรุปแผนระหว่างจัดพอร์ต">
-          <h2>เห็นภาพโดยไม่เลือกแทน</h2>
+          <h2>สรุประหว่างจัดพอร์ต</h2>
           <p className={styles.summaryIntro}>ตัวเลขอัปเดตตามสิ่งที่คุณกรอกเอง ระบบไม่ตั้งพอร์ตหรือเลือกกองทุนให้โดยอัตโนมัติ</p>
           <div className={styles.summaryAmount}><span>เงินในแผน</span><strong>{amount > 0 ? `${formatMoney(amount)} บาท` : "—"}</strong></div>
           <dl className={styles.summaryRows}>

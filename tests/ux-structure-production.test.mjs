@@ -1,3 +1,4 @@
+import { eyebrowPredecessor } from "../qa/v5-eyebrow-proof.mjs";
 import { inlineCssPredecessor } from '../qa/v5-inline-css-proof.mjs';
 import { assertProductionCmsOwner, hasProductionCmsOwner } from '../qa/production-cms-source-proof.mjs';
 import { isWebsiteV5ReviewedSuccessor } from '../qa/website-v5-phase-a-proof.mjs';
@@ -515,7 +516,7 @@ test('all39 approved source records retain provenance with exact reviewed Articl
     } else if (file === 'components/layout/website-43/Website43.module.css') {
       assert.equal(digest, '244b11b3d139756c27d99ad67d43f8eeb20287d68fcc8380b90d521c9837be16');
       // Previous V4 source def909c954d9bd9769e26ba4bac4c2c16de40719affce6668b486423853dbf13 stays pinned in phase2-source-proof.
-      assert.equal(sha(source), '973eed337a31212f28ee1210327773568a8534b6d85142ade317872ac7e49b6d', 'reviewed V4 CSS minus nine unused legal rules');
+      assert.equal(sha(eyebrowPredecessor(file, source)), '973eed337a31212f28ee1210327773568a8534b6d85142ade317872ac7e49b6d', 'reviewed V4 CSS minus nine unused legal rules');
     } else if (file === 'components/layout/website-43/Website43ResponsiveStyles.tsx') {
       assert.equal(digest, '6c90a2136905c48703e1d68108d2bb3fa5d21d8bee64bf25bb4737274c2ed3bb');
       assert.equal(sha(source), '49a2b4550755fc02c7c1f145bb5980b267c6a2d82013059cc135cd4ad6464717', 'only unused legal selectors removed');

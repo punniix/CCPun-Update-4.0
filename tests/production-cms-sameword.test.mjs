@@ -1,3 +1,5 @@
+import { inverseEyebrowHtml, eyebrowHtmlPins } from "../qa/v5-eyebrow-html.mjs";
+import { inverseC15OnC14Html } from '../qa/v5-c15-c14-merge-successor.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -167,7 +169,7 @@ test('eight original scopes retain exact b871 public HTML, current design and si
     // is retired deliberately and replaced by the v5 archive assertions below. The unchanged
     // Website 4.3 Blog presentation keeps its own render contract in website43-blog-article-regression.
     if (scope === 'blog') continue;
-    let html = inverseWebsiteV5C14(await renderFixture(scope,props), index);
+    let html = inverseWebsiteV5C14(inverseC15OnC14Html(await renderFixture(scope,props), index), index);
     if (scope === 'blog') {
       const hint = '<link rel="preload" href="/assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.lossless.webp" as="image" fetchPriority="high"/>';
       const heroHint = '<link rel="preload" as="image" href="/assets/website-43/blog-hero.png" imageSizes="(max-width: 639px) 100vw, 60vw" fetchPriority="high"/>';
@@ -177,6 +179,7 @@ test('eight original scopes retain exact b871 public HTML, current design and si
     }
     // Website v5 Phase B: tool/legal scopes render the v5 shell; their reviewed v5 digest replaces the b871 golden.
     if (Object.hasOwn(websiteV5PhaseBRenderGoldens.v5, index)) { assert.equal(digest(inverseWebsiteV5C11Header(html, index)), websiteV5PhaseBRenderGoldens.v5[index], `${index}:${scope} (v5)` ); continue; }
+    html = inverseEyebrowHtml(html, index);
     html = inverseCanonicalShellLinks(html, scope);
     assert.equal(digest(html),websiteV5PhaseBRenderGoldens.retained[index] ?? baseline[index],`${index}:${scope}`);
   }
@@ -457,7 +460,7 @@ test('native Presentation selects the exact page copy or SEO form for every priv
 // above continue to inspect the actual current header, labels, destinations and markup.
 test('C11 header inverse preserves all old goldens and rejects unknown, duplicate, moved and unrelated render mutations', async () => {
   for (const [index, scope] of [[3, 'ci'], [4, 'fhc'], [8, 'privacy'], [9, 'cookies'], [10, 'moneyStory']]) {
-    const current = inverseWebsiteV5C14(await renderFixture(scope, {}), index);
+    const current = inverseWebsiteV5C14(inverseC15OnC14Html(await renderFixture(scope, {}), index), index);
     const restored = inverseWebsiteV5C11Header(current, index);
     assert.equal(digest(restored), websiteV5PhaseBRenderGoldens.v5[index]);
     assert.equal(inverseWebsiteV5C11Header(restored, index), restored, 'exact historical output remains accepted');
@@ -483,7 +486,8 @@ test('C11 header inverse preserves all old goldens and rejects unknown, duplicat
 test('C14 admits exact complete default renders, preserves C11 pins and rejects all unapproved DOM deltas', async () => {
   for (const [index, [scope, props]] of cases.entries()) {
     if (scope === 'blog') continue;
-    const current = await renderFixture(scope, props);
+    // C15 merge: peel the exact C15 default fragments first, so C14 inspects its own complete render.
+    const current = inverseC15OnC14Html(await renderFixture(scope, props), index);
     const restored = inverseWebsiteV5C14(current, index);
     assert.equal(digest(restored), websiteV5C14RenderPins[index].before);
     assert.equal(inverseWebsiteV5C14(restored, index), restored);
@@ -498,7 +502,7 @@ test('C14 admits exact complete default renders, preserves C11 pins and rejects 
     ]) { assert.notEqual(mutation, current); assert.throws(() => inverseWebsiteV5C14(mutation, index), /unknown full render/); }
   }
   const article = {id:'article-fixture',slug:'article-fixture',title:'บทความเจ้าของ',excerpt:'คำอธิบาย',category:'การเงินส่วนบุคคล',categorySlug:'personal-finance',status:'published',publishedAt:'2026-10-01T00:00:00Z',updatedAt:'2026-10-02T00:00:00Z',tags:[],body:[{type:'heading',level:2,text:'หัวข้อ'},{type:'paragraph',text:'เนื้อหา'}]};
-  const current = await renderFixture('blog', {}, { article, v5Article: true });
+  const current = inverseC15OnC14Html(await renderFixture('blog', {}, { article, v5Article: true }), 'v5Article');
   const restored = inverseWebsiteV5C14(current, 'v5Article');
   assert.equal(digest(restored), websiteV5C14RenderPins.v5Article.before);
   const date = '<span>อัปเดต <time dateTime="2026-10-02T00:00:00Z">2 ตุลาคม 2569</time></span>';
@@ -513,4 +517,25 @@ test('C14 admits exact complete default renders, preserves C11 pins and rejects 
   }
   assert.throws(() => inverseWebsiteV5C14(current, 3), /unknown full render/);
   assert.throws(() => inverseWebsiteV5C14(current, 'unknown'), /unregistered/);
+});
+
+// C15 inverse is used solely for approved default goldens; real CMS edits remain observable.
+test('C15 default-only inverse rejects edited copy, moved nodes, duplicates and unrelated markup', async () => {
+  for (const [index,scope,key] of [[1,'home','home.website43Hometitle5'],[3,'ci','ci.landing.heading3'],[4,'fhc','fhc.landing.calculatorHeading.heading']]) {
+    // Integrated on the C14 head: the merged render peels C15's exact fragments to the full C14 render,
+    // then C14 restores the shared base, which must equal C15's own pinned predecessor.
+    const html=await renderFixture(scope,{});
+    const c14=inverseC15OnC14Html(html,index);
+    assert.notEqual(c14,html);
+    const prior=inverseWebsiteV5C14(c14,index);
+    assert.equal(digest(prior),eyebrowHtmlPins[String(index)].before);
+    assert.equal(inverseEyebrowHtml(prior,index),prior);
+    const edited=await renderFixture(scope,{}, {overrides:{[key]:'ข้อความเจ้าของ'}});
+    assert.match(edited,/ข้อความเจ้าของ/);
+    for(const mutation of [edited,html+' ',html.replace('</main>','unrelated</main>'),html.replace(/(<h[23][^>]*>[^<]*<\/h[23]>)/,'$1$1')]) {
+      assert.equal(inverseC15OnC14Html(mutation,index),mutation,'unknown merged output is never normalized');
+      assert.throws(()=>inverseWebsiteV5C14(inverseC15OnC14Html(mutation,index),index),/unknown full render/);
+      assert.throws(()=>inverseEyebrowHtml(mutation,index),/unknown full render/);
+    }
+  }
 });

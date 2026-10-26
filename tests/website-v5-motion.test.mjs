@@ -1,3 +1,4 @@
+import { eyebrowPredecessor } from "../qa/v5-eyebrow-proof.mjs";
 // Website v5 motion round (owner-approved ideas #1, #2, #4; UAT prototype only).
 // Contracts: transform/opacity only, reduced motion shows the final state, no-JS keeps full content,
 // flip cards are native buttons with aria-pressed, counted numbers expose the final value at once.
@@ -339,7 +340,7 @@ test('C8 result successors reconstruct the frozen C6 pins exactly and reject unr
   const { websiteV5MotionSources, websiteV5ResultLineSources, isWebsiteV5ReviewedSuccessor } = await import('../qa/website-v5-phase-a-proof.mjs');
   const sha = s => createHash('sha256').update(s).digest('hex');
   for (const [file, entry] of Object.entries(websiteV5MotionSources)) {
-    const source = read(file);
+    const source = eyebrowPredecessor(file, read(file));
     assert.equal(entry.before, websiteV5ResultLineSources[file].after);
     assert.equal(sha(source), entry.after);
     const predecessor = source.replace("import V5ResultTick from '@/components/layout/v5/V5ResultTick';\n", '').replace('<V5ResultTick />', '');

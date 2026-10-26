@@ -1,3 +1,4 @@
+import { eyebrowPredecessor } from "../qa/v5-eyebrow-proof.mjs";
 import test from 'node:test';
 import { inverseWebsiteV5C14 } from '../qa/website-v5-c14-successor.mjs';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
@@ -132,8 +133,8 @@ test('reviewed stylesheet outputs stay frozen while original Production CSS gold
   assert.equal(reviewedCurrent.activeCss, 'b0667b266057590903178ab882dc6531de433464273dcb7ef698cdf7d5f2f240', 'previous reviewed CSS pin retained');
   assert.equal(articleV4CssFingerprint, 'e5ee6c0fda60766b8e2cb32a55f2d537fc52058236547287bab33c727ab6ba98', 'pre-cleanup Article V4 output retained');
   assert.equal(reviewedCurrent.responsiveCss, '1d1f2510d7e6a64998498f47c8e668fc694f81710bb425558eddb0d43a1325c9', 'pre-cleanup responsive output retained');
-  assert.equal(createHash('sha256').update(after('Website43.module.css')).digest('hex'), '973eed337a31212f28ee1210327773568a8534b6d85142ade317872ac7e49b6d', 'only nine unused module rules removed');
-  assert.equal(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(after('Website43.module.css')))), retainedLegalCssFingerprint);
+  assert.equal(createHash('sha256').update(eyebrowPredecessor('components/layout/website-43/Website43.module.css', after('Website43.module.css'))).digest('hex'), '973eed337a31212f28ee1210327773568a8534b6d85142ade317872ac7e49b6d', 'only nine unused module rules removed');
+  assert.equal(fingerprint(stylesheetRules(originalStylesExceptApprovedPortrait(eyebrowPredecessor('components/layout/website-43/Website43.module.css', after('Website43.module.css'))))), retainedLegalCssFingerprint);
   assert.equal(fingerprint(stylesheetRules(after('Website43ResponsiveStyles.tsx'), true)), '292cfa5edc576889aeaea3bcf9eab885b839ee114154068e7959bf23ae274024');
   assert.doesNotMatch(after('Website43.module.css') + after('Website43ResponsiveStyles.tsx'), /\b(?:legalHeader|legalBody|legalGrid)\b/);
   assert.equal(fingerprint(after('Website43Navbar.module.css')), reviewedCurrent.navbarCss, 'canonical navbar styling includes only reviewed responsive/control feedback');

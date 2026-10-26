@@ -60,7 +60,7 @@ export default async function ComingSoonRoute({ params }: { params: Promise<Para
           <div className={styles.heroGrid}>
             <div className={styles.heroText}>
               <h1 id="coming-soon-title" className={shell.h1}>{page.title}</h1>
-              <p className={styles.status}>หน้านี้กำลังสร้างอยู่</p>
+              <p className={shell.lead}>หน้านี้กำลังสร้างอยู่</p>
               <p className={shell.lead}>{page.intent}</p>
               {page.expected ? <p className={styles.expected}>คาดว่าจะเปิดใช้ {page.expected}</p> : null}
               <ComingSoonInterest path={page.path} href={interestHref} />

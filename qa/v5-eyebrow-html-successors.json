@@ -1,0 +1,46 @@
+{
+  "1": {
+    "after": "daeeccbd65e9c9d222fde9dd7873b77239c35b873bddaaa1361f710a71cada82",
+    "before": "183debcf7444c76e4eae10d90567f3d5ed6a6276c3beeb2ace186b418577bdf8",
+    "replacements": [
+      [
+        "คำถามก่อนเริ่มวางแผนกับ CCPun",
+        "ก่อนเริ่มวางแผนกับ CCPun"
+      ]
+    ]
+  },
+  "2": {
+    "after": "ff9b5b385b88c8bef409fcf664ff2dad8f0224c4c1ae14336ae1f99830f5ecbe",
+    "before": "079902ba51788977a12a8e4bfbcb156e794a33d2c246bf395d48e880ec9364c8",
+    "replacements": [
+      [
+        "คำถามก่อนเริ่มวางแผนกับ CCPun",
+        "ก่อนเริ่มวางแผนกับ CCPun"
+      ]
+    ]
+  },
+  "3": {
+    "after": "d81e5b262c80e0bf8a08e0cd38c40e99ad0d0a844a6f241be37839dd34394acd",
+    "before": "61f1a6e85d6de01def25c36d6f709ab5142bc065c2a93007d2634aba1792858b",
+    "replacements": [
+      [
+        "ทุนสำรองช่วงพักฟื้น (Recovery Reserve) แยกให้เห็นที่มาและกรอกตามสถานการณ์จริง",
+        "Recovery Reserve แยกให้เห็นที่มาและกรอกตามสถานการณ์จริง"
+      ],
+      [
+        "<p class=\"text-sm leading-6 text-foreground\">เงินสำรองสำหรับรักษา ฟื้นฟู และปรับการใช้ชีวิต</p>",
+        "<p class=\"text-xs font-medium text-primary\">เงินสำรองสำหรับรักษา ฟื้นฟู และปรับการใช้ชีวิต</p>"
+      ]
+    ]
+  },
+  "4": {
+    "after": "b23f1d3e654a71d3c62524100195182e5f827efccc7cfaab42f192c7719ae085",
+    "before": "c612b43c9aec116d8427c993b68ded550655253115777f7df9f9aaa0893c2266",
+    "replacements": [
+      [
+        "คำนวณทุนประกันชีวิต เริ่มจากภาระที่คนข้างหลังต้องดูแล",
+        "เริ่มจากภาระที่คนข้างหลังต้องดูแล"
+      ]
+    ]
+  }
+}

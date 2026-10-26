@@ -1,3 +1,4 @@
+import { inverseEyebrowHtml } from "./v5-eyebrow-html.mjs";
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -11,6 +12,7 @@ assert.deepEqual(Object.keys(fixtures).sort(), Object.keys(websiteV5C11RenderSuc
 
 /** Only default-shell golden assertions use this inverse. CMS edits keep their actual render. */
 export function inverseWebsiteV5C11Header(html, index) {
+  html = inverseEyebrowHtml(html, index);
   const key = String(index);
   assert.ok(Object.hasOwn(websiteV5C11RenderSuccessors.renders, key), 'C11 refuses an unregistered render case');
   const pin = websiteV5C11RenderSuccessors.renders[key];
