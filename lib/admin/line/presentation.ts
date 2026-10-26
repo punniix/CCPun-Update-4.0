@@ -25,7 +25,7 @@ const NEED_LABELS: Record<string, string> = {
   ci_planning_context: "เช็กเงินก้อนเมื่อเจอโรคร้ายแรง",
   before_add: "กำลังดูก่อนซื้อเพิ่ม",
   before_switch: "กำลังดูก่อนย้ายหรือสับเปลี่ยน",
-  waiting_for_advisor: "รอปันตอบ",
+  waiting_for_advisor: "รอปั้นตอบ",
 };
 
 const MESSAGE_TYPE_LABELS: Record<string, string> = {
@@ -86,7 +86,7 @@ const BOT_DECISION_LABELS: Record<LineBotDecision, string> = {
   show_content: "มีเนื้อหาที่เกี่ยวข้องให้ดู",
   show_tool: "มีเครื่องมือที่ช่วยต่อได้",
   qualify: "กำลังเก็บข้อมูลเพิ่ม",
-  human_handoff: "รอปันตอบ",
+  human_handoff: "รอปั้นตอบ",
 };
 
 const IMPLEMENTATION_LABELS: Record<string, string> = {
@@ -153,7 +153,7 @@ export function lineConversationStatusLabel(value: string | null | undefined) {
 export function lineBotDecisionLabel(value: LineBotDecision | string | null | undefined) {
   return value && value in BOT_DECISION_LABELS
     ? BOT_DECISION_LABELS[value as LineBotDecision]
-    : "รอปันดูรายละเอียด";
+    : "รอปั้นดูรายละเอียด";
 }
 
 export function lineEvidenceSourceLabel(value: string | null | undefined) {

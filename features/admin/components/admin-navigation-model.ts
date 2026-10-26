@@ -1,4 +1,4 @@
-export type AdminNavigationChild = { href: string; label: string };
+export type AdminNavigationChild = { href: string; label: string; technical?: boolean };
 export type AdminNavigationGroup = { href: string; label: string; children?: AdminNavigationChild[] };
 
 // Group/legacy routes that only redirect to another page. They keep working (old
@@ -8,6 +8,8 @@ export const ADMIN_NAVIGATION_REDIRECTS: Readonly<Record<string, string>> = {
   "/content/": "/content/articles/",
   "/operations/": "/operations/health/",
   "/seo/audits/": "/seo/",
+  // The manual GSC/GA4 pull page became the "ดึงใหม่ตอนนี้" button on the morning report (A4).
+  "/seo/opportunities/": "/analytics/",
 };
 
 export function adminNavigationDestination(href: string): string {
@@ -29,4 +31,9 @@ export function contextualNavigationItems(item: AdminNavigationGroup): AdminNavi
     links.push(link);
   }
   return links;
+}
+
+// Technical children are grouped in a collapsed "สำหรับทีมเทคนิค" section (A9).
+export function splitTechnicalNavigationItems(links: AdminNavigationChild[]): { everyday: AdminNavigationChild[]; technical: AdminNavigationChild[] } {
+  return { everyday: links.filter((link) => !link.technical), technical: links.filter((link) => link.technical) };
 }

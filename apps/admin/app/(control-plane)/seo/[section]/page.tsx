@@ -5,7 +5,7 @@ const CANONICAL_WORKSPACE_BY_SECTION: Record<string, string> = {
   keywords: "/content/research/",
   "internal-links": "/seo/audits/",
   competitors: "/content/research/",
-  reports: "/seo/opportunities/",
+  reports: "/analytics/",
 };
 
 export default async function SeoSectionPage({ params }: { params: Promise<{ section: string }> }) {

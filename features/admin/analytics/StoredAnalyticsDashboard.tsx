@@ -7,6 +7,9 @@ import { ownerAnalyticsLimitation, ownerAnalyticsOverviewLabel, ownerAnalyticsOv
 import { readDailyAssessment } from "@/lib/admin/analytics/assessment";
 import { readAnalyticsDashboard } from "@/lib/admin/analytics/store";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
+import { deriveDailyJobHealthFromAnalytics } from "@/lib/admin/ops-telemetry/contracts";
+import { DailyJobBannerView } from "@/features/admin/operations/DailyJobBanner";
+import { readSupabaseConfig } from "@/lib/admin/ops-telemetry/store";
 
 const SOURCES: Record<string, string> = { gsc: "Google Search Console", ga4: "Google Analytics 4", meta: "Facebook / Instagram", ubersuggest: "Ubersuggest" };
 const REPORTS: Record<string, string> = {
@@ -28,7 +31,7 @@ function date(value: string | null | undefined) {
   return value && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }).format(new Date(value)) : "ยังไม่มีข้อมูล";
 }
 
-export async function StoredAnalyticsDashboard({ searchParams, searchOnly = false, now }: { searchParams: Record<string, string | string[] | undefined>; searchOnly?: boolean; now: number }) {
+export async function StoredAnalyticsDashboard({ searchParams, searchOnly = false, now, refreshSlot = null }: { searchParams: Record<string, string | string[] | undefined>; searchOnly?: boolean; now: number; refreshSlot?: React.ReactNode }) {
   await requireAdminPermission("settings:read");
   const [model, assessment] = await Promise.all([readAnalyticsDashboard(), readDailyAssessment()]);
   const datasets = model.datasets.filter((item) => !searchOnly || item.source === "gsc" || item.source === "ga4");
@@ -39,8 +42,12 @@ export async function StoredAnalyticsDashboard({ searchParams, searchOnly = fals
   const periods = [...new Set(datasets.map(periodKey))].filter((value) => value !== "|");
   const visible = datasets.filter((item) => (!source || item.source === source) && (!report || item.report === report) && (!period || periodKey(item) === period));
   const statuses = model.sources.filter((item) => !searchOnly || item.source === "gsc" || item.source === "ga4");
+  // The report already read the Neon batch status, so this fallback banner costs no extra query.
+  // When Supabase is connected the Admin-wide banner already covers the 06:00 job.
+  const dailyJob = readSupabaseConfig() ? null : deriveDailyJobHealthFromAnalytics(model.sources, now);
 
   return <div className="min-w-0">
+    {dailyJob ? <DailyJobBannerView health={dailyJob} /> : null}
     <p className="text-xs font-semibold tracking-[0.12em] text-[#e0c985]">ข้อมูลสำหรับตัดสินใจ</p>
     <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div>
       <h1 className="text-3xl font-semibold leading-snug">{searchOnly ? "การค้นหาและผู้เข้าชม" : "ภาพรวมข้อมูล"}</h1>
@@ -63,6 +70,7 @@ export async function StoredAnalyticsDashboard({ searchParams, searchOnly = fals
         </li>;
       })}</ul>
     </section>
+    {refreshSlot}
 
     <form className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_auto]" method="get">
       <label className="text-sm text-white/70">แหล่งข้อมูล<select name="source" defaultValue={source} className={control}><option value="">ทุกแหล่ง</option>{Object.entries(SOURCES).filter(([key]) => !searchOnly || key === "gsc" || key === "ga4").map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>

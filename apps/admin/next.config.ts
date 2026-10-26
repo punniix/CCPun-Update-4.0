@@ -16,6 +16,15 @@ const PRIVATE_ADMIN_API_HEADERS = [
   ...PRIVATE_SURFACE_ROBOTS_HEADERS,
   { key: "Cache-Control", value: "private, no-cache, no-store, max-age=0, must-revalidate" },
 ];
+// Every Admin page, redirect, auth and API response is private and never edge
+// cached, even under a CDN cache-everything rule. Only content-hashed public
+// assets (/_next/static, /_next/image, rewritten /assets and favicons) stay cacheable.
+const PRIVATE_ADMIN_NO_STORE_HEADERS = [
+  ...PRIVATE_ADMIN_API_HEADERS,
+  { key: "CDN-Cache-Control", value: "no-store" },
+  { key: "Cloudflare-CDN-Cache-Control", value: "no-store" },
+];
+const PRIVATE_ADMIN_NO_STORE_SOURCE = "/:path((?!_next/static/|_next/image(?:/|$)|assets/|favicon\\.(?:ico|png)$).*)";
 const ADMIN_ENVIRONMENT = getAdminEnvironment();
 const SANITY_PROJECT_ID = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID?.trim();
 const SANITY_DATASET = process.env.NEXT_PUBLIC_SANITY_DATASET?.trim();
@@ -151,6 +160,10 @@ const nextConfig: NextConfig = {
       {
         source: "/.well-known/workflow/:path*",
         headers: PRIVATE_ADMIN_API_HEADERS,
+      },
+      {
+        source: PRIVATE_ADMIN_NO_STORE_SOURCE,
+        headers: PRIVATE_ADMIN_NO_STORE_HEADERS,
       },
     ];
   },

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
+import { adminOps20261025PredecessorDigest } from './admin-ops-20261025-proof.mjs';
 
 const baseline = "a3e212360f01f14c99ec5dad075804514df74b6b";
 const originalHashes = {
@@ -57,7 +58,8 @@ export function assertPhase3AdminNativeBoundaries(file, originalDigest, {
   for (const path of phase3AdminNativeEntries) {
     assert.equal(sha(proof.baselineSources[path]), originalHashes[path], 'own original source identity');
     if (currentHashes[path] === null) assert.equal(exists(path), false, 'retired verifier must be absent');
-    else assert.equal(sha(read(path)), currentHashes[path], path);
+    // Only an exact reviewed successor (qa/admin-ops-20261025-proof.mjs) chains back to its seal.
+    else assert.equal(adminOps20261025PredecessorDigest(path, sha(read(path))), currentHashes[path], path);
   }
   const privatePath = 'lib/admin/line/private-ingestion.ts';
   const privateBody = source => source.slice(source.indexOf('function privateEventPayload('));

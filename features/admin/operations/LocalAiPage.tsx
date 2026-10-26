@@ -1,6 +1,7 @@
 import { readLocalAiOperations, readLocalAiReviewQueue } from "@/lib/admin/local-ai/database";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { AiReviewOutput } from "./AiReviewOutput";
+import { LOCAL_AI_FIRST_JOBS } from "@/lib/local-ai/first-jobs";
 
 function formatDate(value: string | null) {
   if (!value) return "—";
@@ -67,6 +68,18 @@ export default async function LocalAiPage() {
 
     <section className="mt-5 rounded-2xl border border-[#e0c985]/20 bg-[#e0c985]/[0.06] p-4 text-sm leading-6 text-white/70">
       <strong className="text-[#f4df9b]">ข้อมูลลูกค้าถูกป้องกันอย่างไร:</strong> ระบบจะล็อกข้อมูลก่อนบันทึก เปิดอ่านเฉพาะตอนที่ AI ภายในกำลังทำงาน และไม่ส่งข้อความต้นฉบับหรือกุญแจเปิดข้อมูลไปยัง n8n
+    </section>
+
+    <section className="mt-5 rounded-2xl border border-white/10 bg-white/[0.035] p-4 sm:p-5" aria-labelledby="local-ai-first-jobs" data-local-ai-first-jobs="">
+      <h2 id="local-ai-first-jobs" className="text-lg font-semibold">งานแรกของ AI ภายใน</h2>
+      <ul className="mt-3 grid gap-3 md:grid-cols-2">
+        {LOCAL_AI_FIRST_JOBS.map((job) => <li key={job.id} className="min-w-0 rounded-xl border border-white/10 bg-black/15 p-4">
+          <div className="flex flex-wrap items-center gap-2"><strong className="text-white/90">{job.label}</strong><span className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium ${job.state === "active" ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : "border-white/10 bg-white/[0.04] text-white/65"}`}>{job.state === "active" ? "ทำงานอยู่" : "เตรียมไว้ ยังไม่เปิด"}</span></div>
+          <p className="mt-2 text-sm leading-6 text-white/65">{job.trigger}</p>
+          {job.nextStep ? <p className="mt-1 text-xs leading-5 text-white/50">ขั้นต่อไป: {job.nextStep}</p> : null}
+        </li>)}
+      </ul>
+      <p className="mt-3 text-xs leading-5 text-white/50">ทั้งสองงานใช้ข้อมูลทั่วไปเท่านั้น ผลลัพธ์เป็นข้อเสนอที่ต้องให้คุณตรวจก่อนใช้ทุกครั้ง</p>
     </section>
 
     {model.error ? <p className="mt-5 rounded-2xl border border-rose-300/15 bg-rose-300/[0.04] p-4 text-sm text-rose-100">ขณะนี้ยังเชื่อมต่อระบบ AI ภายในไม่ได้ กรุณาลองใหม่อีกครั้งหรือตรวจหน้าภาพรวมระบบ</p> : null}

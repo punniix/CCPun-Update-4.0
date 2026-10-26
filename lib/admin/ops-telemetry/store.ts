@@ -1,0 +1,180 @@
+import "server-only";
+import { z } from "zod";
+import type { AdminEnvironment } from "../environment";
+import {
+  DAILY_JOB_KEY,
+  OPS_ALERT_CLAIM_TTL_SECONDS,
+  OPS_ALERT_REFERENCE_PATTERN,
+  RUN_LOG_RETENTION_DAYS,
+  alertClaimResultSchema,
+  dailyJobStatusRowSchema,
+  retentionResultSchema,
+  toDailyJobStatus,
+  type AlertClaimResult,
+  type DailyJobStatus,
+  type OpsAlertKind,
+  type OpsLane,
+  type OpsResult,
+  type OpsStoreState,
+  type RetentionResult,
+} from "./contracts";
+
+// Server-only Supabase store for high-frequency n8n data. It talks to PostgREST
+// with the service_role key over fetch (no extra SDK). The key is read from the
+// Admin server env only, is never logged and never reaches client components.
+// When the env vars are absent the disabled provider answers "not-configured"
+// and every caller degrades to "ยังไม่ได้เชื่อม Supabase" instead of crashing.
+
+export type OpsTelemetryStatus = { state: OpsStoreState; provider: "supabase" | "disabled"; lane: OpsLane | null };
+
+export interface OpsTelemetryStore {
+  readonly provider: "supabase" | "disabled";
+  status(): Promise<OpsTelemetryStatus>;
+  readLatestDailyJob(jobKey?: string): Promise<OpsResult<DailyJobStatus | null>>;
+  /**
+   * Calls public.ops_claim_alert(): atomically claims one owner alert by its
+   * reference for ttlSeconds (database clock). claimed is true for exactly one
+   * caller; an unexpired pending claim or an accepted alert is never re-claimed.
+   */
+  claimAlert(input: { reference: string; kind: OpsAlertKind; ttlSeconds?: number }): Promise<OpsResult<AlertClaimResult>>;
+  /** Calls public.ops_mark_alert_accepted(): pending -> accepted ("relay accepted", not "email delivered"). */
+  markAlertRelayAccepted(reference: string): Promise<OpsResult<boolean>>;
+  /** Calls public.ops_apply_run_log_retention(). Never invoked automatically. */
+  applyRunLogRetention(input?: { now?: string; keepDays?: number }): Promise<OpsResult<RetentionResult>>;
+}
+
+type Variables = Record<string, string | undefined>;
+type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
+
+export const SUPABASE_ENV = { url: "CCPUN_SUPABASE_URL", key: "CCPUN_SUPABASE_SERVICE_ROLE_KEY" } as const;
+
+export function opsLaneForEnvironment(environment: AdminEnvironment | string | undefined): OpsLane | null {
+  if (environment === "production-admin" || environment === "local-production") return "production-admin";
+  if (environment === "admin-uat" || environment === "local-uat") return "admin-uat";
+  return null;
+}
+
+export function readSupabaseConfig(variables: Variables = process.env): { url: string; key: string } | null {
+  const rawUrl = variables[SUPABASE_ENV.url]?.trim();
+  const key = variables[SUPABASE_ENV.key]?.trim();
+  if (!rawUrl || !key) return null;
+  let url: URL;
+  try { url = new URL(rawUrl); } catch { return null; }
+  if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash || (url.pathname !== "/" && url.pathname !== "")) return null;
+  return { url: url.origin, key };
+}
+
+function notReady<T>(state: Exclude<OpsStoreState, "ready">): OpsResult<T> {
+  return { state, value: null };
+}
+
+export const disabledOpsTelemetryStore: OpsTelemetryStore = Object.freeze({
+  provider: "disabled" as const,
+  async status() { return { state: "not-configured" as const, provider: "disabled" as const, lane: null }; },
+  async readLatestDailyJob() { return notReady<DailyJobStatus | null>("not-configured"); },
+  async claimAlert() { return notReady<AlertClaimResult>("not-configured"); },
+  async markAlertRelayAccepted() { return notReady<boolean>("not-configured"); },
+  async applyRunLogRetention() { return notReady<RetentionResult>("not-configured"); },
+});
+
+const laneRowsSchema = z.array(z.object({ lane: z.string() })).max(1);
+
+export function createSupabaseOpsTelemetryStore(options: { url: string; key: string; lane: OpsLane; fetch?: FetchLike; timeoutMs?: number }): OpsTelemetryStore {
+  const fetchImpl: FetchLike = options.fetch ?? ((input, init) => fetch(input, init));
+  const timeoutMs = options.timeoutMs ?? 4_000;
+  let laneCheck: Promise<OpsStoreState> | null = null;
+
+  async function request(path: string, init: { method?: string; body?: unknown; prefer?: string } = {}) {
+    const response = await fetchImpl(`${options.url}/rest/v1/${path}`, {
+      method: init.method ?? "GET",
+      headers: {
+        apikey: options.key,
+        Authorization: `Bearer ${options.key}`,
+        Accept: "application/json",
+        ...(init.body === undefined ? {} : { "Content-Type": "application/json" }),
+        ...(init.prefer ? { Prefer: init.prefer } : {}),
+      },
+      body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      cache: "no-store",
+      redirect: "error",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!response.ok) throw new Error("OPS_SUPABASE_HTTP_" + response.status);
+    const text = await response.text();
+    return text ? JSON.parse(text) as unknown : null;
+  }
+
+  function verifyLane(): Promise<OpsStoreState> {
+    laneCheck ??= request("ops_lane_identity?select=lane&singleton=eq.true")
+      .then((value) => {
+        const rows = laneRowsSchema.parse(value);
+        return rows[0]?.lane === options.lane ? "ready" as const : "lane-mismatch" as const;
+      })
+      .catch(() => { laneCheck = null; return "unavailable" as const; });
+    return laneCheck;
+  }
+
+  async function guarded<T>(run: () => Promise<T>): Promise<OpsResult<T>> {
+    const lane = await verifyLane();
+    if (lane !== "ready") return notReady<T>(lane);
+    try { return { state: "ready", value: await run() }; }
+    catch { return notReady<T>("unavailable"); }
+  }
+
+  return {
+    provider: "supabase",
+    async status() { return { state: await verifyLane(), provider: "supabase", lane: options.lane }; },
+    readLatestDailyJob(jobKey = DAILY_JOB_KEY) {
+      return guarded(async () => {
+        const value = await request(`ops_daily_job_status?select=id,job_key,run_date,execution_id,trigger,status,started_at,finished_at,failed_steps,error_category,alert_sent_at&job_key=eq.${encodeURIComponent(jobKey)}&order=run_date.desc,started_at.desc&limit=1`);
+        const rows = z.array(dailyJobStatusRowSchema).max(1).parse(value);
+        return rows[0] ? toDailyJobStatus(rows[0]) : null;
+      });
+    },
+    claimAlert(input) {
+      return guarded(async () => {
+        const ttlSeconds = input.ttlSeconds ?? OPS_ALERT_CLAIM_TTL_SECONDS;
+        if (!OPS_ALERT_REFERENCE_PATTERN.test(input.reference) || !Number.isInteger(ttlSeconds) || ttlSeconds < 60 || ttlSeconds > 86_400) throw new Error("OPS_ALERT_INVALID");
+        // p_now is omitted on purpose: claim expiry uses the database clock, so
+        // the page-render fallback and the scheduled check agree on it.
+        const value = await request("rpc/ops_claim_alert", {
+          method: "POST",
+          body: { p_reference: input.reference, p_kind: input.kind, p_ttl_seconds: ttlSeconds },
+        });
+        return alertClaimResultSchema.parse(value);
+      });
+    },
+    markAlertRelayAccepted(reference) {
+      return guarded(async () => {
+        if (!OPS_ALERT_REFERENCE_PATTERN.test(reference)) throw new Error("OPS_ALERT_INVALID");
+        const value = await request("rpc/ops_mark_alert_accepted", { method: "POST", body: { p_reference: reference } });
+        return z.boolean().parse(value);
+      });
+    },
+    applyRunLogRetention(input = {}) {
+      return guarded(async () => {
+        const keepDays = input.keepDays ?? RUN_LOG_RETENTION_DAYS;
+        if (!Number.isInteger(keepDays) || keepDays < RUN_LOG_RETENTION_DAYS) throw new Error("OPS_RETENTION_TOO_SHORT");
+        const value = await request("rpc/ops_apply_run_log_retention", {
+          method: "POST",
+          body: { p_now: input.now ?? new Date().toISOString(), p_keep_days: keepDays },
+        });
+        return retentionResultSchema.parse(value);
+      });
+    },
+  };
+}
+
+let cached: { signature: string; store: OpsTelemetryStore } | null = null;
+
+export function getOpsTelemetryStore(variables: Variables = process.env, fetchImpl?: FetchLike): OpsTelemetryStore {
+  const config = readSupabaseConfig(variables);
+  // Hostinger Admin lanes always set CCPUN_APP_ENV explicitly; anything else stays disabled (fail closed).
+  const lane = opsLaneForEnvironment(variables.CCPUN_APP_ENV?.trim());
+  if (!config || !lane) return disabledOpsTelemetryStore;
+  if (fetchImpl) return createSupabaseOpsTelemetryStore({ ...config, lane, fetch: fetchImpl });
+  // One store per process keeps the lane check cached between page renders.
+  const signature = `${config.url}|${lane}|${config.key}`;
+  if (cached?.signature !== signature) cached = { signature, store: createSupabaseOpsTelemetryStore({ ...config, lane }) };
+  return cached.store;
+}

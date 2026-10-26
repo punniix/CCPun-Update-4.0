@@ -27,6 +27,9 @@ import { readLineArchiveHealth } from "@/lib/admin/line/conversation-archive";
 import { readDefaultLineRichMenuStatus } from "@/lib/admin/line/rich-menu-provider";
 import { readLineSystemDeliveryDatabaseReadiness } from "@/lib/admin/line/control-plane";
 import { readLineRichMenuControlState } from "@/lib/admin/control-plane/provider-state";
+import { getOpsTelemetryStore } from "@/lib/admin/ops-telemetry/store";
+import { opsStoreStateLabel } from "@/lib/admin/ops-telemetry/contracts";
+import { alertEmailStatus } from "@/lib/admin/notifications/notifier";
 
 export const metadata: Metadata = { title: "สถานะระบบ" };
 
@@ -61,6 +64,8 @@ export default async function AdminHealthPage() {
   const operations = getAdminOperationsRuntimeStatus();
   const schedulerLane = resolveArticleSchedulerLane(process.env);
   const scheduler = await readArticleSchedulerModel({ scheduleLimit: 10, auditLimit: 10 });
+  const opsTelemetry = await getOpsTelemetryStore().status().catch(() => ({ state: "unavailable" as const }));
+  const alertEmail = alertEmailStatus();
   const socialFoundation = getSocialFoundationRuntimeStatus();
   const socialOperations = getSocialOperationsRuntimeStatus();
   const [
@@ -216,20 +221,23 @@ export default async function AdminHealthPage() {
           <details className="pt-2 text-white/50"><summary className="cursor-pointer text-white/65">ดูรายละเอียดสำหรับทีมเทคนิค</summary><div className="mt-2 space-y-2"><Row label="Lane" value={schedulerLane ?? "—"} /><Row label="Mode" value={scheduler.mode ?? "—"} /><Row label="Runtime switch" value={scheduler.runtimeEnabled ? "เปิด" : "ปิด"} /><Row label="Durable switch" value={scheduler.status === "ready" ? scheduler.durableEnabled ? "เปิด" : "ปิด" : "อ่านไม่ได้"} /><Row label="Audit records" value={scheduler.status === "ready" ? scheduler.audit.length.toLocaleString("th-TH") : "—"} />{scheduler.error ? <Row label="Error" value={scheduler.error} /> : null}</div></details>
         </Card>
 
-        <Card title="ความพร้อมของการเข้ารหัส LINE" state={lineKeyRotationState}>
-          <Row label="เวอร์ชันที่ใช้อยู่" value={`V${lineKeyRotation.activeVersion}`} />
-          <Row label="กุญแจรุ่นล่าสุด" value={lineKeyRotation.v2Configured ? "พร้อม" : "ยังไม่พร้อม"} />
-          <Row label="อัปเดตกุญแจอัตโนมัติ" value={lineKeyRotation.lazyRotationEnabled ? "เปิด" : "ปิด"} />
-          {lineKeyRotation.state === "ready" ? <>
-            <Row label="ข้อมูลรุ่นเก่าที่ยังเหลือ" value={lineKeyRotation.totalV1Count.toLocaleString("th-TH")} />
-            <Row label="รายการที่ยังอัปเดตได้" value={lineKeyRotation.rotatableV1Count.toLocaleString("th-TH")} />
-            <Row label="รายการหลังบ้านที่ยังเป็นรุ่นเก่า" value={lineKeyRotation.adminOnlyV1Count.toLocaleString("th-TH")} />
-            <Row label="รายการที่ระบบไม่รองรับ" value={lineKeyRotation.unsupportedVersionCount.toLocaleString("th-TH")} />
-            <Row label="ข้อความที่ยกเลิกแต่ยังเข้ารหัสอยู่" value={lineKeyRotation.encryptedUnsentCount.toLocaleString("th-TH")} />
-            <Row label="ถอดกุญแจรุ่นเก่าได้หรือยัง" value={lineKeyRotation.allV1Zero ? "พร้อมตรวจขั้นสุดท้าย" : "ยังไม่ควรถอด"} />
-          </> : <p className="text-white/50">ตอนนี้ยังตรวจสถานะการเข้ารหัสไม่ได้</p>}
-          <p className="pt-2 text-white/50">หน้านี้แสดงเฉพาะจำนวนรวม ไม่แสดงข้อความ ชื่อลูกค้า หรือค่ากุญแจเข้ารหัส</p>
-        </Card>
+        <details className="rounded-3xl border border-white/10 bg-white/[0.02]" data-admin-technical-section="">
+          <summary className="flex min-h-11 cursor-pointer items-center px-5 text-sm font-medium text-white/70">สำหรับทีมเทคนิค · ความพร้อมของการเข้ารหัส LINE</summary>
+          <Card title="ความพร้อมของการเข้ารหัส LINE" state={lineKeyRotationState}>
+            <Row label="เวอร์ชันที่ใช้อยู่" value={`V${lineKeyRotation.activeVersion}`} />
+            <Row label="กุญแจรุ่นล่าสุด" value={lineKeyRotation.v2Configured ? "พร้อม" : "ยังไม่พร้อม"} />
+            <Row label="อัปเดตกุญแจอัตโนมัติ" value={lineKeyRotation.lazyRotationEnabled ? "เปิด" : "ปิด"} />
+            {lineKeyRotation.state === "ready" ? <>
+              <Row label="ข้อมูลรุ่นเก่าที่ยังเหลือ" value={lineKeyRotation.totalV1Count.toLocaleString("th-TH")} />
+              <Row label="รายการที่ยังอัปเดตได้" value={lineKeyRotation.rotatableV1Count.toLocaleString("th-TH")} />
+              <Row label="รายการหลังบ้านที่ยังเป็นรุ่นเก่า" value={lineKeyRotation.adminOnlyV1Count.toLocaleString("th-TH")} />
+              <Row label="รายการที่ระบบไม่รองรับ" value={lineKeyRotation.unsupportedVersionCount.toLocaleString("th-TH")} />
+              <Row label="ข้อความที่ยกเลิกแต่ยังเข้ารหัสอยู่" value={lineKeyRotation.encryptedUnsentCount.toLocaleString("th-TH")} />
+              <Row label="ถอดกุญแจรุ่นเก่าได้หรือยัง" value={lineKeyRotation.allV1Zero ? "พร้อมตรวจขั้นสุดท้าย" : "ยังไม่ควรถอด"} />
+            </> : <p className="text-white/50">ตอนนี้ยังตรวจสถานะการเข้ารหัสไม่ได้</p>}
+            <p className="pt-2 text-white/50">หน้านี้แสดงเฉพาะจำนวนรวม ไม่แสดงข้อความ ชื่อลูกค้า หรือค่ากุญแจเข้ารหัส</p>
+          </Card>
+        </details>
 
         <Card title="LINE และไฟล์ลูกค้า" state={lineDocumentMediaState}>
           {lineDocumentMedia.state === "ready" ? <>
@@ -344,6 +352,12 @@ export default async function AdminHealthPage() {
         <Card title="การส่งงานไปโซเชียล" state={socialState}>
           <Row label="เตรียมโพสต์" value={socialFoundation.enabled ? "เปิด" : "ปิด"} />
           <Row label="จัดคิวและติดตามผล" value={socialOperations.enabled ? "เปิด" : "ปิด"} />
+        </Card>
+
+        <Card title="บันทึกงาน n8n และรอบ 06:00" state={opsTelemetry.state === "ready" ? "ok" : opsTelemetry.state === "not-configured" ? "off" : "warning"}>
+          <Row label="ฐานข้อมูลบันทึกงาน (Supabase)" value={opsStoreStateLabel[opsTelemetry.state]} />
+          <Row label="อีเมลแจ้งเมื่อรอบ 06:00 ไม่สำเร็จ" value={alertEmail === "enabled" ? "เปิด" : alertEmail === "invalid-config" ? "ตั้งค่าไม่ครบ" : "ปิด (ค่าเริ่มต้น)"} />
+          <p className="pt-2 text-white/50">บันทึกการรัน ข้อมูลดิบรายวัน และสถานะรอบ 06:00 แยกไปเก็บที่ Supabase เพื่อลดการปลุกฐานข้อมูลหลัก ข้อมูลลูกค้าและงานของศูนย์จัดการยังอยู่ที่เดิม</p>
         </Card>
       </div>
     </div>

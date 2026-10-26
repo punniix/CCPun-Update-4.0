@@ -135,7 +135,7 @@ export default async function AdvisorInboxPage({
         </p>
       ) : null}
 
-      <section className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="สรุปลูกค้า">
+      <section className="mt-7 grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="สรุปลูกค้า">
         <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
           <p className="text-sm text-white/60">ลูกค้าใหม่</p>
           <p className="mt-2 text-2xl font-semibold">{model.unavailableReason ? "—" : newCount}</p>
@@ -182,9 +182,9 @@ export default async function AdvisorInboxPage({
           {displayRows.map((item) => {
             const displayName = privateProfiles.get(item.leadId)?.displayName;
             return (
-              <article key={item.leadId} className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 md:p-6">
+              <article key={item.leadId} className="min-w-0 rounded-3xl border border-white/10 bg-white/[0.035] p-4 sm:p-5 md:p-6">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       <span className="inline-flex whitespace-nowrap rounded-full border border-[#e0c985]/20 bg-[#e0c985]/10 px-2.5 py-1 text-[#f4df9b]">
                         {lineStageLabel(item.stage)}
@@ -200,7 +200,7 @@ export default async function AdvisorInboxPage({
                     <h2 className="mt-3 text-lg font-semibold text-white/90">
                       <Link
                         href={`/dashboard/inbox/${item.leadId}/`}
-                        className="hover:text-white hover:underline hover:underline-offset-4"
+                        className="inline-flex min-h-11 items-center break-words hover:text-white hover:underline hover:underline-offset-4"
                       >
                         {customerLabel(item, displayName)}
                       </Link>
@@ -224,16 +224,19 @@ export default async function AdvisorInboxPage({
                       {lineMessageTypeLabel(item.latestMessageType)} · {lineMessageStatusLabel(item.latestMessageStatus)}
                     </p>
                     {item.latestMessageNeedsHuman ? (
-                      <p className="mt-1 text-xs text-[#f4df9b]">รอปันดูต่อ</p>
+                      <p className="mt-1 text-xs text-[#f4df9b]">รอปั้นดูต่อ</p>
                     ) : null}
                   </div>
 
-                  <div className="rounded-2xl border border-[#e0c985]/15 bg-[#e0c985]/[0.05] p-4">
-                    <p className="text-xs font-medium text-[#e0c985]">เปิดเคสนี้</p>
-                    <p className="mt-2 text-sm text-white/75">
+                  <Link
+                    href={`/dashboard/inbox/${item.leadId}/`}
+                    className="block min-h-11 rounded-2xl border border-[#e0c985]/15 bg-[#e0c985]/[0.05] p-4 transition hover:border-[#e0c985]/35 focus:outline-none focus:ring-2 focus:ring-[#e0c985]"
+                  >
+                    <span className="block text-xs font-medium text-[#e0c985]">เปิดเคสนี้ →</span>
+                    <span className="mt-2 block text-sm text-white/75">
                       ดูประวัติการคุย เอกสาร โน้ต วันติดตาม และหลักฐานการสนทนา
-                    </p>
-                  </div>
+                    </span>
+                  </Link>
                 </div>
               </article>
             );

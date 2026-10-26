@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
-import { contextualNavigationItems, type AdminNavigationChild, type AdminNavigationGroup } from "./admin-navigation-model";
+import { contextualNavigationItems, splitTechnicalNavigationItems, type AdminNavigationChild, type AdminNavigationGroup } from "./admin-navigation-model";
 
 type NavigationChild = AdminNavigationChild;
 type NavigationItem = AdminNavigationGroup;
@@ -49,7 +49,27 @@ function ContextNavigation({ item, pathname, onNavigate }: {
   pathname: string;
   onNavigate?: () => void;
 }) {
-  const links = contextualItems(item);
+  const { everyday, technical } = splitTechnicalNavigationItems(contextualItems(item));
+  const renderLink = (child: NavigationChild) => {
+    const exactOverview = child.href === item.href;
+    const active = exactOverview ? pathname === child.href : isPathWithin(pathname, child.href);
+    return (
+      <Link
+        key={child.href}
+        href={child.href}
+        onClick={onNavigate}
+        aria-current={active ? "page" : undefined}
+        className={`flex min-h-11 items-center rounded-lg border-l-2 px-3 py-2 text-xs transition motion-reduce:transition-none focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${
+          active
+            ? "border-[#e0c985] bg-[#e0c985]/[0.08] font-medium text-[#f4df9b]"
+            : "border-transparent text-white/58 hover:bg-white/[0.04] hover:text-white"
+        }`}
+      >
+        {child.label}
+      </Link>
+    );
+  };
+  const technicalActive = technical.some((child) => isPathWithin(pathname, child.href));
   return (
     <div
       id={`admin-context-${item.label.toLowerCase()}`}
@@ -61,26 +81,16 @@ function ContextNavigation({ item, pathname, onNavigate }: {
         <span className="text-[10px] text-[#e0c985]/70">หมวด</span>
       </div>
       <div role="list" className="flex flex-col gap-1">
-        {links.map((child) => {
-          const exactOverview = child.href === item.href;
-          const active = exactOverview ? pathname === child.href : isPathWithin(pathname, child.href);
-          return (
-            <Link
-              key={child.href}
-              href={child.href}
-              onClick={onNavigate}
-              aria-current={active ? "page" : undefined}
-              className={`flex min-h-11 items-center rounded-lg border-l-2 px-3 py-2 text-xs transition motion-reduce:transition-none focus:outline-none focus:ring-2 focus:ring-[#e0c985] ${
-                active
-                  ? "border-[#e0c985] bg-[#e0c985]/[0.08] font-medium text-[#f4df9b]"
-                  : "border-transparent text-white/58 hover:bg-white/[0.04] hover:text-white"
-              }`}
-            >
-              {child.label}
-            </Link>
-          );
-        })}
+        {everyday.map(renderLink)}
       </div>
+      {technical.length ? (
+        <details className="mt-3 rounded-lg border border-white/10" open={technicalActive || undefined} data-admin-technical-nav="">
+          <summary className="flex min-h-11 cursor-pointer items-center px-3 text-xs text-white/55 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#e0c985]">สำหรับทีมเทคนิค</summary>
+          <div role="list" className="flex flex-col gap-1 px-1 pb-1">
+            {technical.map(renderLink)}
+          </div>
+        </details>
+      ) : null}
     </div>
   );
 }
