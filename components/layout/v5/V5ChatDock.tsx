@@ -140,7 +140,8 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
       const detail = (event as CustomEvent<V5OpenChatDetail>).detail;
       if (!detail) return;
       if (!config.enabled) {
-        trackEvent("line_oa_click", { contact_channel: "line", cta_location: "blog_article", page_group: token, surface_group: chatSurfaceGroup(token) });
+        // Only article-body CTAs record a plain LINE click here; Coming Soon records its own interest event.
+        if (detail.trigger === "article_cta") trackEvent("line_oa_click", { contact_channel: "line", cta_location: "blog_article", page_group: token, surface_group: chatSurfaceGroup(token) });
         return;
       }
       event.preventDefault();

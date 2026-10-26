@@ -6,8 +6,12 @@
  */
 export const V5_OPEN_CHAT_EVENT = "ccpun:open-chat";
 
-/** `panel_trigger` on line_chat_panel_open: which control opened the panel. */
-export type V5ChatPanelTrigger = "dock" | "article_cta";
+/**
+ * `panel_trigger` on line_chat_panel_open: which control opened the panel. "coming_soon" is the
+ * Coming Soon "อยากให้เสร็จเร็ว" button (owner addendum 2026-10-26); it is not in the analytics
+ * allowlist yet, so lib/analytics.ts drops that value and the event carries page_group only.
+ */
+export type V5ChatPanelTrigger = "dock" | "article_cta" | "coming_soon";
 
 export type V5OpenChatDetail = { trigger: V5ChatPanelTrigger; returnTo?: HTMLElement | null };
 

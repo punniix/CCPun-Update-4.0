@@ -1,39 +1,65 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { trackEvent } from "@/lib/analytics";
 import shell from "@/components/layout/v5/V5.module.css";
-import styles from "./ComingSoon.module.css";
+import V5ChatLink from "@/components/layout/v5/V5ChatLink";
+import { exemptFromInert, restoreInert, type InertRecord } from "@/components/layout/v5/chat-layer";
+
+/** The consent notice (rendered outside the v5 root); while it is open it makes the page inert. */
+const COOKIE_DIALOG = '[role="dialog"][aria-labelledby^="cookie"]';
 
 /**
- * "อยากให้เสร็จเร็ว": one semantic, consent-gated event per page view carrying only the planned
- * path (no personal data, no counter yet). The thank-you state is local to this view; focus moves
- * to it so keyboard and screen-reader users are not left on a removed button.
+ * "อยากให้เสร็จเร็ว" (owner addendum 2026-10-26): one tap opens the page's LINE chat panel with the
+ * "แจ้งเมื่อหน้านี้พร้อม" topic first (the dock owns the panel; this control asks it to open, like an
+ * article-body LINE CTA). Without JavaScript, or with the panel switched off, the link opens the
+ * @ccpun chat with this page's prefill directly. No confirmation text: the panel is the response.
+ * It works whatever the cookie choice, like the dock: while the notice is open the button stays
+ * usable above it (the same inert-boundary narrowing the dock uses; the notice itself is unchanged).
+ * One semantic, consent-gated event per page view carries only the planned path.
  */
-export default function ComingSoonInterest({ path }: { path: string }) {
-  const [sent, setSent] = useState(false);
-  const thanksRef = useRef<HTMLParagraphElement>(null);
-  useEffect(() => { if (sent) thanksRef.current?.focus(); }, [sent]);
-  if (sent) {
-    return (
-      <p ref={thanksRef} tabIndex={-1} className={styles.thanks} role="status">
-        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M5 10.5 8.5 14 15 6.5" /></svg>
-        <span>ขอบคุณครับ อยากให้แจ้งตอนเปิดใช้ ทักผมทาง LINE ที่ปุ่มด้านล่างได้</span>
-      </p>
-    );
-  }
+export default function ComingSoonInterest({ path, href }: { path: string; href: string }) {
+  const sent = useRef(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const node = wrapRef.current;
+    if (!node) return;
+    const exempted: InertRecord[] = [];
+    let frame = 0;
+    const sync = () => {
+      frame = 0;
+      if (document.querySelector(COOKIE_DIALOG)) exemptFromInert(node, exempted);
+      else restoreInert(exempted);
+    };
+    const schedule = () => { if (!frame) frame = window.requestAnimationFrame(sync); };
+    // The notice mounts after a delay and sets inert in an effect, so both are watched.
+    const mutations = new MutationObserver(schedule);
+    mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["inert"] });
+    window.addEventListener("ccpun:consent", schedule);
+    sync();
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      mutations.disconnect();
+      window.removeEventListener("ccpun:consent", schedule);
+      restoreInert(exempted);
+    };
+  }, []);
+
   return (
-    <div className={shell.buttonRow}>
-      <button
-        type="button"
+    <div ref={wrapRef} className={shell.buttonRow}>
+      <V5ChatLink
+        href={href}
         className={shell.buttonOutline}
-        onClick={() => {
+        trigger="coming_soon"
+        onActivate={() => {
+          if (sent.current) return;
+          sent.current = true;
           trackEvent("coming_soon_interest", { coming_soon_path: path });
-          setSent(true);
         }}
       >
         อยากให้เสร็จเร็ว
-      </button>
+      </V5ChatLink>
     </div>
   );
 }

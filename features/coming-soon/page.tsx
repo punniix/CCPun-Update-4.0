@@ -15,6 +15,7 @@ import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
 import { V5Breadcrumbs } from "@/components/layout/v5/V5Primitives";
 import { V5_TOOLS_HUB } from "@/components/layout/v5/constants";
+import { getV5ChatFallbackHref } from "@/components/layout/v5/V5ChatDockServer";
 import ComingSoonBlueprint from "./ComingSoonBlueprint";
 import ComingSoonInterest from "./ComingSoonInterest";
 import styles from "./ComingSoon.module.css";
@@ -46,6 +47,9 @@ export default async function ComingSoonRoute({ params }: { params: Promise<Para
     journey: "human" as const,
     enabled: true,
   };
+  const chatContext = { pageGroup: "coming_soon" };
+  // No-JS fallback of "อยากให้เสร็จเร็ว": the dock's own first topic link (this page's topic first).
+  const interestHref = await getV5ChatFallbackHref(chatContext, chatTopic);
   const action = page.closestExisting.kind === "tool" ? "ลองใช้เครื่องมือนี้" : "อ่านบทความนี้";
 
   return (
@@ -59,7 +63,7 @@ export default async function ComingSoonRoute({ params }: { params: Promise<Para
               <p className={styles.status}>หน้านี้กำลังสร้างอยู่</p>
               <p className={shell.lead}>{page.intent}</p>
               {page.expected ? <p className={styles.expected}>คาดว่าจะเปิดใช้ {page.expected}</p> : null}
-              <ComingSoonInterest path={page.path} />
+              <ComingSoonInterest path={page.path} href={interestHref} />
             </div>
             <ComingSoonBlueprint variant={page.blueprint} />
           </div>

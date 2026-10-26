@@ -28,6 +28,7 @@
     "qa:blog": "CCPUN_UAT_MODE=1 node --env-file-if-exists=.env.local qa/blog-uat-regression.mjs",
     "qa:home": "node qa/home-uat-regression.mjs",
     "qa:tracking": "node qa/tracking-consent-regression.mjs",
+    "qa:journey": "node qa/v5-journey-link-regression.mjs",
     "cms:export:wp-drafts": "node scripts/export-wordpress-drafts-via-cdp.mjs",
     "cms:import:wp-drafts": "CCPUN_UAT_MODE=1 node --env-file-if-exists=.env.local scripts/import-wordpress-drafts-to-sanity.mjs",
     "cms:seed:uat": "CCPUN_UAT_MODE=1 node --env-file-if-exists=.env.local scripts/create-sanity-uat-draft.mjs",
