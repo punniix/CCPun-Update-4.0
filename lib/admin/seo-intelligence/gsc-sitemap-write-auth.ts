@@ -11,7 +11,7 @@ export async function getGscSitemapWriteToken(
 ): Promise<string> {
   if (!isGscSitemapWriteApproved(env)) throw new Error("GSC_SITEMAP_WRITE_NOT_APPROVED");
   const response = await fetcher("https://oauth2.googleapis.com/token", {
-    method: "POST",
+    method: "POST", redirect: "error",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       client_id: env.CCPUN_GSC_SITEMAP_CLIENT_ID!,

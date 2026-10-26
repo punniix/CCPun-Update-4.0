@@ -1,3 +1,4 @@
+import { seoPublishTriggerPredecessorDigest, seoPublishTriggerDomPredecessor } from './seo-publish-trigger-20261026-proof.mjs';
 import { createHash } from 'node:crypto';
 
 // Owner-approved Admin ops improvements (2026-10-25, decisions A2-A9 and the
@@ -95,7 +96,7 @@ export function adminCopyFixesPredecessorDigest(file, digest) {
 // Maps the digest of an exact reviewed successor to its reviewed predecessor;
 // any other digest is returned unchanged (so an unreviewed edit still fails).
 export function adminOps20261025PredecessorDigest(file, digest) {
-  const copyReviewed = adminCopyFixesPredecessorDigest(file, digest);
+  const copyReviewed = adminCopyFixesPredecessorDigest(file, seoPublishTriggerPredecessorDigest(file, digest));
   const cache = Object.hasOwn(adminCacheHardeningSources, file) ? adminCacheHardeningSources[file] : null;
   const cacheReviewed = cache && copyReviewed === cache.after ? cache.before : copyReviewed;
   const followUp = Object.hasOwn(adminOpsAuditFollowUpSources, file) ? adminOpsAuditFollowUpSources[file] : null;
@@ -160,7 +161,7 @@ const rules = [
 
 export function adminOps20261025DomPredecessor(html) {
   if (typeof html !== 'string') return html;
-  let result = html;
+  let result = seoPublishTriggerDomPredecessor(html);
   for (const [candidate, original] of rules) result = typeof candidate === 'string' ? result.split(candidate).join(original) : result.replace(candidate, original);
   return result;
 }

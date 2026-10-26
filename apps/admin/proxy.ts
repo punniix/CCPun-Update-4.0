@@ -1,3 +1,4 @@
+import { SANITY_PUBLISH_PATH, isSanityPublishIngress } from "@/lib/admin/seo-intelligence/post-publish-origin";
 import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "@/auth";
 import {
@@ -278,6 +279,14 @@ export default function proxy(...args: Parameters<typeof authenticatedAdminProxy
   if (workflowResponse) return withAdminCachePolicy(pathname, workflowResponse);
   const hostResponse = nativeFullAdminHostResponse(args[0]);
   if (hostResponse) return withAdminCachePolicy(pathname, hostResponse);
+  // This one signed producer authenticates in its route, never with a browser cookie.
+  if (pathname === SANITY_PUBLISH_PATH && args[0].method === "POST") {
+    if (getAdminEnvironment() !== "production-admin") return withAdminCachePolicy(pathname,
+      NextResponse.json({ state: "skipped", reason: "production-only" }, { status: 202 }));
+    if (!isSanityPublishIngress(args[0], process.env) || process.env.AUTH_URL !== "https://admin.ccpun.com"
+      || getAdminCapabilityProfile() === "disabled") return withAdminCachePolicy(pathname, new NextResponse("Not Found", { status: 404 }));
+    return withAdminCachePolicy(pathname, NextResponse.next());
+  }
   // The routing/auth decision (adminProxy) is unchanged; the cache policy is
   // applied to its final response after Auth.js has copied it.
   return withAdminCachePolicyResult(pathname, authenticatedAdminProxy(...args));

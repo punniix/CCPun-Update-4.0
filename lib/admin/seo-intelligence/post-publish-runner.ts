@@ -8,12 +8,17 @@ import { getPublishedSeoObservationArticle } from "@/lib/admin/sanity-control";
 import { getGoogleDataAccessToken } from "@/lib/admin/seo-intelligence/google-data-auth";
 import { emptyGoogleInspection, verifyPublishedArticleSeo, type PostPublishSeoCheck } from "@/lib/admin/seo-intelligence/post-publish";
 import { inspectGscIndexedUrl, submitGscSitemap } from "@/lib/admin/seo-intelligence/providers/gsc";
+import { runDurablePostPublishNotifications } from "./post-publish-notifications";
+import type { SeoPostPublishJob } from "./post-publish-queue";
 
 const BLOG_SITEMAP_URL = "https://ccpun.com/sitemaps/blog.xml";
 
 type SitemapSubmissionState = "submitted" | "authorization-required" | "provider-unavailable" | "skipped";
 
 export type PostPublishSeoPipelineResult = PostPublishSeoCheck & {
+  notificationOutcome?: "completed" | "retry" | "reconciliation-required";
+  notificationError?: string;
+  retryAfterMs?: number;
   sitemapSubmission: {
     state: SitemapSubmissionState;
     submittedAt: string | null;
@@ -38,7 +43,9 @@ async function verifyWithRetry(articleId: string, url: string, expectedLastmod: 
 export async function runPostPublishSeoPipeline(input: {
   articleId: string; actor: string; requestId: string; revision: string; ownerApproved: boolean;
   beforeExternalWrite: () => Promise<void>;
+  job?: SeoPostPublishJob;
 }): Promise<PostPublishSeoPipelineResult | null> {
+  if (input.job) return runDurablePostPublishNotifications(input.job);
   const article = await getPublishedSeoObservationArticle(input.articleId);
   if (!article || article.noindex === true || Date.parse(article.updatedAt) !== Date.parse(input.revision)) return null;
   const url = approvedPublishedArticle(article);
@@ -72,7 +79,7 @@ export async function runPostPublishSeoPipeline(input: {
     await input.beforeExternalWrite(); // durable uncertainty marker BEFORE any external write
     try {
       const writeToken = await getGscSitemapWriteToken();
-      const submitted = await submitGscSitemap({ siteUrl, sitemapUrl: BLOG_SITEMAP_URL, token: writeToken });
+      const submitted = await submitGscSitemap({ siteUrl, sitemapUrl: "https://ccpun.com/sitemap.xml", token: writeToken });
       sitemapSubmission = {
         state: "submitted", submittedAt: submitted.submittedAt,
         limitation: "Google accepted the sitemap submission, not an individual URL indexing request.",

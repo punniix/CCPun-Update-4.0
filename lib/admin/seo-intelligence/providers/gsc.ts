@@ -149,11 +149,12 @@ export async function submitGscSitemap(input: {
   sitemapUrl: string;
   token: string;
 }, fetcher: FetchLike = fetch): Promise<{ submittedAt: string }> {
+  if (input.siteUrl !== "sc-domain:ccpun.com" || input.sitemapUrl !== "https://ccpun.com/sitemap.xml") throw new Error("GSC_SITEMAP_TARGET_DENIED");
   const endpoint = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(input.siteUrl)}/sitemaps/${encodeURIComponent(input.sitemapUrl)}`;
   let response: Response;
   try {
     response = await fetcher(endpoint, {
-      method: "PUT",
+      method: "PUT", redirect: "error",
       headers: { Authorization: `Bearer ${input.token}` },
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
@@ -164,6 +165,7 @@ export async function submitGscSitemap(input: {
   }
   if (response.status === 401 || response.status === 403) throw new Error("GSC_AUTH_REQUIRED");
   if (response.status === 429) throw new Error("GSC_RATE_LIMITED");
+  if (response.status >= 500) throw new Error("GSC_RETRYABLE_RESPONSE");
   if (!response.ok) throw new Error("GSC_INVALID_RESPONSE");
   return { submittedAt: new Date().toISOString() };
 }

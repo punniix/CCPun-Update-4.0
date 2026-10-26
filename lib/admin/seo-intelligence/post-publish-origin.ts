@@ -45,3 +45,20 @@ export function isPostPublishAdminOriginAllowed(
   return isConfiguredAdminOrigin(request.url, configured)
     && (request.method === "GET" || isSameOriginAdminMutation(request.url, request.headers.get("origin")));
 }
+
+export const SANITY_PUBLISH_PATH = "/api/integrations/sanity/article-published/";
+export function isSanityPublishIngress(request: Request, env: Record<string, string | undefined> = {}) {
+  const url = new URL(request.url);
+  const host = request.headers.get("host");
+  const forwarded = request.headers.get("x-forwarded-host");
+  const proto = request.headers.get("x-forwarded-proto");
+  const deployed = env.CCPUN_APP_ENV === "production-admin" && env.CCPUN_DEPLOYMENT_PROVIDER === "hostinger"
+    && env.CCPUN_DEPLOYMENT_ROLE === "admin" && env.AUTH_URL === "https://admin.ccpun.com"
+    && !Object.keys(env).some(key => key.startsWith("VERCEL_") && Boolean(env[key]));
+  if (!deployed) return false;
+  const internal = ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) && ["http:", "https:"].includes(url.protocol)
+    && proto === "https";
+  return request.method === "POST" && (url.origin === "https://admin.ccpun.com" || internal)
+    && url.pathname === SANITY_PUBLISH_PATH && host === "admin.ccpun.com"
+    && !url.search && (forwarded === null || forwarded === host) && (proto === null || proto === "https");
+}

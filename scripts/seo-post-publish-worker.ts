@@ -8,6 +8,8 @@ import {
 } from "../lib/admin/seo-intelligence/post-publish-queue";
 import { isPostPublishWorkerSourceAllowed } from "../lib/admin/seo-intelligence/post-publish-worker-policy";
 import { runPostPublishSeoPipeline } from "../lib/admin/seo-intelligence/post-publish-runner";
+import { runDueSeoInspections } from "../lib/admin/seo-intelligence/post-publish-notifications";
+import { recordSeoWorkerPass } from "../lib/admin/seo-intelligence/post-publish-notification-store";
 
 
 export async function runSeoPostPublishWorkerOnce(
@@ -18,6 +20,8 @@ export async function runSeoPostPublishWorkerOnce(
     finish: finishPublishedSeoJob,
     markAttempt: markSitemapAttempt,
     execute: runPostPublishSeoPipeline,
+    inspectDue: runDueSeoInspections,
+    recordPass: recordSeoWorkerPass,
   },
 ) {
   const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
@@ -34,17 +38,19 @@ export async function runSeoPostPublishWorkerOnce(
         articleId: job.article_id, actor: job.actor, requestId: job.job_id,
         revision: job.content_version instanceof Date ? job.content_version.toISOString() : job.content_version,
         ownerApproved: job.owner_approved,
+        job,
         beforeExternalWrite: () => dependencies.markAttempt(job, env),
       });
       const eligible = result && result.live.state === "pass"
         && result.canonical.state === "pass" && result.indexability.state === "pass"
         && result.sitemap.state === "pass";
       const uncertain = result?.sitemapSubmission.state === "provider-unavailable" && job.owner_approved;
-      const outcome = uncertain ? "reconciliation-required" : result === null || eligible ? "completed" : "retry";
+      const outcome = result?.notificationOutcome ?? (uncertain ? "reconciliation-required" : result === null || eligible ? "completed" : "retry");
       if (outcome !== "completed") incomplete++;
       await dependencies.finish(job, {
         outcome,
-        errorCode: result === null ? "SEO_REVISION_STALE" : !eligible ? "SEO_VERIFICATION_INCOMPLETE" : undefined,
+        errorCode: result?.notificationError ?? (result === null ? "SEO_REVISION_STALE" : !eligible ? "SEO_VERIFICATION_INCOMPLETE" : undefined),
+        retryAfterMs: result?.retryAfterMs,
         receipt: result ? {
           checkedAt: result.checkedAt, url: result.url,
           live: result.live.state, canonical: result.canonical.state,
@@ -58,7 +64,9 @@ export async function runSeoPostPublishWorkerOnce(
       await dependencies.finish(job, { outcome: "retry", errorCode: "SEO_WORKER_TRANSIENT_FAILURE" }, env);
     }
   }
-  return { discovered, processed, incomplete };
+  const inspections = await dependencies.inspectDue?.(env) ?? 0;
+  await dependencies.recordPass?.(env);
+  return { discovered, processed, incomplete, inspections };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

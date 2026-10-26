@@ -1,3 +1,4 @@
+import { seoPublishTriggerPredecessorDigest } from "../../qa/seo-publish-trigger-20261026-proof.mjs";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -186,7 +187,7 @@ test("cache-hardening sources are admitted exactly and any other byte still fail
   ]);
   for (const [file, { before, after }] of entries) {
     const source = readFileSync(new URL(file, ROOT), "utf8");
-    assert.equal(sha(source), after, file + ": byte-identical to the reviewed successor");
+    assert.equal(seoPublishTriggerPredecessorDigest(file,sha(source)), after, file + ": byte-identical to the reviewed successor");
     assert.equal(adminOps20261025PredecessorDigest(file, after), before, file + ": chains to its frozen predecessor");
     const tampered = sha(source + "\n// tamper");
     assert.equal(adminOps20261025PredecessorDigest(file, tampered), tampered, file + ": unreviewed bytes are not admitted");
