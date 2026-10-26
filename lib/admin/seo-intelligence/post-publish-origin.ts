@@ -49,16 +49,19 @@ export function isPostPublishAdminOriginAllowed(
 export const SANITY_PUBLISH_PATH = "/api/integrations/sanity/article-published/";
 export function isSanityPublishIngress(request: Request, env: Record<string, string | undefined> = {}) {
   const url = new URL(request.url);
-  const host = request.headers.get("host");
-  const forwarded = request.headers.get("x-forwarded-host");
-  const proto = request.headers.get("x-forwarded-proto");
+  const host = request.headers.get("host")?.trim().toLowerCase();
+  const forwarded = request.headers.get("x-forwarded-host")?.trim().toLowerCase();
+  const proto = request.headers.get("x-forwarded-proto")?.trim().toLowerCase();
   const deployed = env.CCPUN_APP_ENV === "production-admin" && env.CCPUN_DEPLOYMENT_PROVIDER === "hostinger"
     && env.CCPUN_DEPLOYMENT_ROLE === "admin" && env.AUTH_URL === "https://admin.ccpun.com"
     && !Object.keys(env).some(key => key.startsWith("VERCEL_") && Boolean(env[key]));
   if (!deployed) return false;
-  const internal = ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) && ["http:", "https:"].includes(url.protocol)
-    && proto === "https";
-  return request.method === "POST" && (url.origin === "https://admin.ccpun.com" || internal)
+  // Match the trusted Hostinger ingress contract used by the Owner route above:
+  // Next may rewrite to any internal HTTP(S) URL, but Host and every supplied
+  // forwarding value must still identify the configured public Admin origin.
+  // This is only the host fence; the producer must authenticate the raw body.
+  return request.method === "POST" && ["http:", "https:"].includes(url.protocol)
+    && !url.username && !url.password
     && url.pathname === SANITY_PUBLISH_PATH && host === "admin.ccpun.com"
-    && !url.search && (forwarded === null || forwarded === host) && (proto === null || proto === "https");
+    && !url.search && (!forwarded || forwarded === host) && (!proto || proto === "https");
 }
