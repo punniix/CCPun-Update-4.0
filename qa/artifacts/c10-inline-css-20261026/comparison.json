@@ -1,0 +1,218 @@
+[
+  {
+    "path": "/",
+    "device": "mobile",
+    "theme": "light",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/ci-planning/",
+    "device": "mobile",
+    "theme": "light",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/tools/financial-health-check/",
+    "device": "mobile",
+    "theme": "light",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/tools/aia-fund-allocation/",
+    "device": "mobile",
+    "theme": "light",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/blog/",
+    "device": "mobile",
+    "theme": "light",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/blog/personal-finance/c10-local-fixture/",
+    "device": "mobile",
+    "theme": "light",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/",
+    "device": "mobile",
+    "theme": "dark",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/ci-planning/",
+    "device": "mobile",
+    "theme": "dark",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/tools/financial-health-check/",
+    "device": "mobile",
+    "theme": "dark",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/tools/aia-fund-allocation/",
+    "device": "mobile",
+    "theme": "dark",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/blog/",
+    "device": "mobile",
+    "theme": "dark",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/blog/personal-finance/c10-local-fixture/",
+    "device": "mobile",
+    "theme": "dark",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/",
+    "device": "desktop",
+    "theme": "light",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/ci-planning/",
+    "device": "desktop",
+    "theme": "light",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/tools/financial-health-check/",
+    "device": "desktop",
+    "theme": "light",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/tools/aia-fund-allocation/",
+    "device": "desktop",
+    "theme": "light",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/blog/",
+    "device": "desktop",
+    "theme": "light",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/blog/personal-finance/c10-local-fixture/",
+    "device": "desktop",
+    "theme": "light",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/",
+    "device": "desktop",
+    "theme": "dark",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/ci-planning/",
+    "device": "desktop",
+    "theme": "dark",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/tools/financial-health-check/",
+    "device": "desktop",
+    "theme": "dark",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/tools/aia-fund-allocation/",
+    "device": "desktop",
+    "theme": "dark",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/blog/",
+    "device": "desktop",
+    "theme": "dark",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  },
+  {
+    "path": "/blog/personal-finance/c10-local-fixture/",
+    "device": "desktop",
+    "theme": "dark",
+    "textEqual": true,
+    "h1Equal": true,
+    "fontSizeEqual": true,
+    "backgroundEqual": true
+  }
+]

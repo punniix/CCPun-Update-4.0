@@ -1,3 +1,4 @@
+import { inlineCssPredecessor } from '../qa/v5-inline-css-proof.mjs';
 import { assertProductionCmsOwner, hasProductionCmsOwner } from '../qa/production-cms-source-proof.mjs';
 import { isWebsiteV5ReviewedSuccessor } from '../qa/website-v5-phase-a-proof.mjs';
 import { websiteV5CopyPredecessor, websiteV5PredecessorDigest } from '../qa/website-v5-phase-a-proof.mjs';
@@ -378,7 +379,7 @@ test('Production providers, metadata, models, engines, tracking, consent storage
     if(hasProductionCmsOwner(file)) { assertProductionCmsOwner(file,read(file)); continue; }
     const source = file === 'package.json' ? packageBeforePostPublishScripts(websiteV5CopyPredecessor(file, read(file))) : file === 'package-lock.json' ? lockBeforeAiSdk(read(file)) : read(file);
     // Website v5 Phase A: an exact reviewed v5 route successor maps to its frozen predecessor digest.
-    assert.equal(file === 'package.json' ? sha(source) : websiteV5PredecessorDigest(file, source), reviewedDigest, file);
+    assert.equal(file === 'package.json' ? sha(source) : websiteV5PredecessorDigest(file, inlineCssPredecessor(file, source)), reviewedDigest, file);
   }
 });
 

@@ -1,3 +1,4 @@
+import { inlineCssObservationPredecessor } from '../qa/v5-inline-css-proof.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -147,7 +148,7 @@ function baselineFirstHop(observation) {
     assert.equal(response.headers.location, final, `${url.pathname}: legacy redirect must reach its final URL in one hop`);
     return { ...response, headers: { ...response.headers, location: legacy.href }, helperDestination: legacy.href };
   });
-  return { ...observation, responses };
+  return inlineCssObservationPredecessor({ ...observation, responses }, current['apps/web/next.config.ts']);
 }
 if (process.argv.includes('--print-baseline')) {
   const baseline = Object.fromEntries(files.map((file) => [file, execFileSync('git', ['show', `${baselineSha}:${file}`], { encoding: 'utf8' })]));
