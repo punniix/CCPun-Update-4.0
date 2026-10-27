@@ -11,3 +11,8 @@
 .card h2 a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
 .card p { color: var(--v5-muted); font-size: 15px; line-height: 1.7; }
 .action { margin-top: auto; padding-top: 8px; color: var(--v5-gold-text); font-weight: 500; font-size: 15px; font-family: var(--v5-font-display); }
+
+/* Shorten the transparent expanded hit area beside LINE without changing the tool card. */
+@media (max-width:1023px) { .card h2 a::after { right:calc(80px - var(--v5-gutter)); } }
+@media (max-width:479px) { .card:has(h2 a[href="/tools/financial-health-check/"]) > p { padding-right:40px; } }
+@media (min-width:1024px) { .card h2 a::after { right:calc(248px - var(--v5-gutter)); } }

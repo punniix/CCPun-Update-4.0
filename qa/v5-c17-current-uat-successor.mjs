@@ -1,3 +1,4 @@
+import {collisionCssPredecessor} from './v5-uat-collision-source-successor.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
@@ -19,6 +20,7 @@ export function inverseC17OnCurrentUatHtml(html, key) {
 
 // Peel only the two complete C17 calculator clearance insertions for C15's frozen source proof.
 export function c17CurrentUatSourcePredecessor(file, source) {
+  source = collisionCssPredecessor(file, source);
   if (file !== "components/layout/v5/V5Tool.module.css" || sha(source) !== "40bfbd86ebab9a382e6e148f03fd700ce297d0ea52157fa365264004aa0b8eb2") return source;
   for (const fragment of ["}\n/* C17b: reserve the tablet form's right edge for the fixed56px LINE corner control. */\n@media (min-width: 600px) and (max-width: 1023px) {\n  :global(:is(#ci-calculator, #fhc-calculator)) .calcScope { padding-right: 72px; }\n", "\n/* Keep only the first CI form description clear of the fixed mobile LINE control. */\n@media (max-width: 599px) {\n  :global(#ci-calculator) .calcScope :global(#ci-step-1-title) + p { padding-right: 40px; }\n}\n"]) {
     assert.equal(source.split(fragment).length, 2);

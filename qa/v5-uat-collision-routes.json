@@ -1,0 +1,37 @@
+{
+  "source": "Actual live UAT route-discovery 2026-10-26T18:21:23Z",
+  "rawEvidenceSHA256": "42578ac51bc0218c3d25b049b08a64a8e3dc955cf42b5177a713c7673534f62a",
+  "routes": [
+    "/",
+    "/about/",
+    "/blog/",
+    "/blog/health-insurance/aia-health-happy-describe/",
+    "/blog/health-insurance/uat-qa-20261023-02/",
+    "/blog/health-insurance/uat-qa-20261023-04/",
+    "/blog/health-insurance/uat-qa-20261023-06/",
+    "/blog/health-insurance/uat-qa-20261023-08/",
+    "/blog/health-insurance/uat-qa-20261023-10/",
+    "/blog/personal-finance/financial-pyramid/",
+    "/blog/personal-finance/uat-qa-20261023-01/",
+    "/blog/personal-finance/uat-qa-20261023-03/",
+    "/blog/personal-finance/uat-qa-20261023-05/",
+    "/blog/personal-finance/uat-qa-20261023-07/",
+    "/blog/personal-finance/uat-qa-20261023-09/",
+    "/blog/personal-finance/uat-qa-20261023-11/",
+    "/ci-planning/",
+    "/cookie-policy/",
+    "/play/money-story/",
+    "/privacy/",
+    "/tools/",
+    "/tools/financial-health-check/",
+    "/tools/investment-allocation/",
+    "/tools/aia-fund-allocation/",
+    "/tools/tax-deduction/",
+    "/blog/personal-finance/",
+    "/blog/health-insurance/"
+  ],
+  "expected404": [
+    "/blog/health-insurance/aia-health-happy-describe/",
+    "/blog/personal-finance/financial-pyramid/"
+  ]
+}

@@ -292,3 +292,8 @@
 :global(html[data-theme="light"]) :is(.allocationRow, .totalBox, .statusNotice, .fundCard, .optionalBox, .resultPanel, .categoryCard, .catalogCard, .liquidityCard, .riskCell, .catalogSkeleton) { background: #fffdf9; }
 :global(html[data-theme="light"]) :is(.categoryCard, .classCard, .modeCard)[data-active="true"] { background: rgba(122, 92, 20, .08); }
 :global(html[data-theme="light"]) :is(.barTrack, .progressTrack) { background: #e9dfd2; }
+
+/* Reserve only the native mode-choice controls beside the fixed LINE dock. */
+@media (max-width:1023px) { .modeGrid { padding-right:calc(80px - var(--v5-gutter, 20px)); box-sizing:border-box; } }
+@media (max-width:479px) { :global(main:has(#aia-fund-hero-title)) .modeLead { padding-right:60px; } }
+@media (min-width:1024px) { :global(main:has(#aia-fund-hero-title)) .modeGrid { padding-right:calc(248px - var(--v5-gutter, 80px)); box-sizing:border-box; } }

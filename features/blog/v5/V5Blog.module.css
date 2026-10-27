@@ -199,3 +199,7 @@
 .groupGrid > div > article { flex: 1; }
 /* Article-body LINE CTA: an inline link-styled control (not gold) that opens the chat panel. */
 .chatCta { text-decoration: underline; text-underline-offset: 4px; }
+
+/* Clearance for the category list heading and the desktop featured-card excerpt only. */
+@media (max-width:479px) { .categoryHero ~ section :global(#category-articles) { display:block; box-sizing:border-box; padding-right:60px; } }
+@media (min-width:1024px) { .featuredLead > div > p, .featuredLead > div > div:has(button) { padding-right:calc(216px - var(--v5-gutter, 80px)); } }

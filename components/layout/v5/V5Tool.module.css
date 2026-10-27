@@ -326,3 +326,9 @@
 @media (max-width: 599px) {
   :global(#ci-calculator) .calcScope :global(#ci-step-1-title) + p { padding-right: 40px; }
 }
+
+/* Desktop clearance is local to the two measured paragraphs, not the reading/form columns. */
+@media (min-width:1024px) {
+  .legalBody :global(#privacy-collect) > p:nth-of-type(3) { padding-right:clamp(48px, calc(764px - 50vw), calc(248px - var(--v5-gutter))); }
+  :global(#fhc-calculator) .asideCard > p:last-child { padding-right:calc(224px - var(--v5-gutter)); }
+}

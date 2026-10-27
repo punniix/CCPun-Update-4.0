@@ -1,3 +1,4 @@
+import "./v5-uat-collision.test.mjs";
 import "./v5-eyebrow-cleanup.test.mjs";
 // Website v5 Phase A contracts (UAT prototype): internal-linking template items,
 // analytics/consent boundaries and the unchanged public URL layer.

@@ -370,3 +370,7 @@
 
 :global(html[data-v5-theme-switching]) .themeSegments::before { transition: transform var(--v5-motion-fast) var(--v5-ease-standard) !important; }
 @media (prefers-reduced-motion: reduce) { :global(html[data-v5-theme-switching]) .themeSegments::before { transition: none !important; } }
+
+/* Only category/404 recovery expanded links; headline links and card paint stay intact. */
+@media (max-width:1023px) { :global(section:is([aria-labelledby="category-articles"],[aria-labelledby="not-found-latest"])) .articleCardTitle a::after { right:calc(80px - var(--v5-gutter)); } }
+@media (min-width:1024px) { :global(#v5-blog-scope) .articleCardTitle a::after, :global(section[aria-labelledby="not-found-latest"]) .articleCardTitle a::after { right:calc(248px - var(--v5-gutter)); } }

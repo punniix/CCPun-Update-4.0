@@ -1,3 +1,4 @@
+import {collisionCssPredecessor} from '../qa/v5-uat-collision-source-successor.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -5,7 +6,7 @@ import test from 'node:test';
 import { isWebsiteV5ReviewedSuccessor, websiteV5PhaseASources, websiteV5PredecessorDigest, websiteV5ReviewedSuccessors } from '../qa/website-v5-phase-a-proof.mjs';
 
 const file = 'features/money-story/MoneyStory.module.css';
-const source = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+const source = collisionCssPredecessor(file, readFileSync(new URL('../' + file, import.meta.url), 'utf8'));
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const predecessorDigest = '40b39bf243365a0888163b8a3b7dfc2d53f8a37fb92e5802f8fc12e167917a61';
 
