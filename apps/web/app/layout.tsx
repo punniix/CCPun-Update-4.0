@@ -38,6 +38,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const author = await getPrimaryAuthorProfile();
   return {
     ...buildSiteRootMetadata({ admin: false, review: IS_WEB_REVIEW_ENVIRONMENT }),
+    ...(IS_WEB_REVIEW_ENVIRONMENT ? {
+      icons: {
+        icon: { url: "/assets/ccpun-favicon-v5-7253e60c.png", type: "image/png", sizes: "256x256" },
+        apple: { url: "/assets/ccpun-favicon-v5-7253e60c.png", type: "image/png", sizes: "256x256" },
+      },
+    } : {}),
     authors: [{ name: getPublicAuthorName(author), url: "https://ccpun.com" }],
   };
 }

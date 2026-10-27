@@ -165,6 +165,14 @@ test('root and Web keep their original complete metadata and layout/first-paint/
       const responsive = '<style data-fixture-responsive="true"></style>';
       assert.equal(original.html.split(responsive).length, 2, 'original layout mounted the 4.3 responsive styles once');
       original.html = original.html.replace(responsive, '');
+      if (review) {
+        assert.deepEqual(original.metadata.icons, { icon: { url: '/favicon.png', type: 'image/png' }, apple: '/favicon.png' }, 'historical icon metadata remains frozen');
+        // Owner-approved UAT-only cache busting reuses the exact selected desktop PNG bytes.
+        original.metadata.icons = {
+          icon: { url: '/assets/ccpun-favicon-v5-7253e60c.png', type: 'image/png', sizes: '256x256' },
+          apple: { url: '/assets/ccpun-favicon-v5-7253e60c.png', type: 'image/png', sizes: '256x256' },
+        };
+      }
     }
     assert.deepEqual(await render(false), original, JSON.stringify({ file, admin, review, draft }));
   }

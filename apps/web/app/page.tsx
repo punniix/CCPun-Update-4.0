@@ -28,5 +28,7 @@ export default async function Home() {
 
 export function generateMetadata(props: unknown, parent: ResolvingMetadata) {
   void props;
-  return resolvePageSeoMetadata("/", buildSiteRootMetadata({ admin: false, review: IS_WEB_REVIEW_ENVIRONMENT }), parent);
+  const defaults = buildSiteRootMetadata({ admin: false, review: IS_WEB_REVIEW_ENVIRONMENT });
+  if (IS_WEB_REVIEW_ENVIRONMENT) delete defaults.icons;
+  return resolvePageSeoMetadata("/", defaults, parent);
 }

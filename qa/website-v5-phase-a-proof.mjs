@@ -159,6 +159,10 @@ export const websiteV5PhaseASources = Object.freeze({
 
 // COO follow-up: improve only the disabled start/undo labels; retain the first C5 successor above.
 export const websiteV5ReviewedSuccessors = Object.freeze({
+  // 2026-10-27 owner UAT favicon fix, independently reviewed: only review icon URLs and homepage inheritance.
+  // Both prior v5 pins above stay frozen; Production defaults and every other source byte are unchanged.
+  "apps/web/app/layout.tsx": { before: "9a7dceb0615ae610ecafe80a0937547b9a6c6c8b422688e443ba763970cc3ab8", after: "d15ab8359a133b8ebc652128d40dc83b3b1a4c0da1b16d0c11c5cf536076afca" },
+  "apps/web/app/page.tsx": { before: "8869beb97ac0043193080c85a88b8c2374823f80874c2afee49259c0a1c3acbc", after: "ef7e9e628f4f1db0666cbf282115f3b339dee8088511731d008f481bcbe1c76d" },
   "features/money-story/MoneyStory.module.css": { before: "47ae0b38b01009cc2a401813ba7b132796c621582f7f5cb53f44dfe12b1f67ca", after: "db5fd882cf020f0d5292901f4020d1445765505dd4ca63e7b15ce5a81a471b39" },
 });
 

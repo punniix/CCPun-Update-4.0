@@ -16,6 +16,9 @@ import { v5CardGridSizes, V5_HORIZONTAL_CARD_SIZES } from "../components/layout/
 import { exemptFromInert, restoreInert, type InertRecord } from "../components/layout/v5/chat-layer";
 import { createRequire } from "node:module";
 import { transformSync } from "esbuild";
+import { createHash } from "node:crypto";
+import { assertProductionCmsOwner } from "../qa/production-cms-source-proof.mjs";
+import { isWebsiteV5ReviewedSuccessor, websiteV5PhaseASources, websiteV5PredecessorDigest } from "../qa/website-v5-phase-a-proof.mjs";
 // v5 motion round (UAT): result motion, page transition and flip-card contracts.
 import "./website-v5-motion.test.mjs";
 import "./money-story-theme.test.mjs";
@@ -731,6 +734,7 @@ test("Owner photos (v5b set, 2026-10-25): About hero is photo 4 per theme, JSON-
   assert.match(css, /:global\(html\[data-theme="light"\]\) \.portraitLight \{ display: block; \}/);
   const favicon = readFileSync(new URL("../public/favicon.png", import.meta.url));
   assert.ok(favicon.equals(readFileSync(new URL("../public/assets/ccpun-avatar-v5-256.png", import.meta.url))), "favicon.png is the plain-circle face avatar");
+  assert.ok(favicon.equals(readFileSync(new URL("../public/assets/ccpun-favicon-v5-7253e60c.png", import.meta.url))), "the UAT cache-busting icon preserves the selected desktop portrait bytes");
 });
 
 // v5 polish (UAT, 2026-10-25): label wrapping, card cover widths, the late share count and the phone hero.
@@ -881,4 +885,45 @@ test("C17: mobile LINE trigger is a named 56px circle with safe footer room; des
   assert.match(css, /@media \(min-width: 1024px\) \{\s*\.dock \{ inset: auto 32px 32px auto;/);
   assert.match(css, /\.trigger \{ width: auto; box-shadow: var\(--v5-shadow\); \}/);
   assert.match(read("components/layout/v5/V5.module.css"), /@media \(max-width: 1023px\) \{ \.footer \{ padding-bottom: calc\(80px \+ env\(safe-area-inset-bottom, 0px\)\); \} \}/);
+});
+
+// Reviewed UAT favicon admission must never admit unrelated SEO or Production metadata changes.
+test("UAT favicon successor reconstructs both frozen owners and rejects metadata drift", () => {
+  const sha = (source: string) => createHash("sha256").update(source).digest("hex");
+  const fixtures = [
+    {
+      file: "apps/web/app/layout.tsx",
+      prior: "9a7dceb0615ae610ecafe80a0937547b9a6c6c8b422688e443ba763970cc3ab8",
+      current: `    ...(IS_WEB_REVIEW_ENVIRONMENT ? {
+      icons: {
+        icon: { url: "/assets/ccpun-favicon-v5-7253e60c.png", type: "image/png", sizes: "256x256" },
+        apple: { url: "/assets/ccpun-favicon-v5-7253e60c.png", type: "image/png", sizes: "256x256" },
+      },
+    } : {}),
+`,
+      original: "",
+    },
+    {
+      file: "apps/web/app/page.tsx",
+      prior: "8869beb97ac0043193080c85a88b8c2374823f80874c2afee49259c0a1c3acbc",
+      current: `  const defaults = buildSiteRootMetadata({ admin: false, review: IS_WEB_REVIEW_ENVIRONMENT });
+  if (IS_WEB_REVIEW_ENVIRONMENT) delete defaults.icons;
+  return resolvePageSeoMetadata("/", defaults, parent);`,
+      original: `  return resolvePageSeoMetadata("/", buildSiteRootMetadata({ admin: false, review: IS_WEB_REVIEW_ENVIRONMENT }), parent);`,
+    },
+  ] as const;
+  for (const { file, prior, current, original } of fixtures) {
+    const source = read(file);
+    assert.equal(source.split(current).length, 2, "one exact approved metadata-only transition");
+    assert.equal(sha(source.replace(current, original)), prior, "all predecessor source bytes retained");
+    assert.equal(websiteV5PhaseASources[file].after, prior, "historical v5 pin stays frozen");
+    assert.equal(isWebsiteV5ReviewedSuccessor(file, source), true);
+    assert.equal(websiteV5PredecessorDigest(file, source), websiteV5PhaseASources[file].before);
+    assert.equal(assertProductionCmsOwner(file, source), true, "existing Production CMS proof admits only this reviewed successor");
+    for (const changed of [source + "\n", source.replace("IS_WEB_REVIEW_ENVIRONMENT", "true"), source.replace("https://ccpun.com", "https://example.org")]) {
+      if (changed === source) continue;
+      assert.equal(isWebsiteV5ReviewedSuccessor(file, changed), false);
+      assert.throws(() => assertProductionCmsOwner(file, changed));
+    }
+  }
 });
