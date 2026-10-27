@@ -79,7 +79,16 @@ export async function handleSanityArticlePublished(request: Request, deps: Sanit
   if (!parsed.success) return reply({ error: "invalid-input" }, 400);
   // sanity-webhook-id identifies the configured hook, not this delivery.
   const deliveryId = request.headers.get("idempotency-key");
-  if (!deliveryId || !/^[A-Za-z0-9._:-]{1,200}$/.test(deliveryId)) return reply({ error: "invalid-delivery-id" }, 400);
+  // ponytail: accept the quoted-token envelope; retain exact raw identity and the 200-byte bound.
+  // This bounded subset does not parse arbitrary RFC9651 strings, escapes, lists or parameters.
+  if (!deliveryId || !(/^[A-Za-z0-9._:-]{1,200}$/.test(deliveryId)
+    || /^"[A-Za-z0-9._:-]{1,198}"$/.test(deliveryId))) {
+    const reason = deliveryId === null ? "missing" : deliveryId.length === 0 ? "empty"
+      : deliveryId.length > 200 ? "too-long" : "unsupported-format";
+    return reply({ error: "invalid-delivery-id", reason,
+      present: deliveryId !== null, length: Math.min(deliveryId?.length ?? 0, 201),
+      quoted: Boolean(deliveryId?.startsWith('"') && deliveryId.endsWith('"')) }, 400);
+  }
   if (parsed.data.deleted || parsed.data.op === "delete") return reply({ state: "skipped", reason: "deleted" });
   try {
     const article = await deps.readArticle(parsed.data.articleId);
