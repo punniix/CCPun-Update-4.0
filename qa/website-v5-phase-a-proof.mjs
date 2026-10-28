@@ -14,6 +14,58 @@ import { inverseWebsiteV5C14Copy } from './website-v5-c14-successor.mjs';
 // The 2026-10-25 LINE chat block below is the owner-approved exception (L5, L6, T1).
 const sha = value => createHash('sha256').update(value).digest('hex');
 
+// Owner-authorized 2026-10-28 investment CMS scope and its two regression registrations.
+// Exact successor admission only; every historic source identity/golden stays frozen.
+export const websiteV5InvestmentCopySuccessors = Object.freeze({
+  "lib/content/public-copy-registry.ts": {
+    "before": "058d180b6371c17a36a544c2d24efc0e56ed0047cbe27951fcf4cea5f377fbde",
+    "after": "a66dde0f33997b85b770cf62affac3141b9384ac6edfe8a221eedc8ae1c9d981",
+    "edits": [
+      [
+        "import { INVESTMENT_COPY_DEFAULTS } from \"./investment-copy-defaults\";\n",
+        ""
+      ],
+      [
+        "export const PUBLIC_COPY_SCOPES = { investment: { label: \"เครื่องมือกองทุน (หลักและ บลจ. เอไอเอ)\", pathname: \"/tools/investment-allocation/\", defaults: INVESTMENT_COPY_DEFAULTS }, ",
+        "export const PUBLIC_COPY_SCOPES = { "
+      ],
+      [
+        "export type PublicCopyKey = keyof typeof INVESTMENT_COPY_DEFAULTS | ",
+        "export type PublicCopyKey = "
+      ],
+      [
+        "const ALL_COPY_DEFAULTS = { ...INVESTMENT_COPY_DEFAULTS, ",
+        "const ALL_COPY_DEFAULTS = { "
+      ]
+    ]
+  },
+  "package.json": {
+    "before": "dc57359e3cc0090dba220a9b618d00998129493ab4efc3a2e26a49894691c2f9",
+    "after": "ee01c010642677549828599e2351391b717de7ac8a7dbaabb09bdb324721c871",
+    "edits": [
+      [
+        " tests/investment-saved-plan.test.ts",
+        ""
+      ],
+      [
+        " tests/investment-lazy-loading.test.mjs",
+        ""
+      ]
+    ]
+  }
+});
+
+export function websiteV5InvestmentCopyPredecessor(file, source) {
+  const entry = Object.hasOwn(websiteV5InvestmentCopySuccessors, file) ? websiteV5InvestmentCopySuccessors[file] : null;
+  if (!entry || typeof source !== 'string' || sha(source) !== entry.after) return source;
+  let result = source;
+  for (const [current, original] of entry.edits) {
+    if (result.split(current).length !== 2) return source;
+    result = result.replace(current, original);
+  }
+  return sha(result) === entry.before ? result : source;
+}
+
 // Additive public-copy keys for new v5 UI labels (and the v5 test registration). Removing
 // exactly these blocks reconstructs the frozen sources; existing keys and wording are untouched.
 export const websiteV5CopyAdditions = Object.freeze({
@@ -71,7 +123,7 @@ export const websiteV5NewCopyKeys = Object.freeze([
 export function websiteV5CopyPredecessor(file, source) {
   const edits = Object.hasOwn(websiteV5CopyAdditions, file) ? websiteV5CopyAdditions[file] : null;
   if (!edits || typeof source !== 'string') return source;
-  let result = inverseWebsiteV5C14Copy(file, source);
+  let result = inverseWebsiteV5C14Copy(file, websiteV5InvestmentCopyPredecessor(file, source));
   for (const [current, original] of edits) {
     if (result.split(current).length !== 2) return source;
     result = result.replace(current, original);

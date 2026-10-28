@@ -130,3 +130,28 @@ test('validation text callback preserves original messages, first issue, unknown
   const defaults=loadFixtureModule('lib/content/tool-copy-defaults.ts').CI_COPY_DEFAULTS;
   assert.equal(defaults['ci.validation.educationPlanSchema.int'],'จำนวนปีต้องเป็นจำนวนเต็ม');
 });
+
+
+test('investment CMS scope and regression registration admit only exact reviewed successors', async () => {
+  const { websiteV5InvestmentCopySuccessors, websiteV5InvestmentCopyPredecessor, websiteV5CopyPredecessor } = await import('../qa/website-v5-phase-a-proof.mjs');
+  for (const [file, entry] of Object.entries(websiteV5InvestmentCopySuccessors)) {
+    const source = read(file);
+    assert.equal(cmsSha(source), entry.after, file + ': reviewed current source');
+    const predecessor = websiteV5InvestmentCopyPredecessor(file, source);
+    assert.equal(cmsSha(predecessor), entry.before, file + ': complete frozen predecessor');
+    assert.equal(websiteV5InvestmentCopyPredecessor(file, predecessor), predecessor, 'historical input stays unchanged');
+    assert.equal(websiteV5CopyPredecessor(file, source), websiteV5CopyPredecessor(file, predecessor));
+    if (file === 'lib/content/public-copy-registry.ts') assertProductionCmsOwner(file, source);
+    const normalized = cmsSha(websiteV5CopyPredecessor(file, predecessor));
+    const mutants = [source + '\n// unreviewed drift\n', ...entry.edits.flatMap(([current, original]) => [source.replace(current, original), source.replace(current, current + current)])];
+    if (file === 'lib/content/public-copy-registry.ts') mutants.push(source.replace('เมนู ท้ายเว็บ และคุกกี้', 'unreviewed old wording'));
+    else mutants.push(source.replace('tests/investment-rate-limit.test.ts ', ''));
+    for (const mutant of mutants) {
+      assert.notEqual(mutant, source);
+      assert.equal(websiteV5InvestmentCopyPredecessor(file, mutant), mutant);
+      assert.notEqual(cmsSha(websiteV5CopyPredecessor(file, mutant)), normalized, file + ': unrelated/missing/duplicate edit denied');
+      if (file === 'lib/content/public-copy-registry.ts') assert.throws(() => assertProductionCmsOwner(file, mutant));
+    }
+  }
+  assert.equal(websiteV5InvestmentCopyPredecessor('unknown.ts', 'unreviewed'), 'unreviewed');
+});
