@@ -565,8 +565,15 @@ test("UX: v5 spacing sits on the 4px scale, headings step up, short grids adapt 
     "components/ui/health-happy/HealthHappyCountdown.module.css",
   ];
   const spacing = /(?<![-\w])(?:margin|padding|gap|row-gap|column-gap|top|right|bottom|left|inset)(?:-[a-z-]+)?\s*:\s*([^;{}]+)/g;
+  // Native Home EC7 uses these five exact declarations; every other declaration keeps the 4px rule.
+  const approvedHomeSpacing = new Set(["margin-top: 10px", "padding: 8px 14px", "padding: 10px 0 10px 32px", "top: 10px", "gap: 10px"]);
   for (const file of sheets) {
-    for (const [, value] of read(file).matchAll(spacing)) {
+    const source = read(file);
+    if (file === "features/home/v5/V5Home.module.css") {
+      for (const declaration of approvedHomeSpacing) assert.equal([...source.matchAll(spacing)].filter(([actual]) => actual.trim() === declaration).length, 1, `one approved native Home declaration: ${declaration}`);
+    }
+    for (const [declaration, value] of source.matchAll(spacing)) {
+      if (file === "features/home/v5/V5Home.module.css" && approvedHomeSpacing.has(declaration.trim())) continue;
       for (const [, px] of value.matchAll(/(\d+(?:\.\d+)?)px/g)) {
         assert.ok(Number(px) <= 1 || Number(px) % 4 === 0, `${file}: spacing ${px}px is off the 4px scale (${value.trim()})`);
       }
@@ -802,8 +809,11 @@ test("Polish: the late share count never moves the article header; Thai labels s
   assert.match(tool, /@media \(max-width: 1023px\) \{ \.toc \{ padding: 16px;/);
   assert.match(tool, /\.legalGrid \{ grid-template-columns: 256px minmax\(0, 720px\);/);
   const home = read("features/home/v5/V5Home.module.css");
-  assert.match(home, /@media \(min-width: 1024px\) \{ \.hero \{ padding-block: 56px 64px; \} \}/);
-  assert.match(home, /\.credentials \{ gap: 8px; margin-top: 20px; padding: 0; border: 0; background: none; \}/);
+  assert.match(home, /\.heroGrid \{[^}]*min-height: 840px;[^}]*padding-block: 96px;/, "approved desktop cutout composition reserves its hero height");
+  assert.match(home, /\.portrait \{ position: relative; order: -1; height: 320px;/, "approved mobile portrait leads the hero");
+  assert.match(home, /\.credentials \{[^}]*grid-auto-flow: column;[^}]*overflow-x: auto;/, "all credential flip cards remain available in the native phone strip");
+  assert.match(home, /\.homeSection\.homeSection \{ padding-block: 24px; \}/, "density is scoped to Home, not shared section tokens");
+  assert.match(home, /\.portrait::before \{[^}]*border-radius: 999px 999px 0 0;[^}]*box-shadow: 0 10px 24px/, "approved arch keeps its shadow and reaches the portrait base");
   assert.match(read("components/layout/v5/V5LicenceFlip.module.css"), /\.line \{ display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; \}/);
 });
 

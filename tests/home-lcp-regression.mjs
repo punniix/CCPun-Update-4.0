@@ -9,11 +9,11 @@ const home = readFileSync(new URL("../features/home/v5/V5Home.tsx", import.meta.
 const route = productionCmsDisplaySource("apps/web/app/page.tsx");
 assert.match(route, /<V5Home authorProfile=\{authorProfile\} copy=\{copy\} faqs=\{homeFaqs\} \/>/);
 const hero = home.split('<section id="home"')[1].split('</section>')[0];
-assert.match(hero, /home-hero-desktop\.png/);
+assert.match(hero, /pun-cutout-31beef3a\.png/);
 assert.match(hero, /loading="eager"/);
 assert.match(hero, /fetchPriority="high"/);
 assert.match(hero, /\bpreload\b/);
-assert.match(hero, /sizes="\(max-width: 899px\) calc\(100vw - 40px\), 560px"/, "the hero portrait requests a card-sized responsive image, not 100vw");
+assert.match(hero, /sizes="\(max-width: 767px\) calc\(100vw - 40px\), \(max-width: 1023px\) calc\(100vw - 64px\), \(max-width: 1199px\) calc\(50vw - 56px\), \(max-width: 1439px\) calc\(50vw - 104px\), 616px"/, "the cutout uses the actual responsive portrait frame, not 100vw");
 assert.doesNotMatch(hero, /loading="lazy"/);
 assert.equal((hero.match(/<Image\b/g) ?? []).length, 1, "Home hero must request one responsive image");
 assert.match(hero, /<h1 id="home-hero-title"[^>]*>\{text\.node\("home\.hero\.titleBefore"\)\}<em>\{text\.node\("home\.hero\.titleEmphasis"\)\}<\/em>\{text\.node\("home\.hero\.titleAfter"\)\}<\/h1>/, "approved headline keys and order are preserved");

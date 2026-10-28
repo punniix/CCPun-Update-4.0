@@ -5,7 +5,7 @@ assert.equal(response.status, 200);
 const html = await response.text();
 const hero = html.match(/<section id="home"[\s\S]*?<\/section>/)?.[0];
 assert.ok(hero, "Homepage renders its hero in server HTML");
-assert.match(hero, /home-hero-desktop/);
+assert.match(hero, /pun-cutout-31beef3a/);
 assert.match(hero, /loading="eager"/);
 assert.match(hero, /fetchPriority="high"|fetchpriority="high"/);
 assert.doesNotMatch(hero, /loading="lazy"/);
