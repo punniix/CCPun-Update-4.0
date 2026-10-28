@@ -1,12 +1,24 @@
 'use client';
 
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
 import { INVESTMENT_COPY_DEFAULTS } from "@/lib/content/investment-copy-defaults";
-import PortfolioBuilder from "./PortfolioBuilder";
 import SingleFundBuilder from "./SingleFundBuilder";
 import styles from "./InvestmentAllocation.module.css";
 import type { FundScope } from "./domain/fund-scope";
+
+function PortfolioLoading() {
+  const text = usePublicCopy(INVESTMENT_COPY_DEFAULTS);
+  return <p className={styles.shell} role="status">{text.node("investment.mode.loading")}</p>;
+}
+
+function PortfolioLoadError() {
+  const text = usePublicCopy(INVESTMENT_COPY_DEFAULTS);
+  return <div className={styles.shell} role="alert"><p>{text.node("investment.mode.loadError")}</p><button className={styles.secondary} type="button" onClick={() => window.location.reload()}>{text.node("investment.mode.reload")}</button></div>;
+}
+
+// ponytail: recover a failed chunk by explicit reload; no extra retry framework.
+const PortfolioBuilder = lazy(() => import("./PortfolioBuilder").catch(() => ({ default: PortfolioLoadError })));
 
 type JourneyMode = "single" | "portfolio";
 
@@ -33,7 +45,11 @@ export default function InvestmentAllocationTool({ scope = "main" }: { scope?: F
           </div>
         </div>
       </section>
-      {mode === "single" ? <SingleFundBuilder scope={scope} /> : <PortfolioBuilder scope={scope} />}
+      {mode === "single" ? <SingleFundBuilder scope={scope} /> : (
+        <Suspense fallback={<PortfolioLoading />}>
+          <PortfolioBuilder scope={scope} />
+        </Suspense>
+      )}
     </>
   );
 }

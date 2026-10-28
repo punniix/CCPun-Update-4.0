@@ -1,5 +1,8 @@
 // Stable editable keys; preserve the existing tool's display wording.
 export const INVESTMENT_COPY_DEFAULTS = {
+  "investment.mode.loading": "กำลังเปิดเครื่องมือจัดหลายกอง…",
+  "investment.mode.loadError": "ยังเปิดเครื่องมือจัดหลายกองไม่ได้ กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง",
+  "investment.mode.reload": "โหลดหน้าใหม่แล้วลองอีกครั้ง",
   "investment.restore.limit": "แผนที่เกิน 50 กอง หรือข้อมูลในอุปกรณ์เกิน 200,000 ตัวอักษร ยังเปิดกลับไม่ได้ — ข้อมูลที่บันทึกไว้ยังอยู่",
   "investment.handoff.copied": "คัดลอกสรุปแล้ว — วางข้อความใน LINE ได้เลย",
   "investment.handoff.manual": "คัดลอกอัตโนมัติไม่ได้ เลือกข้อความด้านล่างเพื่อคัดลอกเองได้",

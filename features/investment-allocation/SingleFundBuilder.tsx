@@ -27,9 +27,7 @@ import { fetchRestoreData, readSavedPlan, savePlanLocally } from "./domain/saved
 
 const CATEGORIES: FundCatalogCategory[] = ["equity", "mixed", "fixed_income", "alternative", "other"];
 
-function formatMoney(value: number): string {
-  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 }).format(value);
-}
+const formatMoney = new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 }).format;
 
 function formatDate(value: string | null): string {
   if (!value) return "ไม่ระบุ";

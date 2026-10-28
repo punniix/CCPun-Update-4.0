@@ -53,9 +53,7 @@ const initialTarget: AllocationRow<Exclude<AssetBucket, "unknown">>[] = [
   { key: "other", percent: 0 },
 ];
 
-function formatMoney(value: number): string {
-  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 }).format(value);
-}
+const formatMoney = new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 }).format;
 
 function stepCopy(step: number, text: (key: keyof typeof INVESTMENT_COPY_DEFAULTS) => string) {
   if (step === 1) return { title: text("investment.portfolio.text136"), body: text("investment.portfolio.text137") };
