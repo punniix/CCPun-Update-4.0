@@ -29,6 +29,10 @@ export const ADMIN_PERMISSIONS = [
   "social:read",
   "media:upload",
   "draft:apply",
+  // Financial planning room: client financial data. Owner-only by decision F1;
+  // never add these to another role without an explicit owner decision.
+  "planning:read",
+  "planning:write",
 ] as const;
 
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];
