@@ -6,6 +6,7 @@ import test from 'node:test';
 import { RATE_LIMIT_MESSAGE, requestFailureMessage } from '../features/investment-allocation/domain/copy.ts';
 import { parseInvestmentAmount } from '../features/investment-allocation/domain/calculation.ts';
 import { withFundScope } from '../features/investment-allocation/domain/fund-scope.ts';
+import { INVESTMENT_COPY_DEFAULTS, investmentValue } from '../lib/content/investment-copy-defaults.ts';
 
 const source = (name) => readFileSync(new URL(`../features/investment-allocation/${name}.tsx`, import.meta.url), 'utf8');
 const single = source('SingleFundBuilder');
@@ -27,15 +28,16 @@ function runtime(text, name, scope = 'main') {
     URLSearchParams, Date, Boolean, withFundScope, scope,
     catalogRequest: { current: 0 }, detailRequest: { current: 0 },
     searchRequest: { current: 0 }, detailRequests: { current: new Map() }, selectedIds: { current: new Set() },
-    requestFailureMessage, Error,
+    requestFailureMessage, Error, investmentValue, text: key => INVESTMENT_COPY_DEFAULTS[key], restoring: false,
     document: { getElementById: () => null },
     window: { setTimeout: (callback) => callback(), matchMedia: () => ({ matches: true }) },
     fetch: (url) => { urls.push(url); return new Promise((resolve) => pending.push(resolve)); },
   };
-  for (const key of ['Catalog', 'CatalogLoading', 'CatalogAppending', 'SelectedFund', 'Detail', 'DetailLoading', 'SaveStatus', 'PlanId', 'Searching', 'SearchState', 'SelectedFunds', 'SelectedDetails']) {
+  for (const key of ['Catalog', 'CatalogLoading', 'CatalogAppending', 'SelectedFund', 'Detail', 'DetailLoading', 'SaveStatus', 'PlanId', 'Searching', 'SearchState', 'SelectedFunds', 'SelectedDetails', 'HandoffText', 'Restoring']) {
     context[`set${key}`] = (value) => { state[key] = typeof value === 'function' ? value(state[key]) : value; };
   }
-  const invoke = runInNewContext(`${functionSource(text, name)}\n${name};`, context);
+  const cancel = text === portfolio ? functionSource(portfolio, 'cancelRestore') : '';
+  const invoke = runInNewContext(`${cancel}\n${functionSource(text, name)}\n${name};`, context);
   const respond = (index, data, ok = true, status = ok ? 200 : 503) => pending[index]({ ok, status, json: async () => data });
   return { state, context, invoke, respond, urls };
 }
@@ -143,7 +145,7 @@ test('single handoff rejects invalid amount, missing identity/class and preserve
   const context = {
     selectedFund: { projectId: 'UAT-MIXED-01', nameTh: 'UAT demo', abbreviation: 'UAT' }, amount: 500000,
     detail: { fund: { projectId: 'UAT-MIXED-01' }, source: 'uat_synthetic', state: 'demo', classes: [{ name: 'A' }], selectedClassName: 'A', assetAllocation: [], dealing: null, dataDate: '2026-09-01', fetchedAt: '2026-10-11', endpointStates: { risk: 'empty' }, snapshotIds: ['demo-source'], warnings: ['synthetic'] },
-    ensurePlanId: () => 'test-plan',
+    ensurePlanId: () => 'test-plan', scope: 'main',
   };
   const invoke = () => runInNewContext(`${stripTypeScriptTypes(single.slice(start, end))}\nbuildHandoff();`, context);
   const payload = invoke();
@@ -217,7 +219,7 @@ function portfolioDetailRuntime() {
   const pending = [];
   const requests = [];
   const context = {
-    URLSearchParams, Map, Set, withFundScope, scope: 'main',
+    URLSearchParams, Map, Set, withFundScope, scope: 'main', restoring: false, searchRequest: { current: 0 }, setHandoffText: () => {}, setRestoring: () => {},
     detailRequests: { current: new Map() }, selectedIds: { current: new Set(['a', 'b']) },
     setSaveStatus: () => {},
     setSelectedDetails: (update) => { state.SelectedDetails = update(state.SelectedDetails); },
@@ -228,8 +230,8 @@ function portfolioDetailRuntime() {
     },
     fetch: (url) => { requests.push(url); return new Promise(resolve => pending.push(resolve)); },
   };
-  const load = runInNewContext(`${functionSource(portfolio, 'loadSelectedDetail')}\nloadSelectedDetail;`, context);
-  const remove = runInNewContext(`${functionSource(portfolio, 'removeFund')}\nremoveFund;`, context);
+  const load = runInNewContext(`${functionSource(portfolio, 'cancelRestore')}\n${functionSource(portfolio, 'loadSelectedDetail')}\nloadSelectedDetail;`, context);
+  const remove = runInNewContext(`${functionSource(portfolio, 'cancelRestore')}\n${functionSource(portfolio, 'removeFund')}\nremoveFund;`, context);
   const respond = (index, projectId, selectedClassName, ok = true) => pending[index]({ ok, status: ok ? 200 : 503, json: async () => ({ fund: { projectId }, selectedClassName, risk: index + 1 }) });
   return { state, context, requests, load, remove, respond };
 }
@@ -280,7 +282,7 @@ test('rapid add is unique and remove/re-add invalidates an earlier detail for th
   run.state.SelectedFunds = [];
   run.context.selectedIds.current.clear();
   run.context.loadSelectedDetail = run.load;
-  const add = runInNewContext(`${functionSource(portfolio, 'addFund')}\naddFund;`, run.context);
+  const add = runInNewContext(`${functionSource(portfolio, 'cancelRestore')}\n${functionSource(portfolio, 'addFund')}\naddFund;`, run.context);
   const fund = { id: 'a', projectId: 'A', constructionBucket: 'equity' };
   add(fund); add(fund);
   assert.equal(run.state.SelectedFunds.length, 1);

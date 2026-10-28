@@ -8,6 +8,7 @@ import { stripTypeScriptTypes } from "node:module";
 import { resolve } from "node:path";
 import { runInNewContext } from "node:vm";
 import test from "node:test";
+import { INVESTMENT_COPY_DEFAULTS, investmentValue } from "../lib/content/investment-copy-defaults";
 import { hiddenReasonForStatus, runFundCatalogSync, type FundSyncStore, type StoredFundDetail } from "../features/investment-allocation/server/catalog-sync";
 import { validateFundCatalogConnection } from "../features/investment-allocation/server/fund-catalog-lanes";
 import { createSecReader, projectSecRow, type SecPage, type SecPublicRow } from "../features/investment-allocation/server/sec-projection";
@@ -506,5 +507,7 @@ test("migration is additive, checksum-locked and least-privilege", () => {
 
 test("UI: the stored catalog shows its SEC fetch date as ข้อมูล ณ วันที่", () => {
   const builder = read("features/investment-allocation/SingleFundBuilder.tsx");
-  assert.match(builder, /catalog\.origin === "store" \? `ข้อมูล ณ วันที่ \$\{formatDate\(catalog\.fetchedAt\)\}` : `ตรวจข้อมูลล่าสุด \$\{formatDate\(catalog\.fetchedAt\)\}`/);
+  assert.match(builder, /catalog\.origin === "store" \? investmentValue\(text\("investment\.single\.text057"\), \[label\(formatDate\(catalog\.fetchedAt\)\)\]\) : investmentValue\(text\("investment\.single\.text058"\), \[label\(formatDate\(catalog\.fetchedAt\)\)\]\)/);
+  assert.equal(investmentValue(INVESTMENT_COPY_DEFAULTS["investment.single.text057"], ["31 ส.ค. 2569"]), "ข้อมูล ณ วันที่ 31 ส.ค. 2569");
+  assert.equal(investmentValue(INVESTMENT_COPY_DEFAULTS["investment.single.text058"], ["31 ส.ค. 2569"]), "ตรวจข้อมูลล่าสุด 31 ส.ค. 2569");
 });

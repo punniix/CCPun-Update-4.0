@@ -1,3 +1,4 @@
+import { INVESTMENT_COPY_DEFAULTS } from "./investment-copy-defaults";
 import { SITE_COPY_DEFAULTS } from "./site-copy-defaults";
 export { SITE_COPY_DEFAULTS } from "./site-copy-defaults";
 import { MONEY_STORY_COPY_DEFAULTS } from "./money-story-copy-defaults";
@@ -102,12 +103,12 @@ export const HOME_COPY_DEFAULTS = {
 
 
 
-export const PUBLIC_COPY_SCOPES = { site: { label: "เมนู ท้ายเว็บ และคุกกี้", pathname: "*", defaults: SITE_COPY_DEFAULTS }, home: { label: "หน้าแรก", pathname: "/", defaults: HOME_COPY_DEFAULTS }, ci: { label: "วางแผนทุนโรคร้ายแรง", pathname: "/ci-planning/", defaults: CI_COPY_DEFAULTS }, fhc: { label: "ตรวจสุขภาพการเงิน", pathname: "/tools/financial-health-check/", defaults: FHC_COPY_DEFAULTS }, blog: { label: "บทความและหน้าอ่านบทความ", pathname: "/blog/", defaults: BLOG_COPY_DEFAULTS }, privacy: { label: "นโยบายความเป็นส่วนตัว", pathname: "/privacy/", defaults: PRIVACY_COPY_DEFAULTS }, cookies: { label: "นโยบายคุกกี้", pathname: "/cookie-policy/", defaults: COOKIES_COPY_DEFAULTS }, moneyStory: { label: "เกม Money Story", pathname: "/play/money-story/", defaults: MONEY_STORY_COPY_DEFAULTS } } as const;
+export const PUBLIC_COPY_SCOPES = { investment: { label: "เครื่องมือกองทุน (หลักและ บลจ. เอไอเอ)", pathname: "/tools/investment-allocation/", defaults: INVESTMENT_COPY_DEFAULTS }, site: { label: "เมนู ท้ายเว็บ และคุกกี้", pathname: "*", defaults: SITE_COPY_DEFAULTS }, home: { label: "หน้าแรก", pathname: "/", defaults: HOME_COPY_DEFAULTS }, ci: { label: "วางแผนทุนโรคร้ายแรง", pathname: "/ci-planning/", defaults: CI_COPY_DEFAULTS }, fhc: { label: "ตรวจสุขภาพการเงิน", pathname: "/tools/financial-health-check/", defaults: FHC_COPY_DEFAULTS }, blog: { label: "บทความและหน้าอ่านบทความ", pathname: "/blog/", defaults: BLOG_COPY_DEFAULTS }, privacy: { label: "นโยบายความเป็นส่วนตัว", pathname: "/privacy/", defaults: PRIVACY_COPY_DEFAULTS }, cookies: { label: "นโยบายคุกกี้", pathname: "/cookie-policy/", defaults: COOKIES_COPY_DEFAULTS }, moneyStory: { label: "เกม Money Story", pathname: "/play/money-story/", defaults: MONEY_STORY_COPY_DEFAULTS } } as const;
 export type PublicCopyScope = keyof typeof PUBLIC_COPY_SCOPES;
 export type SiteCopyKey = keyof typeof SITE_COPY_DEFAULTS;
-export type PublicCopyKey = SiteCopyKey | keyof typeof HOME_COPY_DEFAULTS | keyof typeof CI_COPY_DEFAULTS | keyof typeof FHC_COPY_DEFAULTS | keyof typeof BLOG_COPY_DEFAULTS | keyof typeof PRIVACY_COPY_DEFAULTS | keyof typeof COOKIES_COPY_DEFAULTS | keyof typeof MONEY_STORY_COPY_DEFAULTS;
+export type PublicCopyKey = keyof typeof INVESTMENT_COPY_DEFAULTS | SiteCopyKey | keyof typeof HOME_COPY_DEFAULTS | keyof typeof CI_COPY_DEFAULTS | keyof typeof FHC_COPY_DEFAULTS | keyof typeof BLOG_COPY_DEFAULTS | keyof typeof PRIVACY_COPY_DEFAULTS | keyof typeof COOKIES_COPY_DEFAULTS | keyof typeof MONEY_STORY_COPY_DEFAULTS;
 export type PublicCopyValues = Partial<Record<PublicCopyKey, string>>;
-const ALL_COPY_DEFAULTS = { ...SITE_COPY_DEFAULTS, ...HOME_COPY_DEFAULTS, ...CI_COPY_DEFAULTS, ...FHC_COPY_DEFAULTS, ...BLOG_COPY_DEFAULTS, ...PRIVACY_COPY_DEFAULTS, ...COOKIES_COPY_DEFAULTS, ...MONEY_STORY_COPY_DEFAULTS };
+const ALL_COPY_DEFAULTS = { ...INVESTMENT_COPY_DEFAULTS, ...SITE_COPY_DEFAULTS, ...HOME_COPY_DEFAULTS, ...CI_COPY_DEFAULTS, ...FHC_COPY_DEFAULTS, ...BLOG_COPY_DEFAULTS, ...PRIVACY_COPY_DEFAULTS, ...COOKIES_COPY_DEFAULTS, ...MONEY_STORY_COPY_DEFAULTS };
 export function publicCopyText(values: PublicCopyValues): CopyText<PublicCopyKey> {
   return createCopyText<PublicCopyKey>(key => values[key] ?? ALL_COPY_DEFAULTS[key]);
 }

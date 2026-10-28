@@ -1,12 +1,15 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
+import { INVESTMENT_COPY_DEFAULTS, investmentLabel, investmentValue } from "@/lib/content/investment-copy-defaults";
 import { allocationTotal, calculatePlan, clampPercentInput, constructionCoverageMatches, createPlanId, createAdvisorHandoffPayload, isAllocationComplete, parseInvestmentAmount, percentForAmount } from "./domain/calculation";
 import { planningFundFromDetail } from "./domain/detail-to-planning";
 import type { AllocationRow, AssetBucket, ConstructionBucket, FundDetailResponse, FundSearchResponse, InvestmentPlanResult, PlanningFund, SelectedFund } from "./domain/types";
 import styles from "./InvestmentAllocation.module.css";
 import { INVESTMENT_RISK_STATEMENT, requestFailureMessage } from "./domain/copy";
 import { type FundScope, withFundScope } from "./domain/fund-scope";
+import { fetchRestoreData, readSavedPlan, savePlanLocally } from "./domain/saved-plan";
 
 const CONSTRUCTION_LABELS: Record<ConstructionBucket, string> = {
   mixed: "กองทุนผสม",
@@ -54,14 +57,16 @@ function formatMoney(value: number): string {
   return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 }).format(value);
 }
 
-function stepCopy(step: number) {
-  if (step === 1) return { title: "กำหนดเงินและสัดส่วนประเภทกอง", body: "เริ่มจากจำนวนเงินและสัดส่วนประเภทกองที่คุณตั้งใจใช้ ระบบจะไม่ตั้งสัดส่วนให้เอง" };
-  if (step === 2) return { title: "เลือกกองทุนด้วยตัวคุณเอง", body: "ค้นหาและเลือกกองเอง แล้วกำหนดสัดส่วนของแต่ละกองให้ตรงกับแผนที่คุณตั้งไว้" };
-  if (step === 3) return { title: "มีสัดส่วนสินทรัพย์เป้าหมายไหม?", body: "ถ้ามี สามารถใส่ไว้เพื่อเปรียบเทียบกับสิ่งที่กองทุนที่เลือกถืออยู่จริง หากยังไม่มีสามารถข้ามได้" };
-  return { title: "ภาพรวมจากสิ่งที่คุณเลือก", body: "ผลลัพธ์ช่วยให้เห็นโครงสร้าง ความเสี่ยง และเงื่อนไขจากข้อมูลที่มี โดยไม่บอกว่าควรซื้อหรือขายอะไร" };
+function stepCopy(step: number, text: (key: keyof typeof INVESTMENT_COPY_DEFAULTS) => string) {
+  if (step === 1) return { title: text("investment.portfolio.text136"), body: text("investment.portfolio.text137") };
+  if (step === 2) return { title: text("investment.portfolio.text138"), body: text("investment.portfolio.text139") };
+  if (step === 3) return { title: text("investment.portfolio.text140"), body: text("investment.portfolio.text141") };
+  return { title: text("investment.portfolio.text142"), body: text("investment.portfolio.text143") };
 }
 
 export default function PortfolioBuilder({ scope = "main" }: { scope?: FundScope }) {
+  const text = usePublicCopy(INVESTMENT_COPY_DEFAULTS);
+  const label = (value: string) => investmentLabel(value, text);
   const [step, setStep] = useState(1);
   const [investmentAmount, setInvestmentAmount] = useState("");
   const [construction, setConstruction] = useState(initialConstruction);
@@ -72,6 +77,9 @@ export default function PortfolioBuilder({ scope = "main" }: { scope?: FundScope
   const [selectedFunds, setSelectedFunds] = useState<SelectedFund[]>([]);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [handoffText, setHandoffText] = useState<string | null>(null);
+  const [restoreStatus, setRestoreStatus] = useState<string | null>(null);
   const searchRequest = useRef(0);
   const detailRequests = useRef(new Map<string, number>());
   const selectedIds = useRef(new Set<string>());
@@ -108,9 +116,15 @@ export default function PortfolioBuilder({ scope = "main" }: { scope?: FundScope
     }
   }, [step, constructionValid, selectedValid, targetValid, amount, construction, target, selectedFunds]);
 
-  const currentCopy = stepCopy(step);
+  const currentCopy = stepCopy(step, text);
+
+  function cancelRestore() {
+    setHandoffText(null);
+    if (restoring) { searchRequest.current++; setRestoring(false); }
+  }
 
   function updateConstruction(key: ConstructionBucket, percent: number) {
+    cancelRestore();
     setConstruction((current) => current.map((row) => row.key === key ? { ...row, percent } : row));
   }
 
@@ -120,11 +134,13 @@ export default function PortfolioBuilder({ scope = "main" }: { scope?: FundScope
   }
 
   function updateTarget(key: Exclude<AssetBucket, "unknown">, percent: number) {
+    cancelRestore();
     setTarget((current) => current.map((row) => row.key === key ? { ...row, percent } : row));
   }
 
   function navigate(next: number) {
     setSaveStatus(null);
+    cancelRestore();
     setStep(next);
     window.setTimeout(() => document.getElementById("investment-allocation-builder")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }), 0);
   }
@@ -134,6 +150,7 @@ export default function PortfolioBuilder({ scope = "main" }: { scope?: FundScope
     const trimmed = query.trim();
     if (!trimmed) return;
     const request = ++searchRequest.current;
+    setRestoring(false);
     setSearching(true);
     setSearchState(null);
     try {
@@ -144,13 +161,14 @@ export default function PortfolioBuilder({ scope = "main" }: { scope?: FundScope
       setSearchState(data);
     } catch (error) {
       if (request !== searchRequest.current) return;
-      setSearchState({ mode: "sec_live", state: "unavailable", query: trimmed, funds: [], message: requestFailureMessage(error, "ค้นหาไม่สำเร็จชั่วคราว ลองใหม่อีกครั้ง"), fetchedAt: new Date().toISOString() });
+      setSearchState({ mode: "sec_live", state: "unavailable", query: trimmed, funds: [], message: requestFailureMessage(error, text("investment.portfolio.text144")), fetchedAt: new Date().toISOString() });
     } finally {
       if (request === searchRequest.current) setSearching(false);
     }
   }
 
   function addFund(fund: PlanningFund) {
+    cancelRestore();
     if (!fund.constructionBucket || selectedIds.current.has(fund.id)) return;
     selectedIds.current.add(fund.id);
     setSelectedFunds((current) => current.some((selected) => selected.fund.id === fund.id) ? current : [...current, { fund, weightPercent: 0, selectionSource: "customer" }]);
@@ -158,6 +176,7 @@ export default function PortfolioBuilder({ scope = "main" }: { scope?: FundScope
   }
 
   async function loadSelectedDetail(fund: PlanningFund, requestedClass: string | null) {
+    cancelRestore();
     const request = (detailRequests.current.get(fund.id) ?? 0) + 1;
     detailRequests.current.set(fund.id, request);
     setSaveStatus(null);
@@ -179,10 +198,12 @@ export default function PortfolioBuilder({ scope = "main" }: { scope?: FundScope
   }
 
   function updateSelectedWeight(id: string, weightPercent: number) {
+    cancelRestore();
     setSelectedFunds((current) => current.map((selected) => selected.fund.id === id ? { ...selected, weightPercent } : selected));
   }
 
   function removeFund(id: string) {
+    cancelRestore();
     selectedIds.current.delete(id);
     detailRequests.current.set(id, (detailRequests.current.get(id) ?? 0) + 1);
     setSelectedFunds((current) => current.filter((selected) => selected.fund.id !== id));
@@ -199,12 +220,66 @@ export default function PortfolioBuilder({ scope = "main" }: { scope?: FundScope
   function savePlan() {
     if (!result) return;
     const id = ensurePlanId();
-    const payload = createAdvisorHandoffPayload(id, result);
+    const original = createAdvisorHandoffPayload(id, result);
+    const payload = { ...original, tool_scope: scope,
+      selected_funds: original.selected_funds.map((fund, index) => ({ ...fund, restore_query: result.selectedFunds[index].fund.shortName })),
+    };
     try {
-      localStorage.setItem("ccpun_investment_allocation_plan_v1", JSON.stringify(payload));
-      setSaveStatus("บันทึกไว้ในอุปกรณ์นี้แล้ว — ยังไม่ได้ส่งข้อมูลออกจากเบราว์เซอร์");
+      savePlanLocally(localStorage, "portfolio", scope, payload);
+      setSaveStatus(text("investment.single.text008"));
     } catch {
-      setSaveStatus("อุปกรณ์นี้ไม่อนุญาตให้บันทึกข้อมูลในเบราว์เซอร์");
+      setSaveStatus(text("investment.single.text009"));
+    }
+  }
+
+  async function restorePlan() {
+    const request = ++searchRequest.current;
+    setSearching(false);
+    setRestoring(true);
+    setRestoreStatus(null);
+    try {
+      const saved = readSavedPlan(localStorage, "portfolio", scope);
+      if (!saved) { setRestoreStatus(text("investment.single.text010")); return; }
+      const currentFunds: SelectedFund[] = [];
+      let currentSearch: FundSearchResponse | null = null;
+      const currentDetails: typeof selectedDetails = {};
+      for (const choice of saved.funds) {
+        if (request !== searchRequest.current) return;
+        const query = withFundScope(new URLSearchParams({ q: choice.query }), scope);
+        const search = await fetchRestoreData(`/api/investment-allocation/funds/?${query}`, () => request === searchRequest.current);
+        if (!search.ok) throw new Error("restore_unavailable");
+        const found = await search.json() as FundSearchResponse;
+        currentSearch = found;
+        const fund = found.funds.find(row => row.projectId === choice.projectId);
+        if (!fund) throw new Error("restore_unavailable");
+        const params = withFundScope(new URLSearchParams({ proj_id: choice.projectId }), scope);
+        if (choice.className) params.set("class_name", choice.className);
+        const response = await fetchRestoreData(`/api/investment-allocation/detail/?${params}`, () => request === searchRequest.current);
+        if (!response.ok) throw new Error("restore_unavailable");
+        const detail = await response.json() as FundDetailResponse;
+        const fresh = planningFundFromDetail(fund, detail, choice.className);
+        if (detail.classes.length && !choice.className) throw new Error("restore_unavailable");
+        currentFunds.push({ fund: fresh, weightPercent: choice.weight, selectionSource: "customer" });
+        currentDetails[fresh.id] = { state: "ready", detail, requestedClass: choice.className };
+      }
+      if (request !== searchRequest.current) return;
+      for (const [id, generation] of detailRequests.current) detailRequests.current.set(id, generation + 1);
+      selectedIds.current = new Set(currentFunds.map(row => row.fund.id));
+      setSearchState(currentSearch);
+      setSelectedFunds(currentFunds);
+      setSelectedDetails(currentDetails);
+      setHandoffText(null);
+      setInvestmentAmount(String(saved.amount));
+      setConstruction(saved.construction);
+      setTarget(saved.target);
+      setStep(1);
+      setPlanId(null);
+      setSaveStatus(null);
+      setRestoreStatus(text("investment.single.text011"));
+    } catch (error) {
+      if (request === searchRequest.current) setRestoreStatus(text(error instanceof Error && ["saved_plan_too_large", "saved_plan_restore_limit"].includes(error.message) ? "investment.restore.limit" : "investment.single.text012"));
+    } finally {
+      if (request === searchRequest.current) setRestoring(false);
     }
   }
 
@@ -213,127 +288,132 @@ export default function PortfolioBuilder({ scope = "main" }: { scope?: FundScope
     const id = ensurePlanId();
     const payload = createAdvisorHandoffPayload(id, result);
     const lines = [
-      "CCPun — แผนหลายกอง / ขอให้ Pun ช่วยดู",
-      `รหัสแผน: ${payload.plan_id}`,
-      `เงินลงทุน: ${formatMoney(payload.investment_amount)} บาท`,
+      text("investment.portfolio.text145"),
+      investmentValue(text("investment.single.text014"), [payload.plan_id]),
+      investmentValue(text("investment.single.text015"), [formatMoney(payload.investment_amount)]),
       "",
-      "กองที่เลือกเอง:",
+      text("investment.portfolio.text146"),
       ...payload.selected_funds.map((fund) => `- ${fund.fund_name}: ${fund.selected_weight_percent}%`),
-      ...payload.selected_funds.map((fund) => `  ชนิดหน่วย: ${fund.class_name ?? "ยังไม่ระบุ"} · ${fund.provenance?.source === "uat_synthetic" ? "ข้อมูลสังเคราะห์ UAT" : "ข้อมูลจาก ก.ล.ต."} · วันที่ข้อมูล: ${fund.provenance?.sourceDate ?? "ยังไม่ระบุ"} · ตรวจเมื่อ: ${fund.provenance?.fetchedAt ?? "ยังไม่ระบุ"}`),
+      ...payload.selected_funds.map((fund) => investmentValue(text("investment.portfolio.text147"), [fund.class_name ?? text("investment.single.text109"), fund.provenance?.source === "uat_synthetic" ? text("investment.portfolio.text235") : text("investment.single.text034"), fund.provenance?.sourceDate ?? text("investment.single.text109"), fund.provenance?.fetchedAt ?? text("investment.single.text109")])),
       "",
-      "สัดส่วนสินทรัพย์จากกองที่เลือก:",
-      ...payload.effective_allocation.filter((row) => row.percent > 0).map((row) => `- ${EFFECTIVE_LABELS[row.key]}: ${row.percent}%`),
+      text("investment.portfolio.text148"),
+      ...payload.effective_allocation.filter((row) => row.percent > 0).map((row) => `- ${label(EFFECTIVE_LABELS[row.key])}: ${row.percent}%`),
       "",
-      "การกระจายตามระดับความเสี่ยง:",
-      ...payload.risk_distribution.filter((row) => row.percent > 0).map((row) => `- ${row.level === "unknown" ? "ยังไม่มีข้อมูล" : `ระดับ ${row.level}`}: ${row.percent}%`),
+      text("investment.portfolio.text149"),
+      ...payload.risk_distribution.filter((row) => row.percent > 0).map((row) => investmentValue(text("investment.portfolio.text150"), [row.level === "unknown" ? text("investment.portfolio.text185") : `ระดับ ${row.level}`, row.percent])),
       "",
-      "เงื่อนไขรับเงินหลังขายคืน:",
+      text("investment.portfolio.text151"),
       ...payload.liquidity_summary.filter((row) => row.percent > 0).map((row) => `- ${row.bucket}: ${row.percent}%`),
       "",
-      "ลูกค้าเป็นผู้เลือกกองและกำหนดสัดส่วนเอง ต้องการให้ Pun ช่วยดูต่อ",
+      text("investment.portfolio.text152"),
     ];
+    const summary = lines.join("\n");
+    setHandoffText(summary);
+    try { window.open("https://lin.ee/tqLCs4f", "_blank", "noopener,noreferrer"); } catch { /* The manual LINE link remains available. */ }
     try {
-      await navigator.clipboard.writeText(lines.join("\n"));
-      setSaveStatus("คัดลอกสรุปแล้ว กำลังเปิด LINE — วางข้อความในแชตได้เลย");
+      await navigator.clipboard.writeText(summary);
+      setSaveStatus(text("investment.handoff.copied"));
     } catch {
-      setSaveStatus("เปิด LINE ได้ แต่เบราว์เซอร์ไม่อนุญาต Clipboard กรุณากดบันทึกแผนก่อน");
+      setSaveStatus(text("investment.handoff.manual"));
     }
-    window.open("https://lin.ee/tqLCs4f", "_blank", "noopener,noreferrer");
   }
 
   return (
-    <section id="investment-allocation-builder" className={styles.shell} aria-label="เครื่องมือจัดสัดส่วนการลงทุน">
+    <section id="investment-allocation-builder" className={styles.shell} aria-label={text("investment.portfolio.text154")}>
       <div className={styles.grid}>
         <div className={styles.builder}>
           <div className={styles.stepHeader}>
             <div>
-              <h2>{currentCopy.title}</h2>
-              <p>{currentCopy.body}</p>
+              <h2>{label(currentCopy.title)}</h2>
+              <p>{label(currentCopy.body)}</p>
             </div>
-            <span className={styles.stepPill}>ขั้น {step}/4</span>
+            <span className={styles.stepPill}>{text.node("investment.portfolio.text155")}{step}/4</span>
           </div>
 
+          <div className={styles.resultActions}>
+            <button className={styles.secondary} type="button" disabled={restoring} onClick={() => void restorePlan()}>{restoring ? text("investment.single.text035") : text("investment.single.text036")}</button>
+          </div>
+          {restoreStatus ? <p className={styles.saveStatus} role="status">{restoreStatus}</p> : null}
           {step === 1 ? (
             <>
               <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel} htmlFor="investment-amount">เงินที่ต้องการนำมาวางแผน</label>
+                <label className={styles.fieldLabel} htmlFor="investment-amount">{text.node("investment.portfolio.text156")}</label>
                 <div className={styles.moneyInputWrap}>
-                  <input id="investment-amount" inputMode="decimal" type="number" min="0" step="1000" value={investmentAmount} onChange={(event) => setInvestmentAmount(event.target.value)} placeholder="เช่น 500000" />
-                  <span>บาท</span>
+                  <input id="investment-amount" disabled={restoring} inputMode="decimal" type="number" min="0" step="1000" value={investmentAmount} onChange={(event) => { cancelRestore(); setInvestmentAmount(event.target.value); }} placeholder={text("investment.single.text038")} />
+                  <span>{text.node("investment.single.text039")}</span>
                 </div>
-                <p className={styles.fieldHint}>จำนวนเงินนี้ใช้คำนวณตัวเลขในหน้านี้ และไม่ถูกส่งไปใช้วิเคราะห์พฤติกรรมการใช้งาน</p>
+                <p className={styles.fieldHint}>{text.node("investment.portfolio.text157")}</p>
               </div>
 
               <div className={styles.fieldGroup}>
-                <span className={styles.fieldLabel}>สัดส่วน “ประเภทกอง” ที่คุณตั้งใจใช้</span>
+                <span className={styles.fieldLabel}>{text.node("investment.portfolio.text158")}</span>
                 <div className={styles.allocationList}>
                   {construction.map((row) => (
                     <div className={styles.allocationRow} key={row.key}>
-                      <div className={styles.allocationName}><strong>{CONSTRUCTION_LABELS[row.key]}</strong><small>กรอกเป็น % หรือจำนวนเงินก็ได้</small></div>
+                      <div className={styles.allocationName}><strong>{label(CONSTRUCTION_LABELS[row.key])}</strong><small>{text.node("investment.portfolio.text159")}</small></div>
                       <div className={styles.allocationControls}>
-                        <label className={styles.percentWrap}><span>%</span><input className={styles.percentInput} aria-label={`${CONSTRUCTION_LABELS[row.key]} เปอร์เซ็นต์`} type="number" min="0" max="100" step="0.01" value={row.percent ? Math.round(row.percent * 100) / 100 : ""} onChange={(event) => updateConstruction(row.key, clampPercentInput(event.target.value))} /></label>
-                        <label className={styles.amountWrap}><span>บาท</span><input className={styles.amountInput} aria-label={`${CONSTRUCTION_LABELS[row.key]} จำนวนเงิน`} inputMode="decimal" type="number" min="0" max={amount || undefined} step="1000" disabled={amount <= 0} value={amount > 0 && row.percent ? Math.round((amount * row.percent) / 100 * 100) / 100 : ""} onChange={(event) => updateConstructionAmount(row.key, event.target.value)} /></label>
+                        <label className={styles.percentWrap}><span>%</span><input className={styles.percentInput} aria-label={investmentValue(text("investment.portfolio.text160"), [CONSTRUCTION_LABELS[row.key]])} type="number" min="0" max="100" step="0.01" value={row.percent ? Math.round(row.percent * 100) / 100 : ""} onChange={(event) => updateConstruction(row.key, clampPercentInput(event.target.value))} /></label>
+                        <label className={styles.amountWrap}><span>{text.node("investment.single.text039")}</span><input className={styles.amountInput} aria-label={investmentValue(text("investment.portfolio.text161"), [CONSTRUCTION_LABELS[row.key]])} inputMode="decimal" type="number" min="0" max={amount || undefined} step="1000" disabled={amount <= 0} value={amount > 0 && row.percent ? Math.round((amount * row.percent) / 100 * 100) / 100 : ""} onChange={(event) => updateConstructionAmount(row.key, event.target.value)} /></label>
                       </div>
                     </div>
                   ))}
                 </div>
-                <AllocationTotal total={constructionTotal} label="รวมประเภทกอง" />
+                <AllocationTotal total={constructionTotal} label={text("investment.portfolio.text162")} />
               </div>
 
-              <div className={styles.actions}><span /><button className={styles.primary} type="button" disabled={!constructionValid} onClick={() => navigate(2)}>เลือกกองทุนต่อ</button></div>
+              <div className={styles.actions}><span /><button className={styles.primary} type="button" disabled={!constructionValid} onClick={() => navigate(2)}>{text.node("investment.portfolio.text163")}</button></div>
             </>
           ) : null}
 
           {step === 2 ? (
             <>
               <form className={styles.searchRow} onSubmit={searchFunds}>
-                <input className={styles.searchInput} aria-label="ค้นหากองทุน" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ค้นหาชื่อกองหรือชื่อย่อ" />
-                <button className={styles.smallButton} type="submit" disabled={searching}>{searching ? "กำลังค้น" : "ค้นหา"}</button>
+                <input className={styles.searchInput} aria-label={text("investment.single.text051")} value={query} onChange={(event) => { cancelRestore(); setQuery(event.target.value); }} placeholder={text("investment.single.text052")} />
+                <button className={styles.smallButton} type="submit" disabled={searching}>{searching ? text("investment.portfolio.text164") : text("investment.single.text053")}</button>
               </form>
-              <div className={styles.statusNotice}><strong>คุณเป็นคนเลือกกองเอง</strong> รายการค้นหาไม่มีการแนะนำ จัดอันดับ หรือเรียงจากผลตอบแทน</div>
+              <div className={styles.statusNotice}><strong>{text.node("investment.portfolio.text165")}</strong>{text.node("investment.portfolio.text166")}</div>
 
               {searchState?.message ? <div className={styles.statusNotice} role="status">{searchState.message}</div> : null}
               {searchState?.funds.length ? (
-                <div className={styles.searchResults} aria-label="ผลค้นหากองทุน">
+                <div className={styles.searchResults} aria-label={text("investment.portfolio.text167")}>
                   {searchState.funds.map((fund) => {
                     const alreadySelected = selectedFunds.some((selected) => selected.fund.id === fund.id);
                     const selectable = Boolean(fund.constructionBucket);
                     return <article className={styles.fundCard} key={fund.id}>
-                      <div className={styles.fundTop}><div className={styles.fundTitle}><strong>{fund.name}</strong><small>{fund.shortName}{fund.className ? ` · ${fund.className}` : ""}</small></div><span className={styles.sourceBadge}>{fund.provenance.source === "uat_synthetic" ? "ข้อมูลตัวอย่าง" : "ข้อมูลจาก ก.ล.ต."}</span></div>
-                      <div className={styles.fundFacts}><span>ความเสี่ยงระดับ {fund.riskSpectrum ?? "—"}</span><span>{fund.constructionBucket ? CONSTRUCTION_LABELS[fund.constructionBucket] : "ยังไม่มีข้อมูลประเภทกอง"}</span><span>{fund.liquidity.rawText ?? "ยังไม่มีข้อมูลการรับเงินขายคืน"}</span></div>
-                      {!selectable ? <p className={styles.liveFundWarning}>ข้อมูลประเภทกองของรายการนี้ยังไม่พร้อม จึงยังเลือกเข้าแผนไม่ได้</p> : null}
-                      <button type="button" data-primary={selectable && !alreadySelected} disabled={!selectable || alreadySelected} onClick={() => addFund(fund)}>{alreadySelected ? "เลือกแล้ว" : selectable ? "เลือกกองนี้" : "ยังเลือกไม่ได้"}</button>
+                      <div className={styles.fundTop}><div className={styles.fundTitle}><strong>{fund.name}</strong><small>{fund.shortName}{fund.className ? ` · ${fund.className}` : ""}</small></div><span className={styles.sourceBadge}>{fund.provenance.source === "uat_synthetic" ? text("investment.portfolio.text168") : text("investment.single.text034")}</span></div>
+                      <div className={styles.fundFacts}><span>{text.node("investment.portfolio.text169")}{fund.riskSpectrum ?? "—"}</span><span>{fund.constructionBucket ? CONSTRUCTION_LABELS[fund.constructionBucket] : text("investment.portfolio.text170")}</span><span>{fund.liquidity.rawText ?? text("investment.portfolio.text171")}</span></div>
+                      {!selectable ? <p className={styles.liveFundWarning}>{text.node("investment.portfolio.text172")}</p> : null}
+                      <button type="button" data-primary={selectable && !alreadySelected} disabled={!selectable || alreadySelected} onClick={() => addFund(fund)}>{alreadySelected ? text("investment.portfolio.text173") : selectable ? text("investment.single.text060") : text("investment.portfolio.text174")}</button>
                     </article>;
                   })}
                 </div>
               ) : null}
 
               <div className={styles.fieldGroup}>
-                <span className={styles.fieldLabel}>กองที่คุณเลือก</span>
-                {selectedFunds.length === 0 ? <div className={styles.statusNotice}>ยังไม่ได้เลือกกอง ค้นหากองที่คุณสนใจด้านบนแล้วกด “เลือกกองนี้”</div> : (
+                <span className={styles.fieldLabel}>{text.node("investment.portfolio.text175")}</span>
+                {selectedFunds.length === 0 ? <div className={styles.statusNotice}>{text.node("investment.portfolio.text176")}</div> : (
                   <div className={styles.selectedList}>
                     {selectedFunds.map((selected) => <article className={styles.fundCard} key={selected.fund.id}>
-                      <div className={styles.fundTop}><div className={styles.fundTitle}><strong>{selected.fund.name}</strong><small>{selected.fund.constructionBucket ? CONSTRUCTION_LABELS[selected.fund.constructionBucket] : "ยังไม่ระบุประเภท"}</small></div><span className={styles.sourceBadge}>คุณเลือกเอง</span></div>
+                      <div className={styles.fundTop}><div className={styles.fundTitle}><strong>{selected.fund.name}</strong><small>{selected.fund.constructionBucket ? CONSTRUCTION_LABELS[selected.fund.constructionBucket] : text("investment.portfolio.text177")}</small></div><span className={styles.sourceBadge}>{text.node("investment.portfolio.text178")}</span></div>
                       {selectedDetails[selected.fund.id]?.state === "loading" ? (
-                        <p className={styles.provenance} role="status">กำลังโหลดข้อมูลกองและชนิดหน่วยที่เลือก</p>
+                        <p className={styles.provenance} role="status">{text.node("investment.portfolio.text179")}</p>
                       ) : null}
                       {selectedDetails[selected.fund.id]?.state === "unavailable" ? (
                         <div className={styles.statusNotice} role="status">
-                          โหลดรายละเอียดไม่สำเร็จ ยังนำกองนี้ไปสรุปแผนไม่ได้
-                          <button className={styles.smallButton} type="button" onClick={() => void loadSelectedDetail(selected.fund, selectedDetails[selected.fund.id].requestedClass)}>ลองโหลดอีกครั้ง</button>
+                          {text.node("investment.portfolio.text180")}<button className={styles.smallButton} type="button" onClick={() => void loadSelectedDetail(selected.fund, selectedDetails[selected.fund.id].requestedClass)}>{text.node("investment.portfolio.text181")}</button>
                         </div>
                       ) : null}
                       {selectedDetails[selected.fund.id]?.detail?.classes.length ? (
                         <label className={styles.fieldGroup}>
-                          <span className={styles.fieldLabel}>ชนิดหน่วยลงทุน</span>
+                          <span className={styles.fieldLabel}>{text.node("investment.portfolio.text182")}</span>
                           <select
                             className={styles.amcSelect}
-                            aria-label={`ชนิดหน่วย ${selected.fund.name}`}
+                            aria-label={investmentValue(text("investment.portfolio.text183"), [selected.fund.name])}
                             value={selectedDetails[selected.fund.id].requestedClass ?? ""}
                             disabled={selectedDetails[selected.fund.id].state === "loading"}
                             onChange={(event) => void loadSelectedDetail(selected.fund, event.target.value || null)}
                           >
-                            <option value="">เลือกชนิดหน่วยด้วยตัวคุณเอง</option>
+                            <option value="">{text.node("investment.portfolio.text184")}</option>
                             {[...new Map(selectedDetails[selected.fund.id].detail!.classes.map(row => [row.name, row])).values()].map(row => (
                               <option key={row.name} value={row.name}>{row.name}{row.description ? ` · ${row.description}` : ""}</option>
                             ))}
@@ -343,14 +423,14 @@ export default function PortfolioBuilder({ scope = "main" }: { scope?: FundScope
                       {selectedDetails[selected.fund.id]?.state === "ready" ? (
                         <>
                           <div className={styles.fundFacts}>
-                            <span>ความเสี่ยงระดับ {selected.fund.riskSpectrum ?? "ยังไม่มีข้อมูล"}</span>
-                            <span>{selected.fund.liquidity.rawText ?? "ยังไม่มีข้อมูลรับเงินสำหรับชนิดหน่วยที่เลือก"}</span>
+                            <span>{text.node("investment.portfolio.text169")}{selected.fund.riskSpectrum ?? text("investment.portfolio.text185")}</span>
+                            <span>{selected.fund.liquidity.rawText ?? text("investment.portfolio.text186")}</span>
                           </div>
                           <details>
-                            <summary className={styles.smallButton}>ดูสัดส่วนที่กองรายงานและวันที่ข้อมูล</summary>
+                            <summary className={styles.smallButton}>{text.node("investment.portfolio.text187")}</summary>
                             <ul className={styles.warningList}>
                               {selectedDetails[selected.fund.id].detail!.assetAllocation.map((row, index) => (
-                                <li key={index}>{row.name}: {row.percentNav}% · วันที่ข้อมูล {row.sourceDate ?? "ยังไม่ระบุ"}</li>
+                                <li key={index}>{row.name}: {row.percentNav}{text.node("investment.portfolio.text188")}{row.sourceDate ?? text("investment.single.text109")}</li>
                               ))}
                             </ul>
                             {selected.fund.provenance.notes.map((note, index) => <p className={styles.provenance} key={index}>{note}</p>)}
@@ -358,54 +438,54 @@ export default function PortfolioBuilder({ scope = "main" }: { scope?: FundScope
                         </>
                       ) : null}
                       <div className={styles.selectedControl}>
-                        <label><span>สัดส่วนในพอร์ต</span><div className={styles.percentWrap}><span>%</span><input className={styles.percentInput} type="number" min="0" max="100" step="1" aria-label={`สัดส่วน ${selected.fund.name}`} value={selected.weightPercent || ""} onChange={(event) => updateSelectedWeight(selected.fund.id, clampPercentInput(event.target.value))} /></div></label>
-                        <button type="button" onClick={() => removeFund(selected.fund.id)}>เอาออก</button>
+                        <label><span>{text.node("investment.portfolio.text189")}</span><div className={styles.percentWrap}><span>%</span><input className={styles.percentInput} type="number" min="0" max="100" step="1" aria-label={investmentValue(text("investment.portfolio.text190"), [selected.fund.name])} value={selected.weightPercent || ""} onChange={(event) => updateSelectedWeight(selected.fund.id, clampPercentInput(event.target.value))} /></div></label>
+                        <button type="button" onClick={() => removeFund(selected.fund.id)}>{text.node("investment.portfolio.text191")}</button>
                       </div>
                     </article>)}
                   </div>
                 )}
-                <AllocationTotal total={selectedTotal} label="รวมกองที่เลือก" errorMessage={selectedTotal === 100 && !constructionCoverageMatches(construction, selectedFunds) ? "ยอดรวม 100% แล้ว แต่สัดส่วนแต่ละประเภทกองยังไม่ตรงกับที่ตั้งไว้ในขั้นแรก" : undefined} />
+                <AllocationTotal total={selectedTotal} label={text("investment.portfolio.text192")} errorMessage={selectedTotal === 100 && !constructionCoverageMatches(construction, selectedFunds) ? text("investment.portfolio.text193") : undefined} />
               </div>
 
-              <div className={styles.actions}><button className={styles.ghost} type="button" onClick={() => navigate(1)}>ย้อนกลับ</button><button className={styles.primary} type="button" disabled={!selectedValid} onClick={() => navigate(3)}>ไปขั้นถัดไป</button></div>
+              <div className={styles.actions}><button className={styles.ghost} type="button" onClick={() => navigate(1)}>{text.node("investment.portfolio.text194")}</button><button className={styles.primary} type="button" disabled={!selectedValid} onClick={() => navigate(3)}>{text.node("investment.portfolio.text195")}</button></div>
             </>
           ) : null}
 
           {step === 3 ? (
             <>
               <div className={styles.optionalBox}>
-                <h3>มีสัดส่วนสินทรัพย์ที่อยากได้อยู่แล้วไหม?</h3>
-                <p>ถ้ามี ให้ใส่หุ้น ตราสารหนี้ เงินฝาก/ตลาดเงิน และสินทรัพย์อื่นรวมกันเป็น 100% เพื่อเปรียบเทียบกับกองทุนที่คุณเลือก ถ้ายังไม่มี ปล่อยทุกช่องเป็น 0% แล้วไปต่อได้เลย</p>
+                <h3>{text.node("investment.portfolio.text196")}</h3>
+                <p>{text.node("investment.portfolio.text197")}</p>
               </div>
               <div className={styles.allocationList}>
                 {target.map((row) => (
                   <div className={styles.allocationRow} key={row.key}>
-                    <div className={styles.allocationName}><strong>{ASSET_LABELS[row.key]}</strong><small>ใส่เฉพาะเมื่อคุณมีสัดส่วนเป้าหมายอยู่แล้ว</small></div>
-                    <label className={styles.percentWrap}><span>%</span><input className={styles.percentInput} aria-label={`สัดส่วนเป้าหมาย ${ASSET_LABELS[row.key]} เปอร์เซ็นต์`} type="number" min="0" max="100" step="1" value={row.percent || ""} onChange={(event) => updateTarget(row.key, clampPercentInput(event.target.value))} /></label>
+                    <div className={styles.allocationName}><strong>{label(ASSET_LABELS[row.key])}</strong><small>{text.node("investment.portfolio.text198")}</small></div>
+                    <label className={styles.percentWrap}><span>%</span><input className={styles.percentInput} aria-label={investmentValue(text("investment.portfolio.text199"), [ASSET_LABELS[row.key]])} type="number" min="0" max="100" step="1" value={row.percent || ""} onChange={(event) => updateTarget(row.key, clampPercentInput(event.target.value))} /></label>
                   </div>
                 ))}
               </div>
-              <AllocationTotal total={targetTotal} label="รวมสัดส่วนเป้าหมาย" allowZero />
-              <div className={styles.actions}><button className={styles.ghost} type="button" onClick={() => navigate(2)}>ย้อนกลับ</button><button className={styles.primary} type="button" disabled={!targetValid} onClick={() => navigate(4)}>ดูภาพรวมพอร์ต</button></div>
+              <AllocationTotal total={targetTotal} label={text("investment.portfolio.text200")} allowZero />
+              <div className={styles.actions}><button className={styles.ghost} type="button" onClick={() => navigate(2)}>{text.node("investment.portfolio.text194")}</button><button className={styles.primary} type="button" disabled={!targetValid} onClick={() => navigate(4)}>{text.node("investment.portfolio.text201")}</button></div>
             </>
           ) : null}
 
           {step === 4 ? (
-            result ? <ResultView result={result} onEdit={() => navigate(1)} onSave={savePlan} onHandoff={handoffToLine} saveStatus={saveStatus} /> : <div className={styles.statusNotice}>ข้อมูลยังไม่ครบ กรุณาย้อนกลับไปตรวจสัดส่วนที่กรอกไว้</div>
+            result ? <ResultView result={result} onEdit={() => navigate(1)} onSave={savePlan} onHandoff={handoffToLine} saveStatus={saveStatus} handoffText={handoffText} /> : <div className={styles.statusNotice}>{text.node("investment.portfolio.text202")}</div>
           ) : null}
         </div>
 
-        <aside className={`${styles.summary} ${styles.summarySticky}`} aria-label="สรุปแผนระหว่างจัดพอร์ต">
-          <h2>สรุประหว่างจัดพอร์ต</h2>
-          <p className={styles.summaryIntro}>ตัวเลขอัปเดตตามสิ่งที่คุณกรอกเอง ระบบไม่ตั้งพอร์ตหรือเลือกกองทุนให้โดยอัตโนมัติ</p>
-          <div className={styles.summaryAmount}><span>เงินในแผน</span><strong>{amount > 0 ? `${formatMoney(amount)} บาท` : "—"}</strong></div>
+        <aside className={`${styles.summary} ${styles.summarySticky}`} aria-label={text("investment.portfolio.text203")}>
+          <h2>{text.node("investment.portfolio.text204")}</h2>
+          <p className={styles.summaryIntro}>{text.node("investment.portfolio.text205")}</p>
+          <div className={styles.summaryAmount}><span>{text.node("investment.single.text068")}</span><strong>{amount > 0 ? investmentValue(text("investment.single.text069"), [formatMoney(amount)]) : "—"}</strong></div>
           <dl className={styles.summaryRows}>
-            <div className={styles.summaryRow}><dt>ประเภทกอง</dt><dd>{constructionTotal}% / 100%</dd></div>
-            <div className={styles.summaryRow}><dt>กองที่เลือก</dt><dd>{selectedFunds.length} กอง · {selectedTotal}%</dd></div>
-            <div className={styles.summaryRow}><dt>สัดส่วนสินทรัพย์เป้าหมาย</dt><dd>{targetTotal === 0 ? "ยังไม่ได้กำหนด" : `${targetTotal}%`}</dd></div>
-            <div className={styles.summaryRow}><dt>ข้อมูลกองทุน</dt><dd>{searchState?.mode === "sec_live" ? "จาก ก.ล.ต." : searchState ? "ข้อมูลตัวอย่าง" : "ยังไม่ได้ค้นหา"}</dd></div>
+            <div className={styles.summaryRow}><dt>{text.node("investment.single.text070")}</dt><dd>{constructionTotal}% / 100%</dd></div>
+            <div className={styles.summaryRow}><dt>{text.node("investment.single.text075")}</dt><dd>{selectedFunds.length}{text.node("investment.portfolio.text206")}{selectedTotal}%</dd></div>
+            <div className={styles.summaryRow}><dt>{text.node("investment.portfolio.text207")}</dt><dd>{targetTotal === 0 ? text("investment.portfolio.text208") : `${targetTotal}%`}</dd></div>
+            <div className={styles.summaryRow}><dt>{text.node("investment.portfolio.text209")}</dt><dd>{searchState?.mode === "sec_live" ? text("investment.portfolio.text210") : searchState ? text("investment.portfolio.text168") : text("investment.portfolio.text211")}</dd></div>
           </dl>
-          <div className={styles.statusNotice}>ระดับความเสี่ยง 1–8 แสดงแยกจากเงื่อนไขการรับเงิน และไม่ถูกรวมเป็นคะแนนความเสี่ยงของพอร์ต</div>
+          <div className={styles.statusNotice}>{text.node("investment.portfolio.text212")}</div>
         </aside>
       </div>
     </section>
@@ -413,43 +493,46 @@ export default function PortfolioBuilder({ scope = "main" }: { scope?: FundScope
 }
 
 function AllocationTotal({ total, label, allowZero = false, errorMessage }: { total: number; label: string; allowZero?: boolean; errorMessage?: string }) {
+  const text = usePublicCopy(INVESTMENT_COPY_DEFAULTS);
   const valid = total === 100 || (allowZero && total === 0);
   const width = Math.min(100, Math.max(0, total));
-  const message = errorMessage ?? (valid ? (total === 0 ? "ยังไม่ได้กำหนดสัดส่วนเป้าหมาย — ทำต่อได้" : "ครบ 100%") : total < 100 ? `เหลืออีก ${Math.round((100 - total) * 100) / 100}%` : `เกินมา ${Math.round((total - 100) * 100) / 100}%`);
+  const message = errorMessage ?? (valid ? (total === 0 ? text("investment.portfolio.text213") : text("investment.portfolio.text214")) : total < 100 ? investmentValue(text("investment.portfolio.text215"), [Math.round((100 - total) * 100) / 100]) : investmentValue(text("investment.portfolio.text216"), [Math.round((total - 100) * 100) / 100]));
   return <div className={styles.totalBox} data-valid={valid}><div className={styles.totalLine}><span>{label}</span><strong>{total}%</strong></div><div className={styles.progressTrack} aria-hidden="true"><div className={styles.progressFill} style={{ transform: `translateX(${width - 100}%)` }} /></div><p className={styles.validation} data-error={!valid || Boolean(errorMessage)} aria-live="polite">{message}</p></div>;
 }
 
-function ResultView({ result, onEdit, onSave, onHandoff, saveStatus }: { result: InvestmentPlanResult; onEdit: () => void; onSave: () => void; onHandoff: () => void; saveStatus: string | null }) {
+function ResultView({ result, onEdit, onSave, onHandoff, saveStatus, handoffText }: { result: InvestmentPlanResult; onEdit: () => void; onSave: () => void; onHandoff: () => void; saveStatus: string | null; handoffText: string | null }) {
+  const text = usePublicCopy(INVESTMENT_COPY_DEFAULTS);
+  const label = (value: string) => investmentLabel(value, text);
   const unknownRisk = result.riskDistribution.find((row) => row.level === "unknown")?.percent ?? 0;
   return <div className={styles.resultStack}>
-    <p className={styles.riskStatement} role="note">{INVESTMENT_RISK_STATEMENT}</p>
+    <p className={styles.riskStatement} role="note">{label(INVESTMENT_RISK_STATEMENT)}</p>
     <div className={styles.resultPanel}>
-      <h3>สัดส่วนสินทรัพย์จากกองที่คุณเลือก</h3>
-      <p>ตอนนี้ระบบระบุสินทรัพย์ได้ {result.coverage.effectiveAssetPercentKnown}% ของแผน ส่วนที่ยังไม่ทราบจะแยกไว้ชัดเจนและไม่ถูกกระจายไปยังสินทรัพย์อื่น</p>
-      <div className={styles.barList}>{result.effectiveAllocation.filter((row) => row.percent > 0).map((row) => <div className={styles.barRow} key={row.key}><span className={styles.barLabel}>{EFFECTIVE_LABELS[row.key]}</span><div className={styles.barTrack}><div className={styles.barFill} style={{ width: `${Math.min(100, row.percent)}%` }} /></div><span className={styles.barValue}>{row.percent}%</span></div>)}</div>
+      <h3>{text.node("investment.portfolio.text217")}</h3>
+      <p>{text.node("investment.portfolio.text218")}{result.coverage.effectiveAssetPercentKnown}{text.node("investment.portfolio.text219")}</p>
+      <div className={styles.barList}>{result.effectiveAllocation.filter((row) => row.percent > 0).map((row) => <div className={styles.barRow} key={row.key}><span className={styles.barLabel}>{label(EFFECTIVE_LABELS[row.key])}</span><div className={styles.barTrack}><div className={styles.barFill} style={{ width: `${Math.min(100, row.percent)}%` }} /></div><span className={styles.barValue}>{row.percent}%</span></div>)}</div>
     </div>
 
     <div className={styles.resultPanel}>
-      <h3>เทียบกับสัดส่วนที่คุณตั้งไว้</h3>
-      {result.targetDelta.length ? <div className={styles.deltaList}>{result.targetDelta.map((row) => <div className={styles.deltaRow} key={row.asset}><strong>{ASSET_LABELS[row.asset]} · ตั้งไว้ {row.targetPercent}% / จากกองที่เลือก {row.effectivePercent}%</strong><span>{row.conclusive && row.deltaPercentagePoints !== null ? `${row.deltaPercentagePoints > 0 ? "+" : ""}${row.deltaPercentagePoints} จุดเปอร์เซ็นต์` : "ยังสรุปส่วนต่างไม่ได้ เพราะมีสินทรัพย์บางส่วนที่ยังระบุไม่ได้"}</span></div>)}</div> : <p>คุณไม่ได้กำหนดสัดส่วนสินทรัพย์เป้าหมายไว้ จึงไม่มีส่วนเปรียบเทียบในหัวข้อนี้</p>}
+      <h3>{text.node("investment.portfolio.text220")}</h3>
+      {result.targetDelta.length ? <div className={styles.deltaList}>{result.targetDelta.map((row) => <div className={styles.deltaRow} key={row.asset}><strong>{label(ASSET_LABELS[row.asset])}{text.node("investment.portfolio.text221")}{row.targetPercent}{text.node("investment.portfolio.text222")}{row.effectivePercent}%</strong><span>{row.conclusive && row.deltaPercentagePoints !== null ? investmentValue(text("investment.portfolio.text223"), [row.deltaPercentagePoints > 0 ? "+" : "", row.deltaPercentagePoints]) : text("investment.portfolio.text224")}</span></div>)}</div> : <p>{text.node("investment.portfolio.text225")}</p>}
     </div>
 
     <div className={styles.resultPanel}>
-      <h3>เงินอยู่ในกองความเสี่ยงระดับไหนบ้าง</h3>
-      <p>แสดงตามระดับความเสี่ยง 1–8 ของกองที่คุณเลือก โดยไม่รวมออกมาเป็นคะแนนเดียวของทั้งพอร์ต</p>
+      <h3>{text.node("investment.portfolio.text226")}</h3>
+      <p>{text.node("investment.portfolio.text227")}</p>
       <div className={styles.riskRail}>{result.riskDistribution.filter((row) => row.level !== "unknown").map((row) => <div className={styles.riskCell} data-has-value={row.percent > 0} key={String(row.level)}><strong>{row.level}</strong><span>{row.percent}%</span></div>)}</div>
-      {unknownRisk > 0 ? <p className={styles.unknownLine}>ยังไม่มีข้อมูลระดับความเสี่ยง: {unknownRisk}% ของแผน</p> : null}
+      {unknownRisk > 0 ? <p className={styles.unknownLine}>{text.node("investment.portfolio.text228")}{unknownRisk}{text.node("investment.portfolio.text229")}</p> : null}
     </div>
 
     <div className={styles.resultPanel}>
-      <h3>ขายคืนแล้วรับเงินตามเงื่อนไขแบบไหน</h3>
-      <p>แสดงจำนวนเงินตามแผนที่อยู่ในกองซึ่งมีเงื่อนไขรับเงินแบบต่าง ๆ โดยไม่รับประกันวันที่เงินจริงเข้าบัญชี</p>
-      <div className={styles.liquidityGrid}>{result.liquiditySummary.map((row) => <div className={styles.liquidityCard} key={row.bucket}><strong>{row.bucket}</strong><span>{row.percent}% · {formatMoney(row.amount)} บาท</span></div>)}</div>
+      <h3>{text.node("investment.portfolio.text230")}</h3>
+      <p>{text.node("investment.portfolio.text231")}</p>
+      <div className={styles.liquidityGrid}>{result.liquiditySummary.map((row) => <div className={styles.liquidityCard} key={row.bucket}><strong>{row.bucket}</strong><span>{row.percent}% · {formatMoney(row.amount)}{text.node("investment.portfolio.text232")}</span></div>)}</div>
     </div>
 
-    <div className={styles.resultPanel}><h3>ข้อมูลที่ใช้ในแผนนี้</h3><ul className={styles.warningList}>{result.selectedFunds.map(({ fund }) => <li key={fund.id}>{fund.name} · ชนิดหน่วย {fund.className ?? "ยังไม่ระบุ"} · {fund.provenance.source === "uat_synthetic" ? "ข้อมูลสังเคราะห์ UAT" : "ข้อมูลจาก ก.ล.ต."} · วันที่ข้อมูล {fund.provenance.sourceDate ?? "ยังไม่ระบุ"} · ตรวจเมื่อ {fund.provenance.fetchedAt}</li>)}</ul><p>วันที่ข้อมูลแต่ละกองอาจต่างกัน การตรวจล่าสุดไม่ได้ทำให้ข้อมูลต้นทางใหม่ขึ้น เครื่องมือนี้ไม่ใช้เปรียบเทียบผลตอบแทน ค่าธรรมเนียม สกุลเงิน หรือการป้องกันความเสี่ยงค่าเงินที่ยังมีข้อมูลไม่ครบ</p></div>
-    <div className={styles.resultPanel}><h3>ข้อควรรู้ก่อนนำผลไปใช้</h3><ul className={styles.warningList}>{result.warnings.map((warning) => <li key={warning}>{WARNING_LABELS[warning]}</li>)}</ul></div>
+    <div className={styles.resultPanel}><h3>{text.node("investment.portfolio.text233")}</h3><ul className={styles.warningList}>{result.selectedFunds.map(({ fund }) => <li key={fund.id}>{fund.name}{text.node("investment.portfolio.text234")}{fund.className ?? text("investment.single.text109")} · {fund.provenance.source === "uat_synthetic" ? text("investment.portfolio.text235") : text("investment.single.text034")}{text.node("investment.portfolio.text236")}{fund.provenance.sourceDate ?? text("investment.single.text109")}{text.node("investment.portfolio.text237")}{fund.provenance.fetchedAt}</li>)}</ul><p>{text.node("investment.portfolio.text238")}</p></div>
+    <div className={styles.resultPanel}><h3>{text.node("investment.portfolio.text239")}</h3><ul className={styles.warningList}>{result.warnings.map((warning) => <li key={warning}>{label(WARNING_LABELS[warning])}</li>)}</ul></div>
 
-    <div className={styles.resultPanel}><h3>ให้ Pun ช่วยดูต่อ</h3><p>คุณสามารถปรับพอร์ตต่อ บันทึกไว้ในอุปกรณ์ หรือคัดลอกสรุปเพื่อส่งให้ Pun ดูต่อได้</p><div className={styles.resultActions}><button className={styles.ghost} type="button" onClick={onEdit}>ปรับพอร์ตต่อ</button><button className={styles.secondary} type="button" onClick={onSave}>บันทึกในอุปกรณ์นี้</button><button className={styles.primary} type="button" onClick={onHandoff}>คัดลอกสรุป + ส่งให้ Pun ช่วยดู</button></div>{saveStatus ? <p className={styles.saveStatus} role="status">{saveStatus}</p> : null}</div>
+    <div className={styles.resultPanel}><h3>{text.node("investment.single.text114")}</h3><p>{text.node("investment.portfolio.text240")}</p><div className={styles.resultActions}><button className={styles.ghost} type="button" onClick={onEdit}>{text.node("investment.portfolio.text241")}</button><button className={styles.secondary} type="button" onClick={onSave}>{text.node("investment.single.text116")}</button><button className={styles.primary} type="button" onClick={onHandoff}>{text.node("investment.single.text117")}</button></div>{saveStatus ? <p className={styles.saveStatus} role="status">{saveStatus}</p> : null}{handoffText ? <details className={styles.handoffFallback}><summary>{text.node("investment.handoff.manualTitle")}</summary><label>{text.node("investment.handoff.summaryLabel")}<textarea readOnly rows={8} value={handoffText} onFocus={event => event.currentTarget.select()} /></label><a href="https://lin.ee/tqLCs4f" target="_blank" rel="noopener noreferrer">{text.node("investment.handoff.openLine")}</a></details> : null}</div>
   </div>;
 }

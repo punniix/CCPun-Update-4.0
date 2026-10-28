@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { getPublicCopy } from "@/lib/content/public-copy";
+import { publicCopyText } from "@/lib/content/public-copy-registry";
+import { PublicCopyProvider } from "@/components/ui/PublicCopyProvider";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
@@ -53,32 +56,34 @@ const schema = {
   ],
 };
 
-export default function AiaFundAllocationPage() {
+export default async function AiaFundAllocationPage() {
   if (!INVESTMENT_ALLOCATION_ENABLED) notFound();
+  const copy = await getPublicCopy("investment");
+  const text = publicCopyText(copy);
   return (
-    <V5Page current={V5_AIA_FUND_TOOL.href}>
+    <PublicCopyProvider values={copy}><V5Page current={V5_AIA_FUND_TOOL.href}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />
       <V5ToolHero
         id="aia-fund-hero-title"
-        breadcrumbs={<V5Breadcrumbs label="เส้นทางของหน้า" items={[{ href: "/", label: "หน้าแรก" }, { href: V5_TOOLS_HUB.href, label: V5_TOOLS_HUB.label }, { label: V5_AIA_FUND_TOOL.label }]} />}
-        title="กองทุนของ บลจ. เอไอเอ"
-        subtitle={<span className={shell.lead}>เลือกเอง แล้วดูว่าเงินอยู่ตรงไหน</span>}
-        lead="ดูข้อมูลกองทุนจาก ก.ล.ต. ทั้งประเภทกอง ระดับความเสี่ยง สัดส่วนสินทรัพย์ และเงื่อนไขการรับเงิน ใช้กองเดียวหรือจัดหลายกองเองก็ได้ โดยไม่มีการจัดอันดับหรือเลือกกองแทนคุณ"
-        meta="กองทุนในเครื่องมือนี้เป็นกองทุนรวมที่บริหารโดย บลจ. เอไอเอ ส่วนกองทุนที่เลือกได้ในกรมธรรม์ประกันควบการลงทุน (Unit Linked) เป็นไปตามเอกสารกรมธรรม์ของบริษัทประกัน"
-        cta={{ href: "#investment-mode-title", label: "เริ่มเลือกวิธีลงทุน" }}
+        breadcrumbs={<V5Breadcrumbs label={text("investment.aia.text265")} items={[{ href: "/", label: text("investment.aia.text264") }, { href: V5_TOOLS_HUB.href, label: V5_TOOLS_HUB.label }, { label: V5_AIA_FUND_TOOL.label }]} />}
+        title={text("investment.aia.text266")}
+        subtitle={<span className={shell.lead}>{text.node("investment.aia.text267")}</span>}
+        lead={text("investment.aia.text268")}
+        meta={text("investment.aia.text269")}
+        cta={{ href: "#investment-mode-title", label: text("investment.main.text255") }}
       />
       <div className={`${v5ToolStyles.calcScope} ${v5ToolStyles.iaScope} ${motionStyles.scope}`}>
         <InvestmentAllocationTool scope="aia" />
       </div>
       <section className={shell.sectionAlt} aria-labelledby="aia-fund-scope-title">
         <div className={`${shell.inner} ${shell.narrow}`}>
-          <h2 id="aia-fund-scope-title" className={shell.h2}>เครื่องมือนี้ช่วยอธิบาย ไม่ได้ตัดสินใจแทน</h2>
-          <p className={shell.lead}>ผลลัพธ์มาจากจำนวนเงินและกองทุนที่คุณเลือกเอง ระบบแสดงระดับความเสี่ยง สัดส่วนสินทรัพย์ และเงื่อนไขขายคืนแยกกัน โดยไม่ตัดสินว่ากองใดเหมาะกับคุณหรือควรซื้อขายกองไหน</p>
-          <p className={shell.lead}>ถ้าข้อมูลบางส่วนยังไม่พร้อม ระบบจะแจ้งตรง ๆ และจะไม่เติมข้อมูลหรือเดาแทนข้อมูลจาก ก.ล.ต.</p>
+          <h2 id="aia-fund-scope-title" className={shell.h2}>{text.node("investment.main.text256")}</h2>
+          <p className={shell.lead}>{text.node("investment.main.text257")}</p>
+          <p className={shell.lead}>{text.node("investment.main.text258")}</p>
           <p className={shell.lead}>{INVESTMENT_NO_GUARANTEE_STATEMENT}</p>
-          <p className={shell.lead}>อยากดูกองทุนของ บลจ. อื่น <Link className={shell.textLink} href={V5_INVESTMENT_TOOL.href}>ไปที่เครื่องมือวางแผนกองทุน</Link></p>
+          <p className={shell.lead}>{text.node("investment.aia.text270")}<Link className={shell.textLink} href={V5_INVESTMENT_TOOL.href}>{text.node("investment.aia.text271")}</Link></p>
         </div>
       </section>
-    </V5Page>
+    </V5Page></PublicCopyProvider>
   );
 }

@@ -164,8 +164,8 @@ test('actual synthetic detail mapping preserves fixture facts and cannot call SE
 
 test('page blocks rendering before its JSX and is noindex unless enabled on a non-review lane', () => {
   const page = source('features/investment-allocation/page.tsx');
-  const guard = page.match(/export default function InvestmentAllocationPage\(\) \{([\s\S]*?)\n  return \(/)?.[1];
-  assert.ok(guard, 'page guard must precede JSX');
+  const guard = page.match(/export default async function InvestmentAllocationPage\(\) \{([\s\S]*?)\n  const copy = await getPublicCopy\("investment"\)/)?.[1];
+  assert.ok(guard, 'page guard must precede CMS fetching and JSX');
   assert.throws(() => runInNewContext(guard, { INVESTMENT_ALLOCATION_ENABLED: false, notFound: () => { throw new Error('404'); } }), /404/);
   runInNewContext(guard, { INVESTMENT_ALLOCATION_ENABLED: true, notFound: () => { throw new Error('404'); } });
   assert.match(page, /robots: !INVESTMENT_ALLOCATION_ENABLED \|\| IS_REVIEW_ENVIRONMENT \? \{ index: false, follow: false \}/);

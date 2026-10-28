@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from "react";
+import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
+import { INVESTMENT_COPY_DEFAULTS } from "@/lib/content/investment-copy-defaults";
 import PortfolioBuilder from "./PortfolioBuilder";
 import SingleFundBuilder from "./SingleFundBuilder";
 import styles from "./InvestmentAllocation.module.css";
@@ -10,22 +12,23 @@ type JourneyMode = "single" | "portfolio";
 
 /** One engine for both tools; `scope` only narrows which AMCs the server returns. */
 export default function InvestmentAllocationTool({ scope = "main" }: { scope?: FundScope }) {
+  const text = usePublicCopy(INVESTMENT_COPY_DEFAULTS);
   const [mode, setMode] = useState<JourneyMode>("single");
 
   return (
     <>
       <section className={styles.modeSection} aria-labelledby="investment-mode-title">
         <div className={styles.modeInner}>
-          <h2 id="investment-mode-title">อยากใช้กองเดียว หรือจัดหลายกอง?</h2>
-          <p className={styles.modeLead}>ทั้งสองทางให้คุณเป็นคนเลือกกองเอง ระบบไม่จัดอันดับ ไม่แนะนำกอง และไม่เลือกแทน</p>
-          <div className={styles.modeGrid} role="group" aria-label="เลือกวิธีจัดการลงทุน">
+          <h2 id="investment-mode-title">{text.node("investment.mode.text242")}</h2>
+          <p className={styles.modeLead}>{text.node("investment.mode.text243")}</p>
+          <div className={styles.modeGrid} role="group" aria-label={text("investment.mode.text244")}>
             <button className={styles.modeCard} data-active={mode === "single"} aria-pressed={mode === "single"} type="button" onClick={() => setMode("single")}>
-              <strong>ใช้กองเดียว</strong>
-              <span>เลือกกองทุน 1 กอง แล้วดูว่าเงินถูกนำไปลงทุนในอะไร ความเสี่ยงระดับไหน และขายคืนแล้วรับเงินตามเงื่อนไขอะไร</span>
+              <strong>{text.node("investment.mode.text245")}</strong>
+              <span>{text.node("investment.mode.text246")}</span>
             </button>
             <button className={styles.modeCard} data-active={mode === "portfolio"} aria-pressed={mode === "portfolio"} type="button" onClick={() => setMode("portfolio")}>
-              <strong>จัดหลายกองเอง</strong>
-              <span>กำหนดสัดส่วน เลือกหลายกอง และดูว่าสุดท้ายเงินกระจายไปอยู่ในสินทรัพย์อะไรบ้าง</span>
+              <strong>{text.node("investment.mode.text247")}</strong>
+              <span>{text.node("investment.mode.text248")}</span>
             </button>
           </div>
         </div>
