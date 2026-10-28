@@ -1,3 +1,4 @@
+import {websiteV5InvestmentCopyPredecessor} from '../qa/website-v5-phase-a-proof.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
@@ -6,7 +7,8 @@ import {collisionSourcePins,collisionCssPredecessor} from '../qa/v5-uat-collisio
 const sha = text => createHash('sha256').update(text).digest('hex');
 test('Collision CSS successor admits only the complete additive stylesheet and retains every original byte',()=>{
   for (const [file,pin] of Object.entries(collisionSourcePins)) {
-    const current=readFileSync(file,'utf8'),prior=collisionCssPredecessor(file,current);
+    const raw=readFileSync(file,'utf8'),current=websiteV5InvestmentCopyPredecessor(file,raw),prior=collisionCssPredecessor(file,current);
+    assert.equal(websiteV5InvestmentCopyPredecessor(file,raw+' '),raw+' ','unreviewed source is never admitted');
     assert.equal(sha(current),pin.after,file); assert.equal(sha(prior),pin.before,file);
     assert.equal(current,prior+pin.suffix,'Only the reviewed local CSS suffix was appended');
     assert.equal(collisionCssPredecessor(file,prior),prior);

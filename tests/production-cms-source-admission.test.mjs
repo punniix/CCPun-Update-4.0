@@ -141,16 +141,20 @@ test('investment CMS scope and regression registration admit only exact reviewed
     assert.equal(cmsSha(predecessor), entry.before, file + ': complete frozen predecessor');
     assert.equal(websiteV5InvestmentCopyPredecessor(file, predecessor), predecessor, 'historical input stays unchanged');
     assert.equal(websiteV5CopyPredecessor(file, source), websiteV5CopyPredecessor(file, predecessor));
-    if (file === 'lib/content/public-copy-registry.ts') assertProductionCmsOwner(file, source);
+    if (Object.hasOwn(productionCmsOwners, file)) assertProductionCmsOwner(file, source);
     const normalized = cmsSha(websiteV5CopyPredecessor(file, predecessor));
     const mutants = [source + '\n// unreviewed drift\n', ...entry.edits.flatMap(([current, original]) => [source.replace(current, original), source.replace(current, current + current)])];
     if (file === 'lib/content/public-copy-registry.ts') mutants.push(source.replace('เมนู ท้ายเว็บ และคุกกี้', 'unreviewed old wording'));
-    else mutants.push(source.replace('tests/investment-rate-limit.test.ts ', ''));
+    else if (file === 'package.json') mutants.push(source.replace('tests/investment-rate-limit.test.ts ', ''));
     for (const mutant of mutants) {
       assert.notEqual(mutant, source);
       assert.equal(websiteV5InvestmentCopyPredecessor(file, mutant), mutant);
-      assert.notEqual(cmsSha(websiteV5CopyPredecessor(file, mutant)), normalized, file + ': unrelated/missing/duplicate edit denied');
-      if (file === 'lib/content/public-copy-registry.ts') assert.throws(() => assertProductionCmsOwner(file, mutant));
+      if (cmsSha(mutant) === entry.before) {
+        assert.equal(mutant, predecessor, 'a complete historical rollback is the exact approved predecessor');
+      } else {
+        assert.notEqual(cmsSha(websiteV5CopyPredecessor(file, mutant)), normalized, file + ': unrelated/missing/duplicate edit denied');
+      }
+      if (Object.hasOwn(productionCmsOwners, file)) assert.throws(() => assertProductionCmsOwner(file, mutant));
     }
   }
   assert.equal(websiteV5InvestmentCopyPredecessor('unknown.ts', 'unreviewed'), 'unreviewed');

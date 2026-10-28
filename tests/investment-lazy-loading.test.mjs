@@ -112,9 +112,19 @@ test("lazy labels are CMS-editable without changing prior copy or location contr
   for (const key of lazyKeys) {
     assert.ok(locations.investment.entries[key]);
     assert.ok(!old.some(([, value]) => value === defaults.INVESTMENT_COPY_DEFAULTS[key]), "new labels must not change reverse-map last-wins identity");
-    delete locations.investment.entries[key];
   }
-  assert.equal(sha(locations), "231525e82eef4f64df883ef6c5d888ee363f0aa133ae734b45b5370e05940735");
+  // Preserve the original eight pre-Investment scope objects from 7ba6, while
+  // Investment locations follow the existing source generator rather than the
+  // broad manual placeholders introduced alongside its new copy keys.
+  const { investment, ...originalScopes } = locations;
+  assert.equal(sha(originalScopes), "39e8e72a3bf1c12508c6fda7a4005ccb2da0bd174e838dde69fbf06e2d5a34e8");
+  assert.deepEqual(Object.keys(investment.entries).sort(), Object.keys(defaults.INVESTMENT_COPY_DEFAULTS).sort());
+  for (const [index, location] of Object.values(investment.entries).entries()) {
+    assert.ok(investment.sections.includes(location.section));
+    assert.ok(location.kind.length > 0);
+    assert.equal(typeof location.visible, "boolean");
+    assert.equal(location.order, index);
+  }
   const winners = new Map(old.map(([key, value]) => [value, key]));
   for (const [value, key] of winners) assert.equal(defaults.investmentLabel(value, resolved => resolved), key);
 });

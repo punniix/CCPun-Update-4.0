@@ -838,14 +838,16 @@ function detailFromStoredFund(projectId: string, requestedClassName: string | nu
 async function aiaDetailFromStore(projectId: string, requestedClassName: string | null, key: string | null): Promise<FundDetailResponse | null> {
   const store = getFundCatalogStore();
   if (!store) return null;
+  const now = Date.now();
   const result = await readThroughStore<StoredFund, FundDetailResponse>({
     read: () => store.readFund("aia", projectId),
     // A hidden fund is a definitive stored answer; a visible one needs stored detail.
-    fetchedAt: (stored) => (!stored.visible ? new Date().toISOString() : stored.detail ? stored.detailFetchedAt : null),
+    fetchedAt: (stored) => (!stored.visible ? new Date(now).toISOString() : stored.detail ? stored.detailFetchedAt : null),
     claim: () => store.claimLiveFallback("aia:detail", FUND_LIVE_FALLBACK_LEASE_SECONDS),
     live: () => (key ? liveFundDetail(projectId, requestedClassName, "aia", key) : Promise.reject(new Error("sec_key_missing"))),
     liveUsable: (detail) => detail.source === "sec_v2" && Boolean(detail.fund),
     flightKey: `aia:detail:${projectId}:${requestedClassName ?? ""}`,
+    now,
   });
   if (result.kind === "busy") {
     if (!key) return null;

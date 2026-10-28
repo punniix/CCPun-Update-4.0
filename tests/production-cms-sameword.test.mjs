@@ -166,7 +166,7 @@ const cases = [
   ['privacy',{}],['cookies',{}],['moneyStory',{}],
 ];
 test('eight original scopes retain exact b871 public HTML, current design and six-card archive',async()=>{
-  assert.deepEqual(Object.keys(registry.PUBLIC_COPY_SCOPES),['site','home','ci','fhc','blog','privacy','cookies','moneyStory']);
+  assert.deepEqual(Object.keys(registry.PUBLIC_COPY_SCOPES),['investment','site','home','ci','fhc','blog','privacy','cookies','moneyStory']);
   for (const [index,[scope,props]] of cases.entries()) {
     // Website v5 Phase A: /blog/ now renders the v5 index, so its b871 HTML golden (cases 5-7)
     // is retired deliberately and replaced by the v5 archive assertions below. The unchanged
@@ -245,7 +245,7 @@ test('SEO edits preserve indexing and canonical controls; only explicit sharing 
   for(const url of ['https://cdn.sanity.io/images/ccb9lnw5/uat/asset-1200x630.webp','https://cdn.sanity.io/images/other/production/asset.webp','https://evil.invalid/asset.webp','https://ccpun.com/assets/%2e%2e/private.webp','https://user@ccpun.com/assets/a.webp'])assert.equal(image(url),false,url);
 });
 test('Production preview authorizes before reads and refuses wrong lane, scope or data-plane identity',async()=>{
-  for(const config of [{denied:true,environment:'production-admin',allowed:true},{environment:'web-uat',allowed:true},{environment:'production-admin',allowed:false},{environment:'production-admin',allowed:true,scope:'investment'}]) {
+  for(const config of [{denied:true,environment:'production-admin',allowed:true},{environment:'web-uat',allowed:true},{environment:'production-admin',allowed:false},{environment:'production-admin',allowed:true,scope:'unknown'}, {environment:'production-admin',allowed:true,scope:'__proto__'}, {environment:'production-admin',allowed:true,scope:'home/evil'}]) {
     const trace=[];let queries=0;const api=loadFixtureModule('lib/admin/public-copy-preview.ts',{mocks:new Map([
       ['@/lib/admin/require-permission',{requireAdminPermission:async permission=>{trace.push(permission);if(config.denied)throw new Error('fixture-denied');}}],
       ['@/lib/admin/environment',{getAdminEnvironment:()=>config.environment,isAdminReadDataPlaneAllowed:()=>config.allowed}],
@@ -334,12 +334,12 @@ test('copy and SEO preview links require registered page and matching fixed publ
   for(const[scope,page]of Object.entries(registry.PUBLIC_COPY_SCOPES)) {
     for(const prefix of ['', 'drafts.'])assert.equal(config.resolve.locations.publicPageCopy.resolve({id:prefix+registry.publicCopyDocumentId(scope),scope}).locations[0].href,'/content/website-preview/'+scope+'/');
     assert.deepEqual(config.resolve.locations.publicPageCopy.resolve({id:'wrong',scope}).locations,[]);
-    if(scope==='site')continue;
+    if(scope==='site'||!pages.getPageSeoPage(page.pathname))continue;
     for(const prefix of ['', 'drafts.'])assert.deepEqual(config.resolve.locations.pageSeo.resolve({id:prefix+pages.pageSeoDocumentId(page.pathname),pathname:page.pathname}).locations,[{title:'ดูฉบับร่างหน้าเว็บไซต์และ SEO',href:'/content/website-preview/seo-'+scope+'/'}]);
     assert.deepEqual(config.resolve.locations.pageSeo.resolve({id:'wrong',pathname:page.pathname}).locations,[]);
   }
   for(const pathname of ['*','/tools/investment-allocation/','https://evil.invalid/','/new-page/'])assert.deepEqual(config.resolve.locations.pageSeo.resolve({id:'pageSeo-home',pathname}).locations,[]);
-  assert.deepEqual(config.resolve.locations.pageSeo.resolve(null).locations,[]);assert.deepEqual(config.resolve.locations.publicPageCopy.resolve({scope:'investment',id:'publicPageCopy-investment-th'}).locations,[]);
+  assert.deepEqual(config.resolve.locations.pageSeo.resolve(null).locations,[]);assert.deepEqual(config.resolve.locations.publicPageCopy.resolve({scope:'unknown',id:'publicPageCopy-investment-th'}).locations,[]);
 });
 test('fixed singletons initialize validated editable drafts and authorize only exact Production page publishing',()=>{
   const definitions=new Map([['sanity',{defineType:value=>value,defineField:value=>value,defineArrayMember:value=>value}],['../../components/PublicCopyEntriesInput',{__esModule:true,default:function PublicCopyEntriesInput(){return null;}}]]);
@@ -419,7 +419,7 @@ test('Production page actions admit only the fixed original singleton IDs and le
   const policy=loadFixtureModule('cms/sanity/policy/studio-policy.ts',{mocks:new Map([['../../../lib/admin/environment',{isStudioDataPlaneAllowed:()=>true}]])});
   const actions=['publish','delete','unpublish','unpublishVersion','discardChanges','restore'].map(action=>({action}));
   const pages=loadFixtureModule('lib/content/page-seo-registry.ts').PAGE_SEO_PAGES;
-  for(const[type,ids]of [['publicPageCopy',Object.keys(registry.PUBLIC_COPY_SCOPES).map(registry.publicCopyDocumentId)],['pageSeo',pages.map(p=>p.documentId)]]){
+  for(const[type,ids]of [['publicPageCopy',['site','home','ci','fhc','blog','privacy','cookies','moneyStory'].map(registry.publicCopyDocumentId)],['pageSeo',pages.map(p=>p.documentId)]]){
     for(const id of ids)for(const prefix of ['', 'drafts.'])assert.deepEqual(policy.filterStudioDocumentActions(actions,'production','production-admin',type,'kyfxgjnq',prefix+id).map(a=>a.action),['publish','discardChanges','restore']);
     for(const id of [undefined,'unknown','publicPageCopy-investment-th','pageSeo-investment-allocation','versions.release.publicPageCopy-home-th',type==='publicPageCopy'?'pageSeo-home':'publicPageCopy-home-th'])assert.deepEqual(policy.filterStudioDocumentActions(actions,'production','production-admin',type,'kyfxgjnq',id),[]);
   }
@@ -431,12 +431,12 @@ test('Production page actions admit only the fixed original singleton IDs and le
   assert.ok(readFileSync('sanity.config.ts','utf8').includes('context.schemaType, projectId, context.documentId)'));
 });
 test('private full-width preview omits Admin chrome only on its exact route after server authorization',()=>{
-  for(const pathname of ['/content/website-preview/','/content/website-preview',...Object.keys(registry.PUBLIC_COPY_SCOPES).flatMap(scope=>['/content/website-preview/'+scope+'/']),...Object.keys(registry.PUBLIC_COPY_SCOPES).filter(s=>s!=='site').map(scope=>'/content/website-preview/seo-'+scope+'/'),'/content/website-preview/author-home/','/content/website-preview/seo-site/','/content/website-preview/home/evil','/content/website-preview/evil','/content/website-preview-evil/','/dashboard/','/studio/']){
+  for(const pathname of ['/content/website-preview/','/content/website-preview',...Object.keys(registry.PUBLIC_COPY_SCOPES).flatMap(scope=>['/content/website-preview/'+scope+'/']),...Object.keys(registry.PUBLIC_COPY_SCOPES).filter(s=>s!=='site'&&loadFixtureModule('lib/content/page-seo-registry.ts').getPageSeoPage(registry.PUBLIC_COPY_SCOPES[s].pathname)).map(scope=>'/content/website-preview/seo-'+scope+'/'),'/content/website-preview/author-home/','/content/website-preview/seo-site/','/content/website-preview/seo-investment/','/content/website-preview/home/evil','/content/website-preview/evil','/content/website-preview-evil/','/dashboard/','/studio/']){
     const component=loadFixtureModule('features/admin/components/AdminProtectedChrome.tsx',{mocks:new Map([
       ['next/navigation',{usePathname:()=>pathname}],['./AdminDataRefresh',{__esModule:true,default:()=>null}],['./AdminNavigation',{__esModule:true,default:()=>null}],
     ])}).AdminProtectedChrome;
     const html=renderToStaticMarkup(React.createElement(component,{title:'ADMIN CHROME',currentEnvironmentLabel:'Production',identityLabel:'Owner',role:'owner',navItems:[],showInbox:false,showLogout:false,logout:async()=>{},safety:null},React.createElement('section',null,'PUBLIC PAGE PREVIEW')));
-    if(['/content/website-preview/','/content/website-preview',...Object.keys(registry.PUBLIC_COPY_SCOPES).map(scope=>'/content/website-preview/'+scope+'/'),...Object.keys(registry.PUBLIC_COPY_SCOPES).filter(s=>s!=='site').map(scope=>'/content/website-preview/seo-'+scope+'/'),'/content/website-preview/author-home/'].includes(pathname))assert.equal(html,'<section>PUBLIC PAGE PREVIEW</section>');else assert.ok(html.includes('ADMIN CHROME'),pathname);
+    if(['/content/website-preview/','/content/website-preview',...Object.keys(registry.PUBLIC_COPY_SCOPES).map(scope=>'/content/website-preview/'+scope+'/'),...Object.keys(registry.PUBLIC_COPY_SCOPES).filter(s=>s!=='site'&&loadFixtureModule('lib/content/page-seo-registry.ts').getPageSeoPage(registry.PUBLIC_COPY_SCOPES[s].pathname)).map(scope=>'/content/website-preview/seo-'+scope+'/'),'/content/website-preview/author-home/'].includes(pathname))assert.equal(html,'<section>PUBLIC PAGE PREVIEW</section>');else assert.ok(html.includes('ADMIN CHROME'),pathname);
   }
   const layout=readFileSync('apps/admin/app/(control-plane)/layout.tsx','utf8');assert.ok(layout.indexOf('await auth()')<layout.indexOf('return <AdminProtectedChrome'));assert.ok(layout.includes('if (!role) redirect("/login/")'));
 });
@@ -451,12 +451,12 @@ test('native Presentation selects the exact page copy or SEO form for every priv
   }
   assert.deepEqual(resolve({params:{scope:'author-home'}}),{filter:'_type == "author" && _id in ["ccpun-author-ccpun-profile", "ccpun-prod-mirror-author-ccpun"]'});
   for(const id of ['ccpun-author-ccpun-profile','ccpun-prod-mirror-author-ccpun'])for(const prefix of ['', 'drafts.'])assert.equal(plugin.resolve.locations.author.resolve({id:prefix+id}).locations[0].href,'/content/website-preview/author-home/');assert.deepEqual(plugin.resolve.locations.author.resolve({id:'unowned-author'}).locations,[]);
-  for(const scope of ['investment','seo-investment','unknown','home/evil','seo-site'])assert.equal(resolve({params:{scope}}),undefined);
+  for(const scope of ['seo-investment','unknown','__proto__','home/evil','seo-site'])assert.equal(resolve({params:{scope}}),undefined);
   const route=loadFixtureModule('apps/admin/app/(control-plane)/content/website-preview/[scope]/page.tsx',{mocks:new Map([['next/navigation',{notFound:()=>{throw Error('fixture404')}}],['../page',{__esModule:true,default:()=>null}]])}).default;
   const authorRoute=await route({params:Promise.resolve({scope:'author-home'})});assert.equal((await authorRoute.props.searchParams).scope,'home');
-  for(const requested of ['home','ci','site','seo-home','seo-moneyStory'])assert.equal((await(await route({params:Promise.resolve({scope:requested})})).props.searchParams).scope,requested.replace(/^seo-/,''));
+  for(const requested of ['investment','home','ci','site','seo-home','seo-moneyStory'])assert.equal((await(await route({params:Promise.resolve({scope:requested})})).props.searchParams).scope,requested.replace(/^seo-/,''));
   const filtered=await route({params:Promise.resolve({scope:'blog'}),searchParams:Promise.resolve({scope:'investment',q:'คำค้น',page:'2'})});assert.deepEqual(await filtered.props.searchParams,{scope:'blog',q:'คำค้น',page:'2'});
-  for(const requested of ['investment','seo-site','unknown','home/evil'])await assert.rejects(route({params:Promise.resolve({scope:requested})}),/fixture404/);
+  for(const requested of ['seo-investment','seo-site','unknown','__proto__','home/evil'])await assert.rejects(route({params:Promise.resolve({scope:requested})}),/fixture404/);
 });
 
 // C11 inverses only complete approved default-shell renders. Existing literal CMS edit tests
@@ -560,4 +560,76 @@ test('C17 on current UAT peels only the full approved render and preserves all h
       assert.throws(()=>inverseWebsiteV5C14(inverseC15OnC14Html(mutation,index),index),/unknown full render/);
     }
   }
+});
+
+
+test('investment preview checks permission, lane and feature availability before any CMS read', async () => {
+  for (const config of [
+    { denied: true, enabled: true, environment: 'admin-uat', allowed: true },
+    { enabled: false, environment: 'admin-uat', allowed: true },
+    { enabled: true, environment: 'web-uat', allowed: true },
+    { enabled: true, environment: 'admin-uat', allowed: false },
+  ]) {
+    const trace = [];
+    const api = loadFixtureModule('lib/admin/public-copy-preview.ts', { mocks: new Map([
+      ['@/lib/runtime/investment-availability', { INVESTMENT_ALLOCATION_ENABLED: config.enabled }],
+      ['@/lib/admin/require-permission', { requireAdminPermission: async permission => { trace.push(permission); if (config.denied) throw Error('fixture-denied'); } }],
+      ['@/lib/admin/environment', { getAdminEnvironment: () => config.environment, isAdminReadDataPlaneAllowed: () => config.allowed }],
+      ['../content/sanity-fetch', { sanityFetch: async () => { trace.push('unexpected-read'); assert.fail('denied preview cannot query'); } }],
+    ]) });
+    await assert.rejects(api.getPublicCopyPreview('investment'));
+    assert.deepEqual(trace, ['draft:apply']);
+  }
+});
+
+test('enabled investment preview reads only fixed draft copy and site documents without a SEO owner', async () => {
+  const trace = [], key = 'investment.main.text252';
+  const records = {
+    'publicPageCopy-investment-th': { _id: 'publicPageCopy-investment-th', _type: 'publicPageCopy', scope: 'investment', locale: 'th', entries: [{ key, text: 'DRAFT INVESTMENT TITLE' }] },
+    'publicPageCopy-site-th': { _id: 'publicPageCopy-site-th', _type: 'publicPageCopy', scope: 'site', locale: 'th', entries: [{ key: 'site.footerDisclaimer', text: 'DRAFT SHARED FOOTER' }] },
+  };
+  const api = loadFixtureModule('lib/admin/public-copy-preview.ts', { mocks: new Map([
+    ['@/lib/runtime/investment-availability', { INVESTMENT_ALLOCATION_ENABLED: true }],
+    ['@/lib/admin/require-permission', { requireAdminPermission: async permission => trace.push(['permission', permission]) }],
+    ['@/lib/admin/environment', { getAdminEnvironment: () => 'admin-uat', isAdminReadDataPlaneAllowed: (dataset, environment) => dataset === 'uat' && environment === 'admin-uat' }],
+    ['../content/sanity-fetch', { sanityFetch: async request => { assert.equal(request.perspective, 'drafts'); assert.deepEqual(Object.keys(request.params), ['id']); assert.ok(Object.hasOwn(records, request.params.id)); trace.push(['read', request.params.id]); return { data: records[request.params.id] }; } }],
+  ]) });
+  const result = await api.getPublicCopyPreview('investment');
+  assert.deepEqual(trace, [['permission', 'draft:apply'], ['read', 'publicPageCopy-investment-th'], ['read', 'publicPageCopy-site-th']]);
+  assertPreviewValues(result.copy, 'investment', registry.parsePublicCopy('investment', records['publicPageCopy-investment-th']));
+  assertPreviewValues(result.site, 'site', registry.parsePublicCopy('site', records['publicPageCopy-site-th']));
+  assert.equal(copyText.cleanCopyText(result.copy[key]), 'DRAFT INVESTMENT TITLE');
+  assert.equal(result.seo, null);
+});
+
+test('Investment Admin preview uses the actual shared Web renderer and draft copy without author or SEO reads', async () => {
+  const copy = { 'investment.main.text252': 'DRAFT INVESTMENT TITLE' }, site = { 'site.footerDisclaimer': 'DRAFT SHARED FOOTER' };
+  const mocks = new Map([
+    ['@/lib/runtime/investment-availability', { INVESTMENT_ALLOCATION_ENABLED: true }],
+    ['@/components/ui/PublicCopyProvider', copyProvider],
+    ['@/lib/content/public-copy', { getPublicCopy: async scope => { assert.equal(scope, 'investment'); return copy; } }],
+    ['@/lib/admin/public-copy-preview', { getPublicCopyPreview: async scope => { assert.equal(scope, 'investment'); return { copy, site, seo: null }; } }],
+    ['@/lib/content/sanity', { getPrimaryAuthorPreviewProfile: async () => assert.fail('Investment preview does not need author read') }],
+    ['@/components/layout/v5/V5ChatDockServer', { __esModule: true, default: () => null }],
+    ['@/components/layout/v5/V5Header', { __esModule: true, default: ({ siteCopy }) => React.createElement('header', null, siteCopy?.['site.footerDisclaimer']) }],
+    ['@/components/layout/v5/V5Footer', { __esModule: true, default: ({ siteCopy }) => React.createElement('footer', null, siteCopy?.['site.footerDisclaimer']) }],
+    ['./InvestmentAllocationTool', { __esModule: true, default: () => React.createElement('div', { 'data-actual-tool-boundary': '' }) }],
+    ['@/features/home/v5/V5Home', { __esModule: true, default: () => null }],
+    ...['ci-planning', 'financial-health-check', 'blog/pages/BlogArchivePage', 'legal/pages/PrivacyPage', 'legal/pages/CookiePolicyPage', 'money-story'].map((feature, i) => [
+      '@/features/' + (feature.includes('/') ? feature : feature + '/page'),
+      { [['renderCiPlanningPage', 'renderFinancialHealthCheckPage', 'renderBlogPage', 'renderPrivacyPage', 'renderCookiePolicyPage', 'renderMoneyStoryPage'][i]]: () => null },
+    ]),
+  ]);
+  const renderer = loadFixtureModule('features/investment-allocation/page.tsx', { mocks });
+  const shared = renderToStaticMarkup(await resolveServer(renderer.renderInvestmentAllocationPage(copy, site)));
+  const page = loadFixtureModule('apps/admin/app/(control-plane)/content/website-preview/page.tsx', { mocks });
+  const html = renderToStaticMarkup(await resolveServer(await page.default({ searchParams: Promise.resolve({ scope: 'investment' }) })));
+  assert.ok(html.endsWith(shared), 'Admin renders the exact shared Investment content');
+  assert.ok(html.includes('DRAFT INVESTMENT TITLE'));
+  assert.ok(html.includes('DRAFT SHARED FOOTER'));
+  assert.ok(!html.includes('/content/website-preview/seo-investment/'));
+  assert.ok(!html.includes('<dt>SEO Title</dt>'));
+  const disabled = loadFixtureModule('features/investment-allocation/page.tsx', { mocks: new Map([...mocks, ['@/lib/runtime/investment-availability', { INVESTMENT_ALLOCATION_ENABLED: false }]]) });
+  assert.throws(() => disabled.renderInvestmentAllocationPage(copy, site), /fixture-not-found/);
+  await assert.rejects(disabled.default(), /fixture-not-found/);
 });

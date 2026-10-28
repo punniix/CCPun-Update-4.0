@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getPublicCopy } from "@/lib/content/public-copy";
-import { publicCopyText } from "@/lib/content/public-copy-registry";
+import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
 import { PublicCopyProvider } from "@/components/ui/PublicCopyProvider";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -44,9 +44,14 @@ const schema = {
 export default async function InvestmentAllocationPage() {
   if (!INVESTMENT_ALLOCATION_ENABLED) notFound();
   const copy = await getPublicCopy("investment");
+  return renderInvestmentAllocationPage(copy);
+}
+
+export function renderInvestmentAllocationPage(copy: PublicCopyValues, siteCopy?: PublicCopyValues) {
+  if (!INVESTMENT_ALLOCATION_ENABLED) notFound();
   const text = publicCopyText(copy);
   return (
-    <PublicCopyProvider values={copy}><V5Page current="/tools/investment-allocation/">
+    <PublicCopyProvider values={{ ...siteCopy, ...copy }}><V5Page current="/tools/investment-allocation/" siteCopy={siteCopy}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
       <V5ToolHero
         id="investment-hero-title"

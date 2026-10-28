@@ -1,3 +1,4 @@
+import { websiteV5InvestmentCopyPredecessor } from "../../qa/website-v5-phase-a-proof.mjs";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -161,8 +162,8 @@ test("Thai Studio labels change titles only; persisted names and option values s
 test("Admin v1 frozen-proof admissions are exact and reject any further edit", () => {
   for (const [file, { before, after }] of Object.entries(adminPhase1QuickWinSources)) {
     const source = read(file);
-    assert.equal(adminPhase1PredecessorDigest(file, source), before, `${file} is exactly the reviewed successor`);
-    assert.notEqual(adminPhase1PredecessorDigest(file, source + "\n// unreviewed"), before, file);
+    assert.equal(adminPhase1PredecessorDigest(file, websiteV5InvestmentCopyPredecessor(file, source)), before, `${file} is exactly the reviewed successor`);
+    assert.notEqual(adminPhase1PredecessorDigest(file, websiteV5InvestmentCopyPredecessor(file, source + "\n// unreviewed")), before, file);
     assert.notEqual(before, after);
   }
   assert.equal(adminPhase1PredecessorDigest("unknown.tsx", "x"), adminPhase1PredecessorDigest("other.tsx", "x"));

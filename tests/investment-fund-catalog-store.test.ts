@@ -210,10 +210,17 @@ test("detail: stale stored detail is served marked stale when another instance h
 
 // ---------- cancelled / merged funds ----------
 
-test("a cancelled or merged stored fund is hidden: absent from the catalog, detail explains, no SEC call", async () => {
+test("a cancelled or merged stored fund is hidden: absent from the catalog, detail explains, no SEC call", async (t) => {
+  t.mock.timers.enable({ apis: ["Date"], now: Date.now() });
   const catalog = storedCatalog(HOURS);
   catalog.funds = catalog.funds.filter((fund) => fund.projectId !== "M0902_2567");
   const { store } = fakeStore({ catalog, funds: { M0902_2567: storedFund("M0902_2567", 30 * HOURS, { visible: false, hiddenReason: "cancelled", secStatus: "Cancelled" }) } });
+  // A definitive hidden record stays hidden when its awaited read crosses a clock tick.
+  const readFund = store.readFund;
+  store.readFund = async (...args) => {
+    t.mock.timers.tick(20);
+    return readFund(...args);
+  };
   const sec = fixtureSec({ aia: true });
   const list = (await route("catalog", sec, { store })("?scope=aia")).body;
   assert.deepEqual(list.items.map((item: Json) => item.projectId), ["M0901_2567"]);

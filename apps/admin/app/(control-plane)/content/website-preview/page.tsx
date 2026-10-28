@@ -8,6 +8,7 @@ import { renderBlogPage } from "@/features/blog/pages/BlogArchivePage";
 import { renderPrivacyPage } from "@/features/legal/pages/PrivacyPage";
 import { renderCookiePolicyPage } from "@/features/legal/pages/CookiePolicyPage";
 import { renderMoneyStoryPage } from "@/features/money-story/page";
+import { renderInvestmentAllocationPage } from "@/features/investment-allocation/page";
 import { PublicCopyProvider } from "@/components/ui/PublicCopyProvider";
 import { getPublicCopyPreview } from "@/lib/admin/public-copy-preview";
 import { getPrimaryAuthorPreviewProfile } from "@/lib/content/sanity";
@@ -22,7 +23,7 @@ export default async function WebsiteCopyPreview({ searchParams }: { searchParam
   if (typeof requested !== "string" || !Object.hasOwn(PUBLIC_COPY_SCOPES, requested)) notFound();
   const scope = requested as PublicCopyScope;
   const { copy, site, seo } = await getPublicCopyPreview(scope);
-  const authorProfile = await getPrimaryAuthorPreviewProfile();
+  const authorProfile = scope === "investment" ? null : await getPrimaryAuthorPreviewProfile();
   let content: React.ReactNode;
   switch (scope) {
     case "site": case "home": content = <V5Home authorProfile={authorProfile} copy={copy} siteCopy={site} />; break;
@@ -32,6 +33,7 @@ export default async function WebsiteCopyPreview({ searchParams }: { searchParam
     case "privacy": content = await renderPrivacyPage(copy, site); break;
     case "cookies": content = await renderCookiePolicyPage(copy, site); break;
     case "moneyStory": content = await renderMoneyStoryPage(copy, site); break;
+    case "investment": content = renderInvestmentAllocationPage(copy, site); break;
   }
   return <>
     <aside className="mb-6 border border-primary/30 p-4" aria-label="ตัวอย่างฉบับร่างหน้าเว็บไซต์">
@@ -39,9 +41,9 @@ export default async function WebsiteCopyPreview({ searchParams }: { searchParam
       <p className="mt-2 text-sm">เมื่อเปิดในตัวอย่างเว็บไซต์ของ Sanity ข้อความฉบับร่างจะอัปเดตหลังบันทึกโดยอัตโนมัติ ผู้เข้าชมยังเห็นฉบับเผยแพร่</p>
       <nav aria-label="เลือกหน้าตัวอย่าง" className="mt-3 flex flex-wrap gap-3">{Object.entries(PUBLIC_COPY_SCOPES).map(([value, config]) => <Link key={value} href={`/content/website-preview/${value}/`} aria-current={scope === value ? "page" : undefined} className="inline-flex min-h-11 items-center underline">{config.label}</Link>)}</nav>
       <Link href="/content/website-preview/author-home/" className="inline-flex min-h-11 items-center underline">แก้ชื่อและคุณวุฒิผู้เขียน</Link>
-      {scope !== "site" ? <Link href={`/content/website-preview/seo-${scope}/`} className="inline-flex min-h-11 items-center underline">แก้ SEO พร้อมดูหน้าเว็บไซต์</Link> : null}
+      {scope !== "site" && seo ? <Link href={`/content/website-preview/seo-${scope}/`} className="inline-flex min-h-11 items-center underline">แก้ SEO พร้อมดูหน้าเว็บไซต์</Link> : null}
       <Link href={`/studio/intent/edit/id=${publicCopyDocumentId(scope)};type=publicPageCopy`} className="inline-flex min-h-11 items-center underline">แก้ข้อความใน Sanity</Link>
-      <dl className="mt-3 space-y-2 text-sm"><div><dt>SEO Title</dt><dd>{seo.seoTitle}</dd></div><div><dt>Meta Description</dt><dd>{seo.seoDescription}</dd></div><div><dt>OG Title</dt><dd>{seo.ogTitle}</dd></div><div><dt>OG Description</dt><dd>{seo.ogDescription}</dd></div></dl>
+      {seo ? <dl className="mt-3 space-y-2 text-sm"><div><dt>SEO Title</dt><dd>{seo.seoTitle}</dd></div><div><dt>Meta Description</dt><dd>{seo.seoDescription}</dd></div><div><dt>OG Title</dt><dd>{seo.ogTitle}</dd></div><div><dt>OG Description</dt><dd>{seo.ogDescription}</dd></div></dl> : null}
     </aside>
     <PublicCopyProvider values={{ ...site, ...copy }}>{content}</PublicCopyProvider>
   </>;

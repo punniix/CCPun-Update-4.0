@@ -1,3 +1,4 @@
+import { INVESTMENT_COPY_DEFAULTS } from "../lib/content/investment-copy-defaults";
 import "./v5-uat-collision.test.mjs";
 import "./v5-eyebrow-cleanup.test.mjs";
 // Website v5 Phase A contracts (UAT prototype): internal-linking template items,
@@ -211,7 +212,7 @@ test("Phase B: every public page renders the single v5 shell and none imports We
   for (const route of ["apps/web/app/ci-planning/page.tsx", "apps/web/app/tools/financial-health-check/page.tsx", "apps/web/app/play/money-story/page.tsx"]) {
     assert.match(read(route), /resolvePageSeoMetadata\(/, `${route}: route-level SEO resolution is unchanged`);
   }
-  assert.match(read("features/investment-allocation/page.tsx"), /<V5Page current="\/tools\/investment-allocation\/">/);
+  assert.match(read("features/investment-allocation/page.tsx"), /<V5Page current="\/tools\/investment-allocation\/" siteCopy=\{siteCopy\}>/);
   assert.doesNotMatch(read("apps/web/app/layout.tsx"), /Website43ResponsiveStyles|website-43/, "the 4.3 stylesheet no longer ships in the root layout");
   for (const widget of ["components/ui/health-happy/HealthHappyCountdown.tsx", "features/blog/website-43/ArticleShareActions.tsx", "features/blog/website-43/ArticleEngagement.tsx", "features/blog/website-43/ArticleDetailAccess.tsx", "components/layout/v5/V5LegacyBridge.tsx"]) {
     assert.doesNotMatch(read(widget), /website-43\/Website43\.module\.css/, `${widget}: widget styles no longer pull the 68 KB 4.3 module into every v5 page`);
@@ -279,16 +280,21 @@ test("AIA fund tool (2026-10-26): same gate, robots, sitemap status and engine a
   assert.match(aia, /alternates: \{ canonical: URL,/);
   assert.match(aia, /<V5Page current=\{V5_AIA_FUND_TOOL\.href\}>/);
   assert.match(aia, /"@type": "BreadcrumbList"/);
-  assert.match(aia, /<V5Breadcrumbs label="เส้นทางของหน้า" items=\{\[\{ href: "\/", label: "หน้าแรก" \}, \{ href: V5_TOOLS_HUB\.href, label: V5_TOOLS_HUB\.label \}, \{ label: V5_AIA_FUND_TOOL\.label \}\]\} \/>/);
+  assert.ok(aia.includes('breadcrumbs={<V5Breadcrumbs label={text("investment.aia.text265")} items={[{ href: "/", label: text("investment.aia.text264") }, { href: V5_TOOLS_HUB.href, label: V5_TOOLS_HUB.label }, { label: V5_AIA_FUND_TOOL.label }]} />}'));
+  assert.equal(INVESTMENT_COPY_DEFAULTS["investment.aia.text265"], "เส้นทางของหน้า");
+  assert.equal(INVESTMENT_COPY_DEFAULTS["investment.aia.text264"], "หน้าแรก");
   assert.match(aia, /<InvestmentAllocationTool scope="aia" \/>/, "same engine, AIA scope");
   assert.match(main, /<InvestmentAllocationTool \/>/, "main tool keeps the default scope");
-  assert.doesNotMatch(aia, /ฟรี|รับประกัน(?!ผลตอบแทนหรือเงินต้น)|ดีที่สุด|อันดับ ?1/, "no free/guarantee/superlative copy");
-  assert.match(aia, /กองทุนรวมที่บริหารโดย บลจ\. เอไอเอ/);
-  assert.match(aia, /เป็นไปตามเอกสารกรมธรรม์ของบริษัทประกัน/);
+  assert.doesNotMatch(aia + Object.entries(INVESTMENT_COPY_DEFAULTS).filter(([key]) => key.startsWith("investment.aia.")).map(([, value]) => value).join("\n"), /ฟรี|รับประกัน(?!ผลตอบแทนหรือเงินต้น)|ดีที่สุด|อันดับ ?1/, "no free/guarantee/superlative copy");
+  assert.match(INVESTMENT_COPY_DEFAULTS["investment.aia.text269"], /กองทุนรวมที่บริหารโดย บลจ\. เอไอเอ/);
+  assert.match(INVESTMENT_COPY_DEFAULTS["investment.aia.text269"], /เป็นไปตามเอกสารกรมธรรม์ของบริษัทประกัน/);
   // Static text LCP: the hero has no image.
   assert.doesNotMatch(aia, /<(?:img|Image|video)\b/);
   // Internal links: main -> AIA behind the exclusion constant, AIA -> main, hub card behind the flag.
-  assert.match(main, /\{EXCLUDE_AIA_FROM_MAIN_TOOL \? \(\n\s+<p className=\{shell\.lead\}>กองทุนของ บลจ\. เอไอเอ แยกไว้อีกเครื่องมือหนึ่ง <Link className=\{shell\.textLink\} href=\{V5_AIA_FUND_TOOL\.href\}>ดูเครื่องมือกองทุน บลจ\. เอไอเอ<\/Link><\/p>/);
+  assert.match(main, /\{EXCLUDE_AIA_FROM_MAIN_TOOL \? \(\n\s+<p className=\{shell\.lead\}>\{text.node\("investment.main.text259"\)\}<Link className=\{shell\.textLink\} href=\{V5_AIA_FUND_TOOL\.href\}>\{text.node\("investment.main.text260"\)\}<\/Link><\/p>/);
+  assert.equal(INVESTMENT_COPY_DEFAULTS["investment.main.text259"], "กองทุนของ บลจ. เอไอเอ แยกไว้อีกเครื่องมือหนึ่ง ");
+  assert.equal(INVESTMENT_COPY_DEFAULTS["investment.main.text260"], "ดูเครื่องมือกองทุน บลจ. เอไอเอ");
+  assert.ok(aia.includes('meta={text("investment.aia.text269")}'));
   assert.match(aia, /href=\{V5_INVESTMENT_TOOL\.href\}/);
   const hub = read("features/tools-hub/page.tsx");
   assert.match(hub, /\.\.\.\(INVESTMENT_ALLOCATION_ENABLED \? \[\{[\s\S]*href: V5_INVESTMENT_TOOL\.href,[\s\S]*href: V5_AIA_FUND_TOOL\.href,[\s\S]*\}\] : \[\]\),/);

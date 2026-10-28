@@ -15,6 +15,13 @@ const OUTPUT = path.join(ROOT, "lib/content/public-copy-locations.json");
 // Source files in the order a visitor meets them on each page. Files not listed
 // still contribute; they sort after the listed ones.
 const PAGE_FILES = {
+  investment: [
+    "features/investment-allocation/page.tsx",
+    "features/investment-allocation/aia-page.tsx",
+    "features/investment-allocation/InvestmentAllocationTool.tsx",
+    "features/investment-allocation/SingleFundBuilder.tsx",
+    "features/investment-allocation/PortfolioBuilder.tsx",
+  ],
   site: [
     // Website v5 shell renders first on Phase A pages; 4.3 files stay listed for Phase B pages.
     "components/layout/v5/V5Header.tsx",
@@ -90,6 +97,11 @@ const PAGE_FILES = {
 
 // Human section names for whole files that have no visible heading of their own.
 const FILE_SECTIONS = {
+  "features/investment-allocation/page.tsx": "หน้าเครื่องมือหลัก",
+  "features/investment-allocation/aia-page.tsx": "หน้ากองทุน บลจ. เอไอเอ",
+  "features/investment-allocation/InvestmentAllocationTool.tsx": "เลือกวิธีใช้เครื่องมือ",
+  "features/investment-allocation/SingleFundBuilder.tsx": "เลือกกองเดียว",
+  "features/investment-allocation/PortfolioBuilder.tsx": "จัดหลายกอง",
   "components/layout/v5/V5Header.tsx": "เมนูด้านบน",
   "components/layout/v5/V5Footer.tsx": "ท้ายเว็บและส่วนที่ใช้ร่วมกัน",
   "features/blog/v5/V5BlogIndex.tsx": "หน้ารวมบทความ",
@@ -277,6 +289,7 @@ for (const file of [...files].sort()) {
 // Keys composed at runtime (game events, calculator presets) keep registry order
 // and are grouped by their key prefix.
 const PREFIX_SECTIONS = {
+  "investment.labels": "คำอธิบายประเภทและความเสี่ยง",
   "moneyStory.event": "เหตุการณ์ในเกม", "moneyStory.character": "ตัวละครในเกม", "moneyStory.choice": "ตัวเลือกในเกม",
   "ci.recovery.preset": "ขั้นที่ 2 · ชุดค่าใช้จ่ายพักฟื้นสำเร็จรูป", "ci.recovery.source": "ขั้นที่ 2 · แหล่งข้อมูลอ้างอิง",
   "ci.recovery.mode": "ขั้นที่ 2 · เงินสำรองช่วงพักฟื้น", "ci.method": "วิธีคำนวณ", "ci.image": "รูปผลลัพธ์สำหรับแชร์",

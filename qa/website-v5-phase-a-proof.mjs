@@ -52,6 +52,108 @@ export const websiteV5InvestmentCopySuccessors = Object.freeze({
         ""
       ]
     ]
+  },
+  "lib/admin/public-copy-preview.ts": {
+    "before": "9538b4faab828cf6919a573a0ae8a321a1c2ff43514117ee41ed9b465addc3f2",
+    "after": "8107a83728ea3037bd01c2945e957e69b26c27caa2b41d37e1ef25471fe97494",
+    "edits": [
+      [
+        "import \"server-only\";\nimport { INVESTMENT_ALLOCATION_ENABLED } from \"../runtime/investment-availability\";",
+        "import \"server-only\";"
+      ],
+      [
+        "  if (!Object.hasOwn(PUBLIC_COPY_SCOPES, scope)) notFound();\n  if (scope === \"investment\" && !INVESTMENT_ALLOCATION_ENABLED) notFound();",
+        "  if (!Object.hasOwn(PUBLIC_COPY_SCOPES, scope)) notFound();"
+      ],
+      [
+        "  const seoPage = getPageSeoPage(PUBLIC_COPY_SCOPES[contentScope].pathname);",
+        "  const seoPage = getPageSeoPage(PUBLIC_COPY_SCOPES[contentScope].pathname)!;"
+      ],
+      [
+        "    read(contentScope), read(\"site\"), seoPage ? sanityFetch({",
+        "    read(contentScope), read(\"site\"), sanityFetch({"
+      ],
+      [
+        "    }) : Promise.resolve({ data: null }),\n  ]);",
+        "    }),\n  ]);"
+      ],
+      [
+        "  return { copy, site, seo: seoPage ? { ...seoPage.defaults, ...Object.fromEntries(Object.entries(validatePageSeoFields(seo ?? {}, dataset)).filter(([, value]) => value)) } : null };",
+        "  return { copy, site, seo: { ...seoPage.defaults, ...Object.fromEntries(Object.entries(validatePageSeoFields(seo ?? {}, dataset)).filter(([, value]) => value)) } };"
+      ]
+    ]
+  },
+  "features/investment-allocation/page.tsx": {
+    "before": "2829ee263654eb3edeafaa8e1e4cb73b1a7b3b65af8476f99fc83c0065ef436b",
+    "after": "0aa2a72bd590fadfd62fe1a7e9899839a05dfed871c3d0f1c170c261c94e2239",
+    "edits": [
+      [
+        "import { publicCopyText, type PublicCopyValues } from \"@/lib/content/public-copy-registry\";",
+        "import { publicCopyText } from \"@/lib/content/public-copy-registry\";"
+      ],
+      [
+        "  const copy = await getPublicCopy(\"investment\");\n  return renderInvestmentAllocationPage(copy);\n}\n\nexport function renderInvestmentAllocationPage(copy: PublicCopyValues, siteCopy?: PublicCopyValues) {\n  if (!INVESTMENT_ALLOCATION_ENABLED) notFound();\n  const text = publicCopyText(copy);",
+        "  const copy = await getPublicCopy(\"investment\");\n  const text = publicCopyText(copy);"
+      ],
+      [
+        "    <PublicCopyProvider values={{ ...siteCopy, ...copy }}><V5Page current=\"/tools/investment-allocation/\" siteCopy={siteCopy}>",
+        "    <PublicCopyProvider values={copy}><V5Page current=\"/tools/investment-allocation/\">"
+      ]
+    ]
+  },
+  "apps/admin/app/(control-plane)/content/website-preview/page.tsx": {
+    "before": "1e700237c9e32b30da8d592db7d78afe58dc07f21e76390f2c023d814dbdcf4c",
+    "after": "4845c4fcfc3e0fcf580404d10b3c7d605c94fda96282f884a8ff607c954b72e0",
+    "edits": [
+      [
+        "import { renderMoneyStoryPage } from \"@/features/money-story/page\";\nimport { renderInvestmentAllocationPage } from \"@/features/investment-allocation/page\";",
+        "import { renderMoneyStoryPage } from \"@/features/money-story/page\";"
+      ],
+      [
+        "  const authorProfile = scope === \"investment\" ? null : await getPrimaryAuthorPreviewProfile();",
+        "  const authorProfile = await getPrimaryAuthorPreviewProfile();"
+      ],
+      [
+        "    case \"moneyStory\": content = await renderMoneyStoryPage(copy, site); break;\n    case \"investment\": content = renderInvestmentAllocationPage(copy, site); break;",
+        "    case \"moneyStory\": content = await renderMoneyStoryPage(copy, site); break;"
+      ],
+      [
+        "      {scope !== \"site\" && seo ? <Link href=",
+        "      {scope !== \"site\" ? <Link href="
+      ],
+      [
+        "      {seo ? <dl className=\"mt-3 space-y-2 text-sm\">",
+        "      <dl className=\"mt-3 space-y-2 text-sm\">"
+      ],
+      [
+        "</dd></div></dl> : null}",
+        "</dd></div></dl>"
+      ]
+    ]
+  },
+  "cms/sanity/policy/studio-policy.ts": {
+    "before": "4cad6a03bc5befd47ef77937952f4c3ee50d7eb83cb0acc897dcc66518c45a7d",
+    "after": "204664c2af44789ef94b6affbb6ad884d4747964edaedf820375a7f42238ccde",
+    "edits": [
+      [
+        "import { publicCopyDocumentId, type PublicCopyScope }",
+        "import { PUBLIC_COPY_SCOPES, publicCopyDocumentId, type PublicCopyScope }"
+      ],
+      [
+        "? [\"site\", \"home\", \"ci\", \"fhc\", \"blog\", \"privacy\", \"cookies\", \"moneyStory\"].some(scope => publicCopyDocumentId(scope as PublicCopyScope) === id)",
+        "? Object.keys(PUBLIC_COPY_SCOPES).some(scope => publicCopyDocumentId(scope as PublicCopyScope) === id)"
+      ]
+    ]
+  },
+  "features/investment-allocation/InvestmentAllocation.module.css": {
+    "before": "dd3a7b27c17e7e7fc1d1876a5f980c3619db44c043fc4bbba88d54dc13702724",
+    "after": "05b29e203fbf4eda01a6d98d9e6986551f0ec5f3cfcccf4791faa453fb4cf995",
+    "edits": [
+      [
+        "\n.handoffFallback{margin-top:1rem;max-width:100%;overflow-wrap:anywhere}.handoffFallback summary{cursor:pointer}.handoffFallback label{display:block;margin-top:.75rem}.handoffFallback textarea{box-sizing:border-box;width:100%;margin:.5rem 0;padding:.75rem;border:1px solid var(--w43-border);border-radius:.5rem;background:var(--w43-deep);color:inherit;font:inherit;resize:vertical}.handoffFallback textarea:focus-visible,.handoffFallback a:focus-visible{outline:2px solid currentColor;outline-offset:3px}\n",
+        ""
+      ]
+    ]
   }
 });
 
@@ -64,6 +166,27 @@ export function websiteV5InvestmentCopyPredecessor(file, source) {
     result = result.replace(current, original);
   }
   return sha(result) === entry.before ? result : source;
+}
+
+// These three frontend owners are digest-only C15 callers. Exact current-source
+// admission retains their frozen pre-C15 digests without storing duplicate UI bodies.
+export const websiteV5InvestmentC15DigestSuccessors = Object.freeze({
+  "features/investment-allocation/aia-page.tsx": {
+    "after": "7a786314b4fbbafd0db89c90a31783720391aea095e6b32ebde55c853049f570",
+    "before": "8dcd774a64625d0614b73dfb4005bbf8123f9783f81186da8f6b29086e19ecca"
+  },
+  "features/investment-allocation/PortfolioBuilder.tsx": {
+    "after": "5ca420bc6f98e557396a8801e3cdcba15f631eb4d351a887f5f02bf7138aa64d",
+    "before": "4bd1e98487e3c8fe3b1d0f020582528eee4b172509633bed182074559b1c464d"
+  },
+  "features/investment-allocation/InvestmentAllocationTool.tsx": {
+    "after": "f69688ce1f16116f80e87fe42402248b1ed5351f3b41f1be7a4bdaaffee4b194",
+    "before": "576d5bcd5cb7ef30a7df81347e974bac588b8f5d0deefc81a851288aa2e912a4"
+  }
+});
+export function websiteV5InvestmentC15Digest(file, source) {
+  const entry = Object.hasOwn(websiteV5InvestmentC15DigestSuccessors, file) ? websiteV5InvestmentC15DigestSuccessors[file] : null;
+  return entry && typeof source === 'string' && sha(source) === entry.after ? entry.before : null;
 }
 
 // Additive public-copy keys for new v5 UI labels (and the v5 test registration). Removing
@@ -121,9 +244,10 @@ export const websiteV5NewCopyKeys = Object.freeze([
 
 /** Exact inverse of the additive copy keys; any other edit is left in place and still fails the frozen digest. */
 export function websiteV5CopyPredecessor(file, source) {
+  source = websiteV5InvestmentCopyPredecessor(file, source);
   const edits = Object.hasOwn(websiteV5CopyAdditions, file) ? websiteV5CopyAdditions[file] : null;
   if (!edits || typeof source !== 'string') return source;
-  let result = inverseWebsiteV5C14Copy(file, websiteV5InvestmentCopyPredecessor(file, source));
+  let result = inverseWebsiteV5C14Copy(file, source);
   for (const [current, original] of edits) {
     if (result.split(current).length !== 2) return source;
     result = result.replace(current, original);
@@ -232,6 +356,7 @@ export const websiteV5MotionSources = Object.freeze({
 
 /** Digest the frozen proofs should compare: the reviewed predecessor for an exact v5 successor, else the file's own digest. */
 export function websiteV5PredecessorDigest(file, source) {
+  source = websiteV5InvestmentCopyPredecessor(file, source);
   source = collisionCssPredecessor(file, source);
   const restored = websiteV5CopyPredecessor(file, qrEventPredecessor(file, eyebrowPredecessor(file, source)));
   const current = sha(restored);
@@ -242,6 +367,7 @@ export function websiteV5PredecessorDigest(file, source) {
 }
 
 export function isWebsiteV5ReviewedSuccessor(file, source) {
+  source = websiteV5InvestmentCopyPredecessor(file, source);
   source = collisionCssPredecessor(file, source);
   source = qrEventPredecessor(file, eyebrowPredecessor(file, source));
   const motion = Object.hasOwn(websiteV5MotionSources, file) ? websiteV5MotionSources[file] : null;
