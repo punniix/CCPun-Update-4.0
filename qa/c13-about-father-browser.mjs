@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { FATHER_STORY_HEADING, FATHER_STORY_PARAGRAPHS, FATHER_STORY_QUESTIONS, FATHER_PHOTO_CAPTION } from '../features/about/father-story-copy.ts';
+import { FATHER_STORY_HEADING, FATHER_STORY_PARAGRAPHS, FATHER_STORY_QUESTIONS, FATHER_PHOTO_CAPTION, FATHER_STORY_KEEP } from '../features/about/father-story-copy.ts';
 
 // Existing local Playwright installation; no package install and no external browser requests.
 const { chromium } = await import(pathToFileURL(process.env.C13_PLAYWRIGHT || '/Users/punnii/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs').href);
@@ -13,7 +13,7 @@ mkdirSync(output, { recursive: true });
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const results = [];
 try {
-  for (const width of [390, 1440]) for (const theme of ['light', 'dark']) {
+  for (const width of [320, 390, 1279, 1280, 1440]) for (const theme of ['light', 'dark']) {
     const context = await browser.newContext({ viewport: { width, height: 1000 }, colorScheme: theme });
     const denied = [];
     await context.route('**/*', async (route) => {
@@ -42,8 +42,10 @@ try {
       const computed = getComputedStyle(caption), fg = composite(rgba(computed.color), bg);
       const luminance = (color) => color.slice(0, 3).map((v) => { const c = v / 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }).reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0);
       const values = [luminance(fg), luminance(bg)].sort((a, b) => b - a);
-      const keeps = [...story.querySelectorAll('[class*="keep"]')].map((node) => ({ text: node.textContent, whiteSpace: getComputedStyle(node).whiteSpace, ...bounds(node) }));
-      return { theme: document.documentElement.dataset.theme, heading: story.querySelector('h3').textContent, paragraphText: [...story.querySelectorAll('p')].map((node) => node.textContent), questionText: [...story.querySelectorAll('ul > li')].map((node) => node.textContent), captionColor: computed.color, background: bg, contrast: (values[0] + .05) / (values[1] + .05), font: computed.fontFamily, captionText: caption.innerText, captionBreaks: caption.querySelectorAll('br').length, story: bounds(story), figure: bounds(figure), first: bounds(first), body: bounds(body), children: [...story.children].map((node) => node.tagName), bodyChildren: [...body.children].map((node) => node.tagName), paragraphs: story.querySelectorAll('p').length, questions: story.querySelectorAll('ul > li').length, imageLoaded: figure.querySelector('img').complete && figure.querySelector('img').naturalWidth > 0, keeps, overflow: document.documentElement.scrollWidth > innerWidth, robots: document.querySelector('meta[name="robots"]')?.content };
+      const phrase = story.querySelector('[class*="fatherPhrase"]');
+      const terms = [...phrase.children].map(node => ({ text: node.textContent, ...bounds(node) }));
+      const keeps = [...story.querySelectorAll('[class*="keep"]')].map((node) => ({ text: node.textContent, caption: !!node.closest('figcaption'), whiteSpace: getComputedStyle(node).whiteSpace, ...bounds(node) }));
+      return { theme: document.documentElement.dataset.theme, heading: story.querySelector('h3').textContent, paragraphText: [...story.querySelectorAll('p')].map((node) => node.textContent), questionText: [...story.querySelectorAll('ul > li')].map((node) => node.textContent), captionColor: computed.color, background: bg, contrast: (values[0] + .05) / (values[1] + .05), font: computed.fontFamily, captionText: caption.innerText, captionBreaks: caption.querySelectorAll('br').length, story: bounds(story), figure: bounds(figure), first: bounds(first), body: bounds(body), children: [...story.children].map((node) => node.tagName), bodyChildren: [...body.children].map((node) => node.tagName), paragraphs: story.querySelectorAll('p').length, questions: story.querySelectorAll('ul > li').length, imageLoaded: figure.querySelector('img').complete && figure.querySelector('img').naturalWidth > 0, keeps, phraseText: phrase.textContent, terms, overflow: document.documentElement.scrollWidth > innerWidth, robots: document.querySelector('meta[name="robots"]')?.content };
     });
     assert.equal(result.theme, theme);
     assert.equal(result.heading, FATHER_STORY_HEADING);
@@ -57,10 +59,14 @@ try {
     assert.equal(result.captionBreaks, 1); assert.equal(result.imageLoaded, true);
     assert.ok(result.robots.includes('noindex'));
     assert.equal(result.overflow, false, 'no horizontal overflow');
-    assert.equal(result.keeps.length, 2);
+    assert.equal(result.keeps.length, 4);
+    assert.equal(result.phraseText, FATHER_STORY_KEEP);
+    assert.deepEqual(result.terms.map(term => term.text), FATHER_STORY_KEEP.split(' '));
+    assert.deepEqual(result.keeps.filter(phrase => phrase.caption).map(phrase => phrase.text), [FATHER_STORY_KEEP]);
+    for (const term of result.terms) assert.ok(term.x >= result.first.x - 1 && term.right <= result.first.right + 1, 'a complete term fits the reading column');
     for (const phrase of result.keeps) { assert.equal(phrase.whiteSpace, 'nowrap'); assert.ok(phrase.x >= 0 && phrase.right <= width, 'kept phrase fits viewport'); }
-    if (width < 900) { assert.ok(result.figure.y >= result.first.bottom - 1); assert.ok(result.body.y >= result.figure.bottom - 1); }
-    else { assert.ok(result.figure.right <= result.first.x + 1); assert.ok(Math.abs(result.figure.y - result.first.y) < 2); }
+    if (width < 1280) { assert.ok(result.figure.y >= result.first.bottom - 1); assert.ok(result.body.y >= result.figure.bottom - 1); }
+    else { assert.ok(result.first.right <= result.figure.x - 63, 'Native text-left/photo-right gap'); assert.ok(Math.abs((result.figure.x - result.first.right) - 64) < 2, 'Native 64px gap'); assert.ok(Math.abs(result.first.width / result.figure.width - 5 / 3) < .02, 'Native 760:456 columns'); assert.ok(Math.abs(result.figure.y - result.story.y - 20) < 2, 'Native 20px story inset'); assert.ok(result.body.right <= result.figure.x - 63, 'Story body stays in the left text column'); }
     // Verify actual data-theme again immediately before each screenshot.
     assert.equal(await page.locator('html').getAttribute('data-theme'), theme);
     await page.screenshot({ path: `${output}/about-${width}-${theme}.png`, fullPage: true });

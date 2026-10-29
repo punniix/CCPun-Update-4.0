@@ -1,3 +1,4 @@
+import { aboutToolsLayoutPins, aboutToolsLayoutPredecessor, ownerReviewLocationsPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import { ownerReviewSourcePins, ownerReviewSourcePredecessor, fullCountdownSourcePredecessor, oneRowCountdownSourcePredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import {websiteV5InvestmentCopyPredecessor} from '../qa/website-v5-phase-a-proof.mjs';
 import assert from 'node:assert/strict';
@@ -77,4 +78,37 @@ test('Owner-approved countdown keeps four columns and rejects unreviewed mobile 
     assert.equal(oneRowCountdownSourcePredecessor(file,changed),changed);
   }
   assert.equal(oneRowCountdownSourcePredecessor('unowned.css',source),source);
+});
+
+// Native parity admission accepts the complete two-file patch only, never a partial or unknown variant.
+test('About and Tools layout inverses preserve the complete prior CSS and reject unknown or partial edits', () => {
+  for (const [file, pin] of Object.entries(aboutToolsLayoutPins)) {
+    const source = readFileSync(file, 'utf8');
+    assert.equal(sha(source), pin.after, file);
+    const prior = aboutToolsLayoutPredecessor(file, source);
+    assert.equal(sha(prior), pin.before, file);
+    assert.equal(aboutToolsLayoutPredecessor(file, prior), prior);
+    for (const [current, old] of pin.edits) {
+      for (const mutation of [source + ' ', source.replace(/\S/, 'X'), source.replace(current, old), source.replace(current, current + current)]) {
+        assert.notEqual(mutation, source);
+        assert.equal(aboutToolsLayoutPredecessor(file, mutation), mutation, 'Unknown, partial or duplicate layout bytes are not admitted');
+      }
+    }
+  }
+  assert.equal(aboutToolsLayoutPredecessor('unowned.css', 'body'), 'body');
+});
+
+test('About helper metadata reorder retains all existing fields and rejects partial or unknown map bytes', () => {
+  const source = readFileSync('lib/content/public-copy-locations.json', 'utf8');
+  assert.equal(sha(source), '754138b4ed2ebeae0f2a995804aa0e5dde07ff7b0b986473722ac2a43668f043');
+  const map = JSON.parse(source);
+  assert.equal(Object.keys(map).length, 11);
+  assert.equal(Object.values(map).reduce((n, scope) => n + Object.keys(scope.entries).length, 0), 1775);
+  assert.equal(sha(ownerReviewLocationsPredecessor(source)), '41ac751407cc2c2d5556db517d40ba7243363b81d02ac56eed73ae345ab96bc0');
+  const partial = JSON.parse(source); partial.home.entries['home.p6'].order = 81;
+  const missing = JSON.parse(source); delete missing.home.entries['home.p6'];
+  for (const mutation of [source + ' ', JSON.stringify(partial) + '\n', JSON.stringify(missing) + '\n', source.replace('"home":{', '"home":{},"home":{')]) {
+    assert.notEqual(mutation, source);
+    assert.equal(ownerReviewLocationsPredecessor(mutation), mutation, 'No unknown/partial/duplicate map is admitted');
+  }
 });

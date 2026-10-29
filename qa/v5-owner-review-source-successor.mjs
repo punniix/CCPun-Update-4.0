@@ -173,7 +173,68 @@ export const ownerReviewSourcePins = Object.freeze({
   }
 });
 
+// Exact native-approved About layout and mobile AIA text reserve; all historical CSS pins remain unchanged.
+export const aboutToolsLayoutPins = Object.freeze({
+  "features/about/About.module.css": {
+    "before": "d0ed667b13e0434cf7d3d06682095f9a3546be580cfea51e5da7b1676421ba07",
+    "after": "a3e209f3a607d98e23b8e6596e31a223224af686bcf168253b1fbd3d2ba1e33a",
+    "edits": [
+      [
+        ".fatherStory ul { list-style: disc; padding-left: 1.4em; display: grid; gap: 12px; }\n.fatherPhrase { white-space: normal; }\n/* Keep the existing LINE corner clear while the story uses the stacked layout. */\n@media (max-width: 1279px) {\n  .fatherStory > p, .fatherStoryBody, .fatherPhoto figcaption { max-width: min(760px, 100%, calc(100vw - var(--v5-gutter) - 80px)); }\n}\n@media (min-width: 1024px) and (max-width: 1279px) {\n  .fatherStory > p, .fatherStoryBody, .fatherPhoto figcaption { max-width: min(760px, 100%, calc(100vw - var(--v5-gutter) - 248px)); }\n}\n@media (min-width: 900px) {\n",
+        ".fatherStory ul { list-style: disc; padding-left: 1.4em; display: grid; gap: 12px; }\n@media (min-width: 900px) {\n"
+      ],
+      [
+        "@media (min-width: 900px) {\n  /* The approved UAT story uses the full shared width; Production has no father trial. */\n  .split:has(.fatherStory) { grid-template-columns: minmax(0, 1fr); }\n  .split:has(.fatherStory) > .story { max-width: none; }\n  .split:has(.fatherStory) > h2,\n  .split:has(.fatherStory) > .story > :not(.fatherStory) { max-width: 760px; }\n}\n@media (min-width: 1280px) {\n  .fatherStory { grid-template-columns: minmax(0, 5fr) minmax(0, 3fr); gap: 20px 64px; padding-block: 20px; align-items: start; }\n  .fatherStory h3 { grid-column: 1; grid-row: 1; }\n  .fatherStory > p { grid-column: 1; grid-row: 2; }\n  .fatherPhoto { grid-column: 2; grid-row: 1 / 4; max-width: none; }\n  .fatherPhoto figcaption { max-width: min(280px, calc(100% - max(0px, calc(248px - var(--v5-gutter))))); }\n  .fatherStoryBody { grid-column: 1; grid-row: 3; }\n}\n",
+        "@media (min-width: 900px) {\n  .fatherStory { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); align-items: start; }\n  .fatherStory h3 { grid-column: 1 / -1; }\n  .fatherStory > p { grid-column: 2; grid-row: 2; }\n  .fatherPhoto { grid-column: 1; grid-row: 2 / 4; }\n  .fatherStoryBody { grid-column: 2; }\n}\n"
+      ]
+    ]
+  },
+  "features/tools-hub/ToolsHub.module.css": {
+    "before": "83c1feee22ea57e01d6213ef019057dcb8e5a0c2c0b360a141df85cd0a80ae1a",
+    "after": "1c8997d0e9fcd537db2e570d06b32b0ace9738fc7238810201d59c4911906f82",
+    "edits": [
+      [
+        "@media (max-width:1023px) { .card h2 a::after { right:calc(80px - var(--v5-gutter)); } }\n@media (max-width:479px) {\n  .card:has(h2 a[href=\"/tools/financial-health-check/\"]) > p,\n  .card:has(h2 a[href=\"/tools/aia-fund-allocation/\"]) > p { padding-right:40px; }\n}\n@media (min-width:1024px) { .card h2 a::after { right:calc(248px - var(--v5-gutter)); } }\n",
+        "@media (max-width:1023px) { .card h2 a::after { right:calc(80px - var(--v5-gutter)); } }\n@media (max-width:479px) { .card:has(h2 a[href=\"/tools/financial-health-check/\"]) > p { padding-right:40px; } }\n@media (min-width:1024px) { .card h2 a::after { right:calc(248px - var(--v5-gutter)); } }\n"
+      ]
+    ]
+  },
+  "features/about/page.tsx": {
+    "before": "6cd93cd1349a38cbe53641619880e7cc5c60e3a9bb7908e2651a0c77bdd3f140",
+    "after": "d2070ede6bcaec4dcc56cb39e71aa7fcb11a8ef41973b85bb3bc87425cd92a23",
+    "edits": [
+      [
+        "    <figure className={styles.fatherPhoto} data-uat-placeholder=\"about-father-photo\">\n      <Image src=\"/assets/ccpun-father-v5-colour.webp\" alt={text(\"about.father.photoAlt\")} width={1086} height={1448} sizes=\"(max-width: 1279px) min(420px, calc(100vw - 40px)), (max-width: 1439px) calc(37.5vw - 84px), 456px\" />\n      <figcaption>{typeof caption === \"string\" ? caption.split(\"\\n\").map((line, index) => <span key={line}>{index > 0 ? <br /> : null}{keepFatherPhrase(line)}</span>) : caption}</figcaption>\n",
+        "    <figure className={styles.fatherPhoto} data-uat-placeholder=\"about-father-photo\">\n      <Image src=\"/assets/ccpun-father-v5-colour.webp\" alt={text(\"about.father.photoAlt\")} width={1086} height={1448} sizes=\"(max-width: 899px) calc(100vw - 40px), 280px\" />\n      <figcaption>{typeof caption === \"string\" ? caption.split(\"\\n\").map((line, index) => <span key={line}>{index > 0 ? <br /> : null}{keepFatherPhrase(line)}</span>) : caption}</figcaption>\n"
+      ],
+      [
+        "/** Match the existing licence-card `keep` mechanism without changing the plain text. */\nfunction keepFatherPhrase(value: ReactNode, wrapTerms = false) {\n  if (typeof value !== \"string\") return value;\n",
+        "/** Match the existing licence-card `keep` mechanism without changing the plain text. */\nfunction keepFatherPhrase(value: ReactNode) {\n  if (typeof value !== \"string\") return value;\n"
+      ],
+      [
+        "  if (at < 0) return value;\n  const phrase = wrapTerms ? <span className={styles.fatherPhrase}>{FATHER_STORY_KEEP.split(\" \").flatMap((term, index) => [\n    index ? \" \" : null, <span className={flipStyles.keep} key={term}>{term}</span>,\n  ])}</span> : <span className={flipStyles.keep}>{FATHER_STORY_KEEP}</span>;\n  return <>{value.slice(0, at)}{phrase}{value.slice(at + FATHER_STORY_KEEP.length)}</>;\n}\n",
+        "  if (at < 0) return value;\n  return <>{value.slice(0, at)}<span className={flipStyles.keep}>{FATHER_STORY_KEEP}</span>{value.slice(at + FATHER_STORY_KEEP.length)}</>;\n}\n"
+      ],
+      [
+        "      <h3>{text.node(\"about.father.heading\")}</h3>\n      <p>{keepFatherPhrase(text.node(\"about.father.paragraph1\"), true)}</p>\n      <FatherPhotoSlot text={text} />\n",
+        "      <h3>{text.node(\"about.father.heading\")}</h3>\n      <p>{keepFatherPhrase(text.node(\"about.father.paragraph1\"))}</p>\n      <FatherPhotoSlot text={text} />\n"
+      ]
+    ]
+  }
+});
+export function aboutToolsLayoutPredecessor(file, source) {
+  const pin = Object.hasOwn(aboutToolsLayoutPins, file) ? aboutToolsLayoutPins[file] : null;
+  if (!pin || sha(source) !== pin.after) return source;
+  for (const [current, prior] of pin.edits) {
+    assert.equal(source.split(current).length, 2, 'Exactly one complete approved layout fragment');
+    source = source.replace(current, prior);
+  }
+  assert.equal(sha(source), pin.before, 'Every original layout byte reconstructed');
+  return source;
+}
+
 export function ownerReviewSourcePredecessor(file, source) {
+  source = aboutToolsLayoutPredecessor(file, source);
   source = cmsCopyScopePredecessor(file, source);
   source = fullCountdownSourcePredecessor(file, source);
   const pin = Object.hasOwn(ownerReviewSourcePins, file) ? ownerReviewSourcePins[file] : null;
@@ -188,6 +249,17 @@ export function ownerReviewSourcePredecessor(file, source) {
 
 // Only the complete default article fixture gains TOC row wrappers; body/anchors/dates remain literal.
 export function ownerReviewHtmlPredecessor(html, key) {
+  if ((key === 'about:true:false' || key === 'about:true:true') && sha(html) === '3b0cb4e5ab93c1f9e0008d35b9a4fcfe06ca85421a824fba0cea61e1cd9d5d9c') {
+    const current = "<span class=\"fatherPhrase\"><span class=\"keep\">บริหารเวลา</span> <span class=\"keep\">บริหารเงิน</span> <span class=\"keep\">บริหารชีวิต</span></span>";
+    assert.equal(html.split(current).length, 2, 'Only one complete paragraph quote wrapper');
+    let prior = html.replace(current, "<span class=\"keep\">บริหารเวลา บริหารเงิน บริหารชีวิต</span>");
+    const imageHint = '(max-width: 1279px) min(420px, calc(100vw - 40px)), (max-width: 1439px) calc(37.5vw - 84px), 456px';
+    assert.equal(prior.split(imageHint).length, 3, 'One father image hint in img and React preload metadata only');
+    prior = prior.replaceAll(imageHint, '(max-width: 899px) calc(100vw - 40px), 280px');
+    assert.equal(sha(prior), '2e759121f0b0941c2c52f763fe663fdf290a68f90b99f3e195ea8e9c0d9817af', 'Every prior default About byte, including caption markup, retained');
+    return prior;
+  }
+
   if (key !== 'v5Article' || sha(html) !== 'c4f55c6eb7dba38573575c2d55cc73c885a96e6181f2ddac1d79787928158765') return html;
   let count = 0;
   const prior = html.replace(/<div class="tocRow">(<a href="[^"]+">[^<>]+<\/a>)<\/div>/g, (_, link) => { count++; return link; });
@@ -198,6 +270,15 @@ export function ownerReviewHtmlPredecessor(html, key) {
 
 // Exact generated metadata successor: move the five reviewed entries back; never copy a whole map.
 export function ownerReviewLocationsPredecessor(source) {
+  // The unchanged generator reorders only six existing Home locations after the About helper grows.
+  if (sha(source) === '754138b4ed2ebeae0f2a995804aa0e5dde07ff7b0b986473722ac2a43668f043') {
+    const locations = JSON.parse(source);
+    const orders = {"home.blockquote2": 78, "home.cite2": 79, "home.toolCtaAction": 80, "home.p6": 81, "home.p5": 82, "home.moneyStory.description": 83};
+    for (const [key, order] of Object.entries(orders)) locations.home.entries[key].order = order;
+    locations.home.entries = Object.fromEntries(Object.entries(locations.home.entries).sort((a, b) => a[1].order - b[1].order));
+    source = JSON.stringify(locations) + '\n';
+    assert.equal(sha(source), 'f417f769d7b3a12ab7e5cb55da4af5db822916c044f6e2e3e7691f1b2089b94b', 'Every prior generated map byte retained');
+  }
   source = cmsCopyLocationsPredecessor(source);
   if (sha(source) !== 'f1f110371ce02eb8dfb9e20360b71795d2c55e105c1603c5d95d1f637f6a6e79') return source;
   const locations = JSON.parse(source);

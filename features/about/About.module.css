@@ -32,12 +32,28 @@
 .fatherStory, .fatherStoryBody { display: grid; gap: 16px; min-width: 0; }
 .fatherStory h3 { color: var(--v5-text); font-family: var(--v5-font-display); font-size: 22px; font-weight: 500; line-height: 1.5; }
 .fatherStory ul { list-style: disc; padding-left: 1.4em; display: grid; gap: 12px; }
+.fatherPhrase { white-space: normal; }
+/* Keep the existing LINE corner clear while the story uses the stacked layout. */
+@media (max-width: 1279px) {
+  .fatherStory > p, .fatherStoryBody, .fatherPhoto figcaption { max-width: min(760px, 100%, calc(100vw - var(--v5-gutter) - 80px)); }
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .fatherStory > p, .fatherStoryBody, .fatherPhoto figcaption { max-width: min(760px, 100%, calc(100vw - var(--v5-gutter) - 248px)); }
+}
 @media (min-width: 900px) {
-  .fatherStory { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); align-items: start; }
-  .fatherStory h3 { grid-column: 1 / -1; }
-  .fatherStory > p { grid-column: 2; grid-row: 2; }
-  .fatherPhoto { grid-column: 1; grid-row: 2 / 4; }
-  .fatherStoryBody { grid-column: 2; }
+  /* The approved UAT story uses the full shared width; Production has no father trial. */
+  .split:has(.fatherStory) { grid-template-columns: minmax(0, 1fr); }
+  .split:has(.fatherStory) > .story { max-width: none; }
+  .split:has(.fatherStory) > h2,
+  .split:has(.fatherStory) > .story > :not(.fatherStory) { max-width: 760px; }
+}
+@media (min-width: 1280px) {
+  .fatherStory { grid-template-columns: minmax(0, 5fr) minmax(0, 3fr); gap: 20px 64px; padding-block: 20px; align-items: start; }
+  .fatherStory h3 { grid-column: 1; grid-row: 1; }
+  .fatherStory > p { grid-column: 1; grid-row: 2; }
+  .fatherPhoto { grid-column: 2; grid-row: 1 / 4; max-width: none; }
+  .fatherPhoto figcaption { max-width: min(280px, calc(100% - max(0px, calc(248px - var(--v5-gutter))))); }
+  .fatherStoryBody { grid-column: 1; grid-row: 3; }
 }
 .fatherPhoto img { display: block; width: 100%; height: auto; border-radius: var(--v5-radius); }
 

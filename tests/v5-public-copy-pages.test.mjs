@@ -1,3 +1,4 @@
+import { ownerReviewHtmlPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -47,9 +48,9 @@ const ORIGINAL_847 = {
 };
 // Tests begin
 for (const scope of ['about', 'toolsHub']) for (const review of [false, true]) for (const investment of [false, true]) {
-  test(`${scope} existing default markup is identical to Web847 (review=${review}, investment=${investment})`, async () => {
+  test(`${scope} default output preserves Web847 apart from the exact admitted About layout markup (review=${review}, investment=${investment})`, async () => {
     const key = `${scope}:${review}:${investment}`;
-    assert.equal(digest(await renderPage(scope, { review, investment })), ORIGINAL_847[key]);
+    assert.equal(digest(ownerReviewHtmlPredecessor(await renderPage(scope, { review, investment }), key)), ORIGINAL_847[key]);
   });
 }
 test('father compatibility exports retain every original value and paragraph order', () => {
@@ -158,4 +159,28 @@ test('private ToolsHub text preview shows all four fund-card draft fields with t
   assert.deepEqual(fetches, []);
   const publicPage = await renderPage('toolsHub', { investment: false, edits: { toolsHub: edits } });
   for (const value of Object.values(edits)) assert.ok(!publicPage.includes(value), 'public flag remains authoritative');
+});
+
+test('Actual About keeps all three terms intact and admits only its complete paragraph wrapper and image hint', async () => {
+  const html = await renderPage('about', { review: true, investment: true });
+  const { JSDOM } = require('jsdom');
+  const document = new JSDOM(html).window.document;
+  const story = document.querySelector('[data-uat-trial="about-father-story"]');
+  const phrase = story.querySelector('.fatherPhrase');
+  const motto = 'บริหารเวลา บริหารเงิน บริหารชีวิต';
+  assert.equal(phrase.textContent, motto);
+  assert.deepEqual([...phrase.children].map(n => n.textContent), motto.split(' '));
+  assert.ok([...phrase.children].every(n => n.className === 'keep'));
+  assert.equal(story.querySelectorAll('.keep').length, 4);
+  assert.equal(story.querySelector('img').getAttribute('sizes'), '(max-width: 1279px) min(420px, calc(100vw - 40px)), (max-width: 1439px) calc(37.5vw - 84px), 456px');
+  assert.equal(story.querySelector('figcaption .keep').textContent, motto, 'caption retains whole-phrase markup');
+  const prior = ownerReviewHtmlPredecessor(html, 'about:true:true');
+  assert.notEqual(prior, html);
+  assert.equal(digest(prior), ORIGINAL_847['about:true:true']);
+  for (const mutation of [html + ' ', html.replace('sizes="(max-width: 1279px) min(420px, calc(100vw - 40px)), (max-width: 1439px) calc(37.5vw - 84px), 456px"', 'sizes="(max-width: 899px) calc(100vw - 40px), 280px"'), html.replace('imageSizes="(max-width: 1279px) min(420px, calc(100vw - 40px)), (max-width: 1439px) calc(37.5vw - 84px), 456px"', 'imageSizes="(max-width: 899px) calc(100vw - 40px), 280px"'), html.replace(phrase.outerHTML, phrase.outerHTML + phrase.outerHTML), html.replace('<span class="keep">บริหารเวลา</span>', 'บริหารเวลา'), html.replace(/\S/, 'X')]) {
+    assert.notEqual(mutation, html);
+    assert.equal(ownerReviewHtmlPredecessor(mutation, 'about:true:true'), mutation, 'Unknown/partial/duplicate markup is not normalized');
+  }
+  assert.equal(ownerReviewHtmlPredecessor(html, 'about:true:unknown'), html);
+  assert.equal(ownerReviewHtmlPredecessor(prior, 'about:true:true'), prior);
 });

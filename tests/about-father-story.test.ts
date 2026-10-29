@@ -66,9 +66,14 @@ test("C13: actual About UAT SSR renders exact paragraphs, questions, caption and
   const caption = story.querySelector("figcaption")!;
   assert.equal(caption.innerHTML.replace(/<br\s*\/?\s*>/g, "\n").replace(/<[^>]+>/g, ""), copy.FATHER_PHOTO_CAPTION);
   assert.equal(caption.querySelectorAll("br").length, 1);
-  assert.equal(story.querySelectorAll(".keep").length, 2);
-  for (const phrase of story.querySelectorAll(".keep")) assert.equal(phrase.textContent, copy.FATHER_STORY_KEEP);
+  const phrase = story.querySelector(".fatherPhrase")!;
+  assert.equal(phrase.textContent, copy.FATHER_STORY_KEEP, "the complete quote and original spaces remain exact");
+  assert.deepEqual(Array.from(phrase.children, node => node.textContent), copy.FATHER_STORY_KEEP.split(" "), "breaks can occur only between the three existing terms");
+  for (const term of Array.from(phrase.children)) assert.equal(term.className, "keep", "each term uses the existing no-mid-word-cut class");
+  assert.equal(story.querySelectorAll(".keep").length, 4);
+  assert.equal(caption.querySelector(".keep")!.textContent, copy.FATHER_STORY_KEEP, "caption keeps its whole phrase unchanged");
   assert.equal(story.querySelector("img")!.getAttribute("src"), "/assets/ccpun-father-v5-colour.webp");
+  assert.equal(story.querySelector("img")!.getAttribute("sizes"), "(max-width: 1279px) min(420px, calc(100vw - 40px)), (max-width: 1439px) calc(37.5vw - 84px), 456px");
   assert.ok(story.closest("section")!.querySelector("h2"), "h3 stays below the existing h2");
 });
 

@@ -59,18 +59,21 @@ function FatherPhotoSlot({ text }: { text: AboutText }) {
   const caption = text.node("about.father.caption");
   return (
     <figure className={styles.fatherPhoto} data-uat-placeholder="about-father-photo">
-      <Image src="/assets/ccpun-father-v5-colour.webp" alt={text("about.father.photoAlt")} width={1086} height={1448} sizes="(max-width: 899px) calc(100vw - 40px), 280px" />
+      <Image src="/assets/ccpun-father-v5-colour.webp" alt={text("about.father.photoAlt")} width={1086} height={1448} sizes="(max-width: 1279px) min(420px, calc(100vw - 40px)), (max-width: 1439px) calc(37.5vw - 84px), 456px" />
       <figcaption>{typeof caption === "string" ? caption.split("\n").map((line, index) => <span key={line}>{index > 0 ? <br /> : null}{keepFatherPhrase(line)}</span>) : caption}</figcaption>
     </figure>
   );
 }
 
 /** Match the existing licence-card `keep` mechanism without changing the plain text. */
-function keepFatherPhrase(value: ReactNode) {
+function keepFatherPhrase(value: ReactNode, wrapTerms = false) {
   if (typeof value !== "string") return value;
   const at = value.indexOf(FATHER_STORY_KEEP);
   if (at < 0) return value;
-  return <>{value.slice(0, at)}<span className={flipStyles.keep}>{FATHER_STORY_KEEP}</span>{value.slice(at + FATHER_STORY_KEEP.length)}</>;
+  const phrase = wrapTerms ? <span className={styles.fatherPhrase}>{FATHER_STORY_KEEP.split(" ").flatMap((term, index) => [
+    index ? " " : null, <span className={flipStyles.keep} key={term}>{term}</span>,
+  ])}</span> : <span className={flipStyles.keep}>{FATHER_STORY_KEEP}</span>;
+  return <>{value.slice(0, at)}{phrase}{value.slice(at + FATHER_STORY_KEEP.length)}</>;
 }
 
 function FatherStory({ text }: { text: AboutText }) {
@@ -78,7 +81,7 @@ function FatherStory({ text }: { text: AboutText }) {
   return (
     <div className={styles.fatherStory} data-uat-trial="about-father-story">
       <h3>{text.node("about.father.heading")}</h3>
-      <p>{keepFatherPhrase(text.node("about.father.paragraph1"))}</p>
+      <p>{keepFatherPhrase(text.node("about.father.paragraph1"), true)}</p>
       <FatherPhotoSlot text={text} />
       <div className={styles.fatherStoryBody}>
         {([2, 3, 4, 5, 6] as const).map(index => <p key={index}>{text.node(`about.father.paragraph${index}`)}</p>)}
