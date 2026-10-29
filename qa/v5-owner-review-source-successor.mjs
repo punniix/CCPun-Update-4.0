@@ -221,6 +221,7 @@ export function ownerReviewLocationsPredecessor(source) {
 
 // Owner 2026-10-29: show every existing countdown action; retain all older source admissions.
 export function fullCountdownSourcePredecessor(file, source) {
+  source = oneRowCountdownSourcePredecessor(file, source);
   if (file === 'components/ui/health-happy/HealthHappyCountdown.module.css' && sha(source) === 'bdf0ab886e7c3076913299ab605db68f9e11abd9838482ce26ea5149c9983fda') {
     assert.equal(source.split(".splitDigits .timer { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 12px 0; gap: 12px; border: 0; background: transparent; }").length, 2);
     source = source.replace(".splitDigits .timer { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 12px 0; gap: 12px; border: 0; background: transparent; }", ".splitDigits .timer { padding: 12px 0; gap: 12px; border: 0; background: transparent; }");
@@ -237,5 +238,15 @@ export function fullCountdownSourcePredecessor(file, source) {
   assert.equal(source.split(anchor).length, 2);
   const prior = source.replace(anchor, anchor + "/* One LINE OA button per page (owner decision 2026-10-25): the dock is it, so the countdown's own\n   LINE action is not rendered in v5; its \"read details\" action and its analytics stay unchanged. */\n.countdownSlot :global([data-campaign-action=\"line\"]) { display: none; }\n");
   assert.equal(sha(prior), 'f5ac130e4627c2f141128fd6fc8517e69f81d650913e22e7141e39a34848d703', 'Only the old campaign LINE hide block is restored for historic proofs');
+  return prior;
+}
+
+// Owner correction: all four units stay in one horizontal row. The rejected two-row bytes are proof history only.
+export function oneRowCountdownSourcePredecessor(file, source) {
+  if (file !== 'components/ui/health-happy/HealthHappyCountdown.module.css' || sha(source) !== '05b5e5726c6227036dbf0a18b63cc8a05420a51ec32464be4e0b713c9647e14c') return source;
+  const current = "  .splitDigits .timer { gap: 4px; padding: 0; }\n  .splitDigits .numeral { font-size: clamp(18px, 6vw, 24px); }\n";
+  assert.equal(source.split(current).length, 2);
+  const prior = source.replace(current, "  .splitDigits .timer { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0; }\n");
+  assert.equal(sha(prior), 'bdf0ab886e7c3076913299ab605db68f9e11abd9838482ce26ea5149c9983fda', 'Only mobile numeral sizing and spacing change; every earlier byte stays frozen');
   return prior;
 }

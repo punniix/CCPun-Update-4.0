@@ -56,8 +56,13 @@ try {
       const tiles = [...slot.querySelectorAll('.' + styles.digit)].map(element => { const box = element.getBoundingClientRect(); return { left: box.left, right: box.right, top: box.top, bottom: box.bottom }; });
       const tileOverlap = tiles.some((a, index) => tiles.slice(index + 1).some(b => Math.min(a.right, b.right) > Math.max(a.left, b.left) + .5 && Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top) + .5));
       const tileOverflow = tiles.some(box => box.left < frame.left - 1 || box.right > frame.right + 1);
+      const digitFontSizes = [...slot.querySelectorAll('.' + styles.digit)].map(element => parseFloat(getComputedStyle(element).fontSize));
+      const digitCenters = tiles.map(box => (box.top + box.bottom) / 2);
+      const unitCenters = [...slot.querySelectorAll('.' + styles.timeUnit)].map(element => { const box = element.getBoundingClientRect(); return (box.top + box.bottom) / 2; });
+      const oneRowDigits = Math.max(...digitCenters) - Math.min(...digitCenters) <= 1;
+      const oneRowUnits = unitCenters.length === 4 && Math.max(...unitCenters) - Math.min(...unitCenters) <= 1;
       const actions = [...slot.querySelectorAll('a')].map(element => ({ text: element.textContent, href: element.getAttribute('href'), visible: visible(element) }));
-      return { fields, actions, tileOverlap, tileOverflow, tileBoxes: tiles, tiles: slot.querySelectorAll('.' + styles.digit).length, units: slot.querySelectorAll('.' + styles.timeLabel).length, overflow: document.documentElement.scrollWidth > innerWidth + 1 };
+      return { fields, actions, tileOverlap, tileOverflow, oneRowDigits, oneRowUnits, digitFontSizes, tileBoxes: tiles, tiles: slot.querySelectorAll('.' + styles.digit).length, units: slot.querySelectorAll('.' + styles.timeLabel).length, overflow: document.documentElement.scrollWidth > innerWidth + 1 };
     }, { styles });
     const coveredActions = [];
     for (let index = 0; index < 2; index++) {
@@ -87,7 +92,7 @@ try {
       style.remove();
       return hidden;
     }, shell.countdownSlot);
-    const pass = result.fields.length === 10 && result.fields.every(field => field.visible && field.size >= 14 && !field.overflow) && result.tiles === 8 && result.units === 4 && result.actions.length === 2 && result.actions.every(action => action.visible) && !result.overflow && !result.tileOverlap && !result.tileOverflow && coveredActions.length === 0 && expiry && negative;
+    const pass = result.fields.length === 10 && result.fields.every(field => field.visible && field.size >= 14 && !field.overflow) && result.tiles === 8 && result.units === 4 && result.actions.length === 2 && result.actions.every(action => action.visible) && !result.overflow && !result.tileOverlap && !result.tileOverflow && result.oneRowDigits && result.oneRowUnits && result.digitFontSizes.every(size => size >= 18) && coveredActions.length === 0 && expiry && negative;
     const row = { placement, theme, width, pass, ...result, coveredActions, expiry, negative };
     rows.push(row); if (!pass) failures.push(row);
     await page.close();

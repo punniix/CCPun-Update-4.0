@@ -1,4 +1,4 @@
-import { ownerReviewSourcePins, ownerReviewSourcePredecessor, fullCountdownSourcePredecessor } from '../qa/v5-owner-review-source-successor.mjs';
+import { ownerReviewSourcePins, ownerReviewSourcePredecessor, fullCountdownSourcePredecessor, oneRowCountdownSourcePredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import {websiteV5InvestmentCopyPredecessor} from '../qa/website-v5-phase-a-proof.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -56,9 +56,25 @@ test('Full countdown action successor restores only the old hide block and refus
   const timerFile = 'components/ui/health-happy/HealthHappyCountdown.module.css';
   const timer = readFileSync(timerFile, 'utf8');
   assert.equal(sha(fullCountdownSourcePredecessor(timerFile, timer)), ownerReviewSourcePins[timerFile].after);
-  for (const changed of [timer+' ', timer.replace('repeat(2, minmax(0, 1fr))','repeat(3, minmax(0, 1fr))')]) {
+  for (const changed of [timer+' ', timer.replace('repeat(4, minmax(0, 1fr))','repeat(3, minmax(0, 1fr))')]) {
     assert.notEqual(changed, timer);
     assert.equal(fullCountdownSourcePredecessor(timerFile, changed), changed);
   }
   assert.equal(fullCountdownSourcePredecessor('unowned.css', source), source);
+});
+
+
+test('Owner-approved countdown keeps four columns and rejects unreviewed mobile row/font changes', () => {
+  const file = 'components/ui/health-happy/HealthHappyCountdown.module.css', source = readFileSync(file,'utf8');
+  const prior = oneRowCountdownSourcePredecessor(file,source);
+  assert.notEqual(prior,source);
+  assert.equal(sha(prior),'bdf0ab886e7c3076913299ab605db68f9e11abd9838482ce26ea5149c9983fda');
+  assert.match(source,/\.splitDigits \.timer \{ display: grid; grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.doesNotMatch(source,/\.splitDigits \.timer \{ grid-template-columns: repeat\(2/);
+  assert.match(source,/font-size: clamp\(18px, 6vw, 24px\)/);
+  for (const changed of [source+' ',source.replace('repeat(4, minmax(0, 1fr))','repeat(2, minmax(0, 1fr))'),source.replace('clamp(18px, 6vw, 24px)','clamp(12px, 6vw, 24px)')]) {
+    assert.notEqual(changed,source);
+    assert.equal(oneRowCountdownSourcePredecessor(file,changed),changed);
+  }
+  assert.equal(oneRowCountdownSourcePredecessor('unowned.css',source),source);
 });
