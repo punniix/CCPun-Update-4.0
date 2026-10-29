@@ -35,8 +35,6 @@ export const CI_COPY_DEFAULTS = {
   "ci.download.label2": "บันทึกภาพสรุป",
   "ci.download.label3": "กำลังเปิด…",
   "ci.download.label4": "แชร์ภาพผลลัพธ์",
-  "ci.download.preview": "ตัวอย่างภาพสรุป",
-  "ci.download.closePreview": "ปิดตัวอย่างภาพ",
   "ci.download.resultImagePrivacy.description": "ภาพมีตัวเลขจากการประเมินและสร้างบนอุปกรณ์นี้ เว็บไม่อัปโหลดข้อมูลที่คุณกรอก ก่อนส่งให้ตรวจสอบผู้รับใน LINE",
   "ci.expenses.label": "รายได้ ภาระ และระยะที่ต้องการวางแผน",
   "ci.expenses.description": "· อย่างน้อยกรอกรายได้ หรือค่าใช้จ่ายและภาระ 1 รายการ ช่องอื่นเว้นได้",
