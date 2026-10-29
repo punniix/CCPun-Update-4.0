@@ -14,6 +14,7 @@ import shell from "@/components/layout/v5/V5.module.css";
 import { V5Breadcrumbs, v5Label } from "@/components/layout/v5/V5Primitives";
 import { v5AdvisorProfile, v5Partners } from "@/components/layout/v5/advisor-profile";
 import V5CredentialCards from "@/components/layout/v5/V5CredentialCards";
+import OwnerStoryV2 from "./OwnerStoryV2";
 import { V5_TOOLS_HUB } from "@/components/layout/v5/constants";
 import styles from "./About.module.css";
 import flipStyles from "@/components/layout/v5/V5LicenceFlip.module.css";
@@ -143,8 +144,8 @@ export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: Public
             <div>
               <h1 id="about-title" className={shell.h1}>{home.node("home.eyebrow2")}</h1>
               <p className={styles.identity}><strong>{displayName}</strong><span>{role}</span></p>
-              <OwnerCopySlot slot="about-hero-sentence" note="ประโยคแนะนำตัวของปั้นหนึ่งประโยค (รอข้อความจากเจ้าของ)" />
-              <V5CredentialCards className={styles.credentials} qualification={qualification} licenceCards={licenceCards} />
+              {IS_REVIEW_ENVIRONMENT ? <p className={styles.ownerHeroIntro}>{text.node("about.storyV2.heroIntro")}</p> : null}
+              {!IS_REVIEW_ENVIRONMENT ? <V5CredentialCards className={styles.credentials} qualification={qualification} licenceCards={licenceCards} /> : null}
             </div>
             <div className={styles.portraitFrame}>
               {/* Owner-approved portrait (photo 4, v5b set, 2026-10-25), art-directed per theme. Next's theme-image
@@ -156,18 +157,26 @@ export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: Public
         </div>
       </section>
 
-      <section className={shell.section} aria-labelledby="about-story">
-        <div className={`${shell.inner} ${styles.split}`}>
-          <h2 id="about-story" className={shell.h2}>{home.node("home.h2")}</h2>
-          <div className={styles.story}>
-            <OwnerCopySlot slot="about-start-years" note="ปีที่เริ่มงานการเงินและการลงทุน และปีที่เริ่มเป็นที่ปรึกษา (รอข้อมูลจากเจ้าของ)" />
-            <p>{home.node("home.p")}</p>
-            <FatherStory text={text} />
-            <p>{home.node("home.p2")}</p>
-            <p>{home.node("home.p3")}</p>
+      {IS_REVIEW_ENVIRONMENT ? (
+        <section className={shell.section} aria-label="ประวัติและแนวทางการวางแผนการเงิน">
+          <div className={shell.inner}>
+            <OwnerStoryV2 text={text} qualification={qualification} licenceCards={licenceCards} />
           </div>
-        </div>
-      </section>
+        </section>
+      ) : (
+        <section className={shell.section} aria-labelledby="about-story">
+          <div className={`${shell.inner} ${styles.split}`}>
+            <h2 id="about-story" className={shell.h2}>{home.node("home.h2")}</h2>
+            <div className={styles.story}>
+              <OwnerCopySlot slot="about-start-years" note="ปีที่เริ่มงานการเงินและการลงทุน และปีที่เริ่มเป็นที่ปรึกษา (รอข้อมูลจากเจ้าของ)" />
+              <p>{home.node("home.p")}</p>
+              <FatherStory text={text} />
+              <p>{home.node("home.p2")}</p>
+              <p>{home.node("home.p3")}</p>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className={shell.sectionAlt} aria-labelledby="about-partners">
         <div className={shell.inner}>
