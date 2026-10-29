@@ -1,3 +1,4 @@
+import { ownerReviewSourcePredecessor } from './v5-owner-review-source-successor.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { eyebrowHtmlPins } from './v5-eyebrow-html.mjs';
@@ -52,6 +53,7 @@ const ARTICLE_C14_EDITS = Object.freeze([
 
 /** Merged source -> exact C15 branch source (for C15's own pins). Unknown source is returned untouched. */
 export function c15SourceFromMerge(file, source) {
+  source = ownerReviewSourcePredecessor(file, source);
   if (file !== ARTICLE || sha(source) !== ARTICLE_MERGED) return source;
   for (const [merged, prior] of ARTICLE_C14_EDITS) {
     assert.equal(source.split(merged).length, 2, 'C15-on-C14 exact unique source edit');
@@ -63,6 +65,7 @@ export function c15SourceFromMerge(file, source) {
 
 /** Merged source -> exact C14 source: removes only C15's reviewed fragment. */
 export function c14SourceFromMerge(file, source) {
+  source = ownerReviewSourcePredecessor(file, source);
   if (file !== ARTICLE || sha(source) !== ARTICLE_MERGED) return source;
   for (const [before, after] of eyebrowSourceSuccessors[ARTICLE].replacements) {
     assert.equal(source.split(after).length, 2, 'C15-on-C14 exact unique source fragment');

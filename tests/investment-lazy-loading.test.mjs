@@ -1,3 +1,4 @@
+import { ownerReviewLocationsPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -108,7 +109,7 @@ test("cached native formatters preserve the original numeric display", () => {
 test("lazy labels are CMS-editable without changing prior copy or location contracts", () => {
   const old = Object.entries(defaults.INVESTMENT_COPY_DEFAULTS).filter(([key]) => !lazyKeys.includes(key));
   assert.equal(sha(old), "70cb8d8027c674071c51130bd90248c0a08bc54367f72d66e1cfba7877783735");
-  const locations = JSON.parse(readFileSync(root + "lib/content/public-copy-locations.json", "utf8"));
+  const locations = JSON.parse(ownerReviewLocationsPredecessor(readFileSync(root + "lib/content/public-copy-locations.json", "utf8")));
   for (const key of lazyKeys) {
     assert.ok(locations.investment.entries[key]);
     assert.ok(!old.some(([, value]) => value === defaults.INVESTMENT_COPY_DEFAULTS[key]), "new labels must not change reverse-map last-wins identity");
@@ -127,4 +128,21 @@ test("lazy labels are CMS-editable without changing prior copy or location contr
   }
   const winners = new Map(old.map(([key, value]) => [value, key]));
   for (const [value, key] of winners) assert.equal(defaults.investmentLabel(value, resolved => resolved), key);
+});
+
+
+test('Reviewed generated location metadata retains every original byte and rejects unknown changes', () => {
+  const source = readFileSync(root + 'lib/content/public-copy-locations.json', 'utf8');
+  const prior = ownerReviewLocationsPredecessor(source);
+  assert.notEqual(prior, source);
+  const actual = JSON.parse(source), original = JSON.parse(prior);
+  for (const key of ['blog.categoryAccounts.title','blog.categoryAccounts.phillip','blog.categoryAccounts.maybank']) {
+    assert.ok(actual.blog.entries[key]);
+    assert.equal(original.blog.entries[key], undefined);
+  }
+  for (const changed of [source + ' ', source.replace('blog.categoryAccounts.title', 'blog.categoryAccounts.changed')]) {
+    assert.notEqual(changed, source);
+    assert.equal(ownerReviewLocationsPredecessor(changed), changed);
+  }
+  assert.equal(ownerReviewLocationsPredecessor(prior), prior);
 });

@@ -6,8 +6,6 @@
 .heroTop { display: grid; gap: 20px; align-items: end; }
 @media (min-width: 900px) { .heroTop { grid-template-columns: minmax(0, 1fr) minmax(280px, 400px); } }
 .heroLead { color: var(--v5-muted); font-size: clamp(16px, 1.6vw, 19px); margin-top: 12px; }
-.authorChip { display: inline-flex; align-items: center; gap: 12px; margin-top: 16px; font-size: var(--v5-text-meta); font-weight: 500; font-family: var(--v5-font-display); }
-.authorChip img { width: 36px; height: 36px; border-radius: 999px; object-fit: cover; object-position: top; background: var(--v5-surface); }
 .search { position: relative; }
 .search input {
   width: 100%; min-height: 52px; padding: 12px 20px 12px 44px; border-radius: var(--v5-radius); border: 1px solid var(--v5-field-edge);
@@ -17,6 +15,7 @@
 .search input::placeholder { color: var(--v5-muted); opacity: 1; }
 .search svg { position: absolute; left: 16px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--v5-muted); pointer-events: none; }
 .chipRow { margin-top: 24px; overflow-x: auto; scrollbar-width: none; margin-inline: calc(var(--v5-gutter) * -1); padding-inline: var(--v5-gutter); }
+.chipRow [aria-current="page"] { background: var(--v5-text); border-color: var(--v5-text); color: var(--v5-bg); }
 .chipRow::-webkit-scrollbar { display: none; }
 .chipRow > ul { flex-wrap: nowrap; }
 @media (min-width: 900px) { .chipRow > ul { flex-wrap: wrap; } }
@@ -27,10 +26,10 @@
 .searchItem[hidden], .startItem[hidden] { display: none; }
 @media (min-width: 900px) { .featuredGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .featuredLead { grid-column: 1 / -1; } }
 .featuredLead { flex-direction: column; }
-/* The lead card turns horizontal from 1024px (owner bug report 2026-10-26): the whole cover is centred in its half. */
+/* The lead card turns horizontal from 1024px (owner bug report 2026-10-26): the whole cover keeps its intrinsic height at the start of its half. */
 @media (min-width: 1024px) {
   .featuredLead { flex-direction: row; --v5-card-meta-top: 0; }
-  .featuredLead > img { width: 50%; height: auto; aspect-ratio: 1200 / 630; align-self: center; flex: none; border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius); }
+  .featuredLead > img { width: 50%; height: auto; aspect-ratio: auto; align-self: flex-start; flex: none; border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius); }
   .featuredLead > div { justify-content: center; padding: 32px 36px; }
   .featuredLead h2, .featuredLead h3 { font-size: clamp(22px, 2.4vw, 30px); line-height: 1.38; }
 }
@@ -107,7 +106,12 @@
 .toc ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
 .toc ol ol { padding-left: 12px; }
 .toc a { display: flex; align-items: center; min-height: 44px; padding: 8px; text-wrap: balance; border-radius: 10px; color: var(--v5-muted); font-size: 14px; line-height: 1.5; text-decoration: none; }
-.toc a:hover { background: var(--v5-bg-alt); color: var(--v5-text); }
+.toc a:hover, .toc a[aria-current="location"] { background: var(--v5-bg-alt); color: var(--v5-text); }
+.toc ol[hidden] { display: none; }
+.tocRow { display: flex; align-items: start; gap: 4px; }
+.tocRow > a { flex: 1; min-width: 0; }
+.tocRow > button { display: grid; place-items: center; flex: 0 0 44px; min-height: 44px; padding: 8px; border: 0; border-radius: 10px; background: transparent; color: var(--v5-muted); font: inherit; cursor: pointer; }
+.tocRow > button:hover { background: var(--v5-bg-alt); color: var(--v5-text); }
 .tocMobile { border: 1px solid var(--v5-border-soft); border-radius: var(--v5-radius-sm); background: var(--v5-card); margin-bottom: 24px; }
 .tocMobile > summary { display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 0 20px; cursor: pointer; font-weight: 500; list-style: none; font-family: var(--v5-font-display); }
 .tocMobile > summary::-webkit-details-marker { display: none; }
@@ -125,7 +129,8 @@
 .prose > * + * { margin-top: 20px; }
 .prose h2 { font-size: clamp(23px, 2.6vw, 28px); line-height: 1.4; margin-top: 48px; scroll-margin-top: 96px; }
 .prose h3 { font-size: clamp(19px, 2vw, 22px); line-height: 1.45; margin-top: 32px; scroll-margin-top: 96px; }
-.prose h4 { font-size: 18px; margin-top: 24px; scroll-margin-top: 96px; }
+.prose h4 { font-size: 18px; font-weight: 400; line-height: 1.5; color: var(--v5-muted); margin-top: 24px; scroll-margin-top: 96px; }
+@media (min-width: 1024px) { .prose h4 { font-size: 20px; } }
 .prose a:not([class]), .imageLink { color: var(--v5-gold-text); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .prose ul, .prose ol { padding-left: 1.4em; }
 .prose li + li { margin-top: 8px; }

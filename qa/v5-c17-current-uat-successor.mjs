@@ -1,3 +1,4 @@
+import { ownerReviewHtmlPredecessor } from './v5-owner-review-source-successor.mjs';
 import {collisionCssPredecessor} from './v5-uat-collision-source-successor.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -9,6 +10,7 @@ export const c17CurrentUatPins = Object.freeze(JSON.parse(serialized));
 // Only the complete reviewed integrated default output may lose the single label span.
 // Unknown/CMS-edited output remains literal for the existing C15/C14/C11 guards to reject.
 export function inverseC17OnCurrentUatHtml(html, key) {
+  html = ownerReviewHtmlPredecessor(html, key);
   const pin = c17CurrentUatPins[String(key)];
   if (!pin || sha(html) !== pin.after || pin.after === pin.before) return html;
   const span = '<span class="triggerLabel">คุยกับปั้นทาง LINE</span>';

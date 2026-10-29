@@ -18,7 +18,7 @@ export default function V5HealthHappyCountdownLabels({ placement }: { placement:
       "site.campaign.minutes": text("site.campaign.unitMinutes"),
       "site.campaign.seconds": text("site.campaign.unitSeconds"),
     }}>
-      <HealthHappyCountdown placement={placement} />
+      <HealthHappyCountdown placement={placement} splitDigits />
     </PublicCopyProvider>
   );
 }

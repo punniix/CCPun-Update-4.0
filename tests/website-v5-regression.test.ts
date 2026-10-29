@@ -16,7 +16,8 @@ import { listToolGuides, TOOL_GUIDE_TOPICS } from "../components/layout/v5/tool-
 import { v5CardGridSizes, V5_HORIZONTAL_CARD_SIZES } from "../components/layout/v5/card-sizes";
 import { exemptFromInert, restoreInert, type InertRecord } from "../components/layout/v5/chat-layer";
 import { createRequire } from "node:module";
-import { transformSync } from "esbuild";
+import { buildSync, transformSync } from "esbuild";
+import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { assertProductionCmsOwner } from "../qa/production-cms-source-proof.mjs";
 import { isWebsiteV5ReviewedSuccessor, websiteV5PhaseASources, websiteV5PredecessorDigest } from "../qa/website-v5-phase-a-proof.mjs";
@@ -457,7 +458,7 @@ test("QA: v5 text never drops below 13px; the meta token is 14px; rhythm and rad
   assert.match(shellCss, /\.articleCardTopic \{[^}]*font-size: var\(--v5-text-meta\)/);
   assert.match(shellCss, /\.articleCardMeta \{[^}]*font-size: var\(--v5-text-meta\)/);
   // Phones stack the horizontal card; the image must not keep the full-height rule that hid the title.
-  assert.match(shellCss, /\.articleCardHorizontal \.articleCardImage \{ width: 100%; min-height: 0; aspect-ratio: 1200 \/ 630; \}/);
+  assert.match(shellCss, /\.articleCardHorizontal \.articleCardImage \{ width: 100%; min-height: 0; aspect-ratio: auto; \}/);
   const home = read("features/home/v5/V5Home.module.css");
   assert.match(home, /\.credentials dd \{[^}]*font-size: var\(--v5-text-meta\)/);
   assert.doesNotMatch(read("features/blog/v5/V5Blog.module.css"), /radial-gradient/, "no decorative glow panels");
@@ -665,7 +666,7 @@ test("UX: after the Health Happy deadline the countdown slot renders nothing, ev
   assert.match(read("components/ui/health-happy/HealthHappyCountdown.tsx"), /trackEvent\('health_happy_countdown_click'/);
 });
 
-test("One LINE button per page: no other LINE OA link or gold closing band on v5 content surfaces", () => {
+test("One LINE dock per page, with the owner-approved category closing CTA exception and no gold closing band", () => {
   const surfaces = [
     "components/layout/v5/V5Header.tsx", "components/layout/v5/V5Footer.tsx", "components/layout/v5/V5Primitives.tsx",
     "features/home/v5/V5Home.tsx", "features/blog/v5/V5BlogIndex.tsx", "features/blog/v5/V5Category.tsx", "features/blog/v5/V5Article.tsx",
@@ -674,7 +675,12 @@ test("One LINE button per page: no other LINE OA link or gold closing band on v5
   ];
   for (const file of surfaces) {
     const source = read(file);
-    assert.doesNotMatch(source, /V5_LINE_URL|https:\/\/lin\.ee|https:\/\/line\.me/, `${file}: no LINE OA link besides the dock`);
+    if (file === "features/blog/v5/V5Category.tsx") {
+      assert.equal([...source.matchAll(/href=\{V5_LINE_URL\}/g)].length, 1, "one owner-approved category closing link, not repeated cards");
+      assert.match(source, /slug === "investment"[\s\S]*V5_ACCOUNT_LINKS\.map/, "investment uses the two approved account destinations");
+    } else {
+      assert.doesNotMatch(source, /V5_LINE_URL|https:\/\/lin\.ee|https:\/\/line\.me/, `${file}: no LINE OA link besides the dock`);
+    }
     assert.doesNotMatch(source, /V5ContactBand|shell\.band\b|styles\.band\b/, `${file}: no gold closing band`);
   }
   assert.doesNotMatch(read("components/layout/v5/V5.module.css"), /\.band \{|--v5-band/, "the gold band styles are gone");
@@ -714,22 +720,22 @@ test("Buttons use 14px corners sitewide (DESIGN.md), including the countdown, ca
   assert.match(read("DESIGN.md"), /- \*\*Shape:\*\* Gently curved \(14px radius\)/);
 });
 
-test("Covers show whole at 1200 / 630 everywhere: no card or featured image is stretched to the card height (owner request 2026-10-25)", () => {
+test("Covers retain their intrinsic shape: no cropping or tall artificial frame (owner correction 2026-10-29)", () => {
   const rules = (css: string) => [...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => ({ selector: selector.trim(), body }));
   for (const file of ["components/layout/v5/V5.module.css", "features/blog/v5/V5Blog.module.css", "features/home/v5/V5Home.module.css"]) {
     for (const { selector, body } of rules(read(file))) {
       if (!/articleCardImage|featuredLead|\.feature\b/.test(selector)) continue;
       assert.ok(!(/aspect-ratio:\s*auto/.test(body) && /min-height:\s*100%/.test(body)), `${file}: ${selector} must not stretch a cover (aspect-ratio: auto + min-height: 100%)`);
-      if (/aspect-ratio/.test(body)) assert.match(body, /aspect-ratio: 1200 \/ 630/, `${file}: ${selector} keeps the 1200 / 630 cover shape`);
+      if (/aspect-ratio/.test(body)) assert.match(body, /aspect-ratio: (?:auto|1200 \/ 630)/, `${file}: ${selector} uses intrinsic dimensions (placeholder reserves the standard ratio)`);
     }
   }
   const shell = read("components/layout/v5/V5.module.css");
-  assert.match(shell, /\.articleCardImage \{ display: block; width: 100%; height: auto; aspect-ratio: 1200 \/ 630; object-fit: cover; object-position: center;/);
+  assert.match(shell, /\.articleCardImage \{ display: block; width: 100%; height: auto; aspect-ratio: auto; object-fit: contain; object-position: top;/);
   // Owner bug report 2026-10-26: horizontal covers are centred (no empty block under them) with rounded outer corners.
-  assert.match(shell, /\.articleCardHorizontal \.articleCardImage \{ width: 38%; height: auto; aspect-ratio: 1200 \/ 630; align-self: center; flex: none; border-radius: var\(--v5-card-image-radius\) 0 0 var\(--v5-card-image-radius\); \}/);
-  assert.match(read("features/blog/v5/V5Blog.module.css"), /\.featuredLead > img \{ width: 50%; height: auto; aspect-ratio: 1200 \/ 630; align-self: center; flex: none; border-radius: var\(--v5-card-image-radius\) 0 0 var\(--v5-card-image-radius\); \}/);
+  assert.match(shell, /\.articleCardHorizontal \.articleCardImage \{ width: 38%; height: auto; aspect-ratio: auto; align-self: flex-start; flex: none; border-radius: var\(--v5-card-image-radius\) 0 0 var\(--v5-card-image-radius\); \}/);
+  assert.match(read("features/blog/v5/V5Blog.module.css"), /\.featuredLead > img \{ width: 50%; height: auto; aspect-ratio: auto; align-self: flex-start; flex: none; border-radius: var\(--v5-card-image-radius\) 0 0 var\(--v5-card-image-radius\); \}/);
   assert.match(shell, /--v5-card-image-radius: calc\(var\(--v5-radius\) - 1px\);/);
-  assert.doesNotMatch(shell + read("features/blog/v5/V5Blog.module.css"), /aspect-ratio: 1200 \/ 630; align-self: flex-start/, "no top-aligned cover leaves an empty block under it");
+  assert.doesNotMatch(shell, /\.articleCardImage \{[^}]*object-fit: cover/, "informative image content is not cropped");
   assert.match(read("features/blog/v5/V5Blog.module.css"), /\.feature img \{ display: block; width: 100%; height: auto;/, "the article cover keeps its natural shape");
 });
 
@@ -941,5 +947,63 @@ test("UAT favicon successor reconstructs both frozen owners and rejects metadata
       assert.equal(isWebsiteV5ReviewedSuccessor(file, changed), false);
       assert.throws(() => assertProductionCmsOwner(file, changed));
     }
+  }
+});
+
+
+test("Owner review: v5 split countdown keeps all four units and accessible values; TOC disclosure preserves anchors", async () => {
+  const require = createRequire(import.meta.url);
+  const { createElement } = require("react");
+  const { renderToStaticMarkup } = require("react-dom/server");
+  const { JSDOM } = require("jsdom");
+  const loadComponent = (file: string) => {
+    const built = buildSync({ entryPoints: [fileURLToPath(new URL(`../${file}`, import.meta.url))], bundle: true, write: false, outfile: "/private/tmp/v5-component-check.cjs", platform: "node", format: "cjs", packages: "external", jsx: "automatic", loader: { ".css": "empty" }, logLevel: "silent" }).outputFiles[0].text;
+    const compiledModule = { exports: {} as { default: unknown } };
+    new Function("require", "module", "exports", built)(require, compiledModule, compiledModule.exports);
+    return compiledModule.exports.default;
+  };
+  const render = (component: unknown, props: object) => new JSDOM(renderToStaticMarkup(createElement(component, props))).window.document;
+  const countdown = loadComponent("components/ui/health-happy/HealthHappyCountdown.tsx");
+  const tiles = render(countdown, { placement: "home", splitDigits: true });
+  const legacy = render(countdown, { placement: "home" });
+  assert.equal(tiles.querySelectorAll('[data-countdown-style="tiles"] [role="timer"] strong').length, 4);
+  for (const value of tiles.querySelectorAll('[role="timer"] strong')) {
+    assert.equal(value.firstElementChild?.textContent, "--", "one accessible SSR placeholder per unit");
+    assert.equal(value.querySelector('[aria-hidden="true"]')?.children.length, 2, "each visual unit has two split tiles");
+  }
+  assert.equal(legacy.querySelector('[data-countdown-style="tiles"]'), null, "legacy placements do not opt into the new presentation");
+  assert.deepEqual([...tiles.querySelectorAll('a')].map((a) => a.getAttribute("href")), [...legacy.querySelectorAll('a')].map((a) => a.getAttribute("href")), "actions and destinations remain identical");
+  const toc = render(loadComponent("features/blog/v5/V5ArticleToc.tsx"), { groups: [{ primary: { id: "h2-a", label: "Main A" }, children: [{ id: "h3-a", label: "Child A" }, { id: "h3-b", label: "Child B" }] }, { primary: { id: "h2-b", label: "Main B" }, children: [] }] });
+  assert.deepEqual([...toc.querySelectorAll('a')].map((a) => a.getAttribute("href")), ["#h2-a", "#h3-a", "#h3-b", "#h2-b"]);
+  const toggle = toc.querySelector("button")!;
+  assert.equal(toc.querySelectorAll("button").length, 1, "a heading without children has no empty control");
+  assert.equal(toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(toc.getElementById(toggle.getAttribute("aria-controls")!)?.hasAttribute("hidden"), true);
+  assert.equal(toc.querySelector("a button"), null, "the toggle is separate from the navigable H2 link");
+  const dom = new JSDOM('<div id="toc-root"></div>', { url: 'https://test.ccpun.com/blog/health-insurance/example/#h3-a', pretendToBeVisual: true });
+  const browserGlobals = { window: dom.window, document: dom.window.document, HTMLElement: dom.window.HTMLElement, Node: dom.window.Node, IS_REACT_ACT_ENVIRONMENT: true };
+  const originals = new Map(Object.keys(browserGlobals).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(browserGlobals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  const { act } = require("react");
+  const { createRoot } = require("react-dom/client");
+  const mounted = createRoot(dom.window.document.getElementById("toc-root"));
+  try {
+    const groups = [{ primary: { id: "h2-a", label: "Main A" }, children: [{ id: "h3-a", label: "Child A" }] }, { primary: { id: "h2-b", label: "Main B" }, children: [] }];
+    await act(async () => { mounted.render(createElement(loadComponent("features/blog/v5/V5ArticleToc.tsx"), { groups })); });
+    const control = dom.window.document.querySelector('button')!;
+    const childList = dom.window.document.getElementById(control.getAttribute('aria-controls')!)!;
+    assert.equal(control.getAttribute('aria-expanded'), 'true', "arrival at an H3 hash reveals its branch");
+    assert.equal(childList.hidden, false);
+    assert.equal(dom.window.document.querySelector('a[aria-current="location"]')?.getAttribute('href'), '#h3-a');
+    await act(async () => { control.click(); });
+    assert.equal(control.getAttribute('aria-expanded'), 'false');
+    assert.equal(childList.hidden, true);
+    await act(async () => { control.click(); });
+    assert.equal(childList.hidden, false, "the same native button opens and closes the navigation branch");
+    assert.equal(dom.window.document.querySelector('a[href="#h2-a"]')?.getAttribute('href'), '#h2-a');
+  } finally {
+    await act(async () => { mounted.unmount(); });
+    for (const [key, descriptor] of originals) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key); }
+    dom.window.close();
   }
 });

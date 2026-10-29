@@ -1,8 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { PublicCopyProvider } from "@/components/ui/PublicCopyProvider";
 import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
-import { getPublicAuthorName } from "@/lib/content/author-identity";
 import { articleBelongsToPhysicalCategory } from "@/lib/content/category-registry";
 import { BLOG_GROUP_MIN_ARTICLES, BLOG_START_HERE_SLUGS, type TopicLink } from "@/lib/content/topic-navigation";
 import type { Article, ArticleAuthorProfile } from "@/lib/content/types";
@@ -22,7 +20,7 @@ function searchText(article: Article, card: V5CardArticle) {
   return `${article.title} ${article.excerpt} ${card.topic} ${(article.tags ?? []).join(" ")}`;
 }
 
-export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy, author, initialQuery = "" }: {
+export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy, initialQuery = "" }: {
   articles: Article[];
   featured: Article[];
   topics: TopicLink[];
@@ -33,8 +31,6 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
 }) {
   const text = publicCopyText(copy);
   const sorted = newestFirst(articles);
-  const authorSuffix = (author?.professionalQualifications ?? []).map((item) => item.shortName.trim()).filter(Boolean).join(", ");
-  const authorName = author ? `${getPublicAuthorName(author)}${authorSuffix ? `, ${authorSuffix}` : ""}` : text("blog.baseAuthorNameText");
 
   const featuredArticles = featured.slice(0, 3);
   const featuredCards = toV5Cards(featuredArticles, copy);
@@ -74,10 +70,6 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
                 <div>
                   <h1 id="blog-title" className={shell.h1}>{text.node("blog.activeCategoryText")}</h1>
                   <p className={styles.heroLead}>{text.node("blog.website43BlogText")}</p>
-                  <p className={styles.authorChip}>
-                    <Image src={author?.profileAvatar?.src ?? "/assets/ccpun-avatar-v5-256.png"} alt="" width={72} height={72} sizes="36px" loading="lazy" />
-                    <span>{authorName}</span>
-                  </p>
                 </div>
                 <V5BlogSearch scopeId="v5-blog-scope" initialQuery={initialQuery} />
               </div>

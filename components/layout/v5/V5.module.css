@@ -165,7 +165,7 @@
 */
 @media (min-width: 1024px) {
   :is(.cardGrid, .cardGrid2) > .articleCard:only-child, :is(.cardGrid, .cardGrid2) > :only-child > .articleCard { flex-direction: row; --v5-card-meta-top: 0; }
-  :is(.cardGrid, .cardGrid2) > .articleCard:only-child > .articleCardImage, :is(.cardGrid, .cardGrid2) > :only-child > .articleCard > .articleCardImage { width: 40%; height: auto; aspect-ratio: 1200 / 630; align-self: center; flex: none; border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius); }
+  :is(.cardGrid, .cardGrid2) > .articleCard:only-child > .articleCardImage, :is(.cardGrid, .cardGrid2) > :only-child > .articleCard > .articleCardImage { width: 40%; height: auto; aspect-ratio: auto; align-self: flex-start; flex: none; border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius); }
   :is(.cardGrid, .cardGrid2) > .articleCard:only-child > .articleCardBody, :is(.cardGrid, .cardGrid2) > :only-child > .articleCard > .articleCardBody { justify-content: center; padding: 24px 32px; }
 }
 @media (min-width: 1024px) {
@@ -186,12 +186,9 @@
 /* Whole-card links (title ::after covers the card): the ring goes on the card, not on the title text. */
 .articleCard:focus-within { border-color: var(--v5-focus); }
 .articleCard:has(.articleCardTitle a:focus-visible) { outline: 3px solid var(--v5-focus); outline-offset: 3px; }
-/*
-  Covers (owner request 2026-10-25): every Production cover is 1200 x 630 with baked-in text and the CCPUN logo,
-  so a cover always shows whole at 1200 / 630 and is never stretched or cropped by the card layout. object-fit
-  stays only as a safety for legacy images of another shape.
-*/
-.articleCardImage { display: block; width: 100%; height: auto; aspect-ratio: 1200 / 630; object-fit: cover; object-position: center; background: var(--v5-surface); border-radius: var(--v5-card-image-radius) var(--v5-card-image-radius) 0 0; }
+/* Informative covers use their source dimensions, including legacy shapes with baked-in text. */
+.articleCardImage { display: block; width: 100%; height: auto; aspect-ratio: auto; object-fit: contain; object-position: top; background: var(--v5-surface); border-radius: var(--v5-card-image-radius) var(--v5-card-image-radius) 0 0; }
+.articleCardImage:not(img) { aspect-ratio: 1200 / 630; }
 .articleCardBody { display: flex; flex: 1; flex-direction: column; gap: 8px; padding: 20px 20px 20px; }
 .articleCardTopic { color: var(--v5-gold-text); font-size: var(--v5-text-meta); font-weight: 500; font-family: var(--v5-font-display); }
 .articleCardTitle { font-size: 18px; line-height: 1.45; font-weight: 500; font-family: var(--v5-font-display); }
@@ -207,19 +204,13 @@
 .articleCardFooter { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; margin-top: var(--v5-card-meta-top, auto); }
 .articleCardFooter .articleCardMeta { margin-top: 0; padding-top: 0; min-width: 0; }
 .articleCardHorizontal { flex-direction: row; align-items: stretch; --v5-card-meta-top: 0; }
-/*
-  Horizontal cards (owner bug report 2026-10-26, options a + c): the whole 1200 x 630 cover keeps a fixed width at
-  its natural height and is centred in its column, so a taller text column leaves even card background above and
-  below it instead of an empty block under the cover; the text group is centred too, so the date row follows the
-  title. Where the text column would be far taller than the cover (phones and the two-up rows from 900 to 1279px)
-  the card stacks. The cover's outer corners follow the card radius.
-*/
-.articleCardHorizontal .articleCardImage { width: 38%; height: auto; aspect-ratio: 1200 / 630; align-self: center; flex: none; border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius); }
+/* Horizontal covers hug their intrinsic height and align with the start of the text column. */
+.articleCardHorizontal .articleCardImage { width: 38%; height: auto; aspect-ratio: auto; align-self: flex-start; flex: none; border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius); }
 .articleCardHorizontal .articleCardBody { justify-content: center; padding: 16px 16px; }
 /* Stacked: the cover spans the card width so the topic, title and date stay visible below it. */
 @media (max-width: 639px), (min-width: 900px) and (max-width: 1279px) {
   .articleCardHorizontal { flex-direction: column; --v5-card-meta-top: auto; }
-  .articleCardHorizontal .articleCardImage { width: 100%; min-height: 0; aspect-ratio: 1200 / 630; }
+  .articleCardHorizontal .articleCardImage { width: 100%; min-height: 0; aspect-ratio: auto; }
   .articleCardHorizontal .articleCardImage { border-radius: var(--v5-card-image-radius) var(--v5-card-image-radius) 0 0; }
   .articleCardHorizontal .articleCardBody { justify-content: flex-start; padding: 16px 20px 20px; }
 }
@@ -374,3 +365,7 @@
 /* Only category/404 recovery expanded links; headline links and card paint stay intact. */
 @media (max-width:1023px) { :global(section:is([aria-labelledby="category-articles"],[aria-labelledby="not-found-latest"])) .articleCardTitle a::after { right:calc(80px - var(--v5-gutter)); } }
 @media (min-width:1024px) { :global(#v5-blog-scope) .articleCardTitle a::after, :global(section[aria-labelledby="not-found-latest"]) .articleCardTitle a::after { right:calc(248px - var(--v5-gutter)); } }
+
+/* 404 recovery controls leave the same fixed LINE corner clear as the reading surfaces. */
+.notFoundTools { padding-inline-end: max(var(--v5-gutter), 80px); }
+@media (min-width: 1024px) { .notFoundTools { padding-inline-end: max(var(--v5-gutter), 248px); } }

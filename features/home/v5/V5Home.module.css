@@ -40,6 +40,8 @@
 .homeSection > div > h2, .faq h2 { font-size: 26px; line-height: 1.3; }
 .story { display: flex; flex-direction: column; }
 .voicesSection { background: var(--v5-bg-alt); }
+:global(html[data-theme="light"]) .partnerStrip { background: var(--v5-bg-alt); }
+:global(html[data-theme="light"]) .voicesSection { background: var(--v5-surface); }
 .aboutSection.aboutSection { background: var(--v5-bg); }
 .learningSection { background: var(--v5-bg-alt); }
 .coreGuides { margin-top: 32px; }
@@ -52,7 +54,6 @@
   .homeSection > div > h2, .faq h2 { font-size: 32px; }
   .voicesSection { background: var(--v5-bg); }
   .learningSection { background: var(--v5-bg); }
-  :global(html[data-theme="light"]) :is(.partnerStrip, .voicesSection) { --v5-text: #faf9f9; --v5-muted: #baabab; --v5-gold-text: #e0c985; --v5-border: #5b4848; --v5-border-soft: rgb(91 72 72 / 72%); --v5-card: #352727; background: #352727; color: var(--v5-text); }
 }
 
 /*
@@ -135,7 +136,7 @@
 /* Native compact media rows retain every headline/date and the whole cover; no clamping. */
 @media (max-width: 639px) {
   .guideCard.guideCard, .latestCard.latestCard { flex-direction: row; align-items: center; }
-  .guideCard.guideCard > img, .latestCard.latestCard > img { width: 104px; height: auto; min-height: 0; aspect-ratio: 1200 / 630; align-self: center; flex: none; margin-inline-start: 12px; border-radius: 8px; }
+  .guideCard.guideCard > img, .latestCard.latestCard > img { width: 104px; height: auto; min-height: 0; aspect-ratio: auto; align-self: flex-start; flex: none; margin-inline-start: 12px; border-radius: 8px; }
   .guideCard.guideCard > div, .latestCard.latestCard > div { min-width: 0; padding: 12px; }
   .guideCard h3, .latestCard h3 { font-size: 16px; line-height: 1.5; }
   .latestTrack.latestTrack { grid-auto-flow: column; grid-auto-columns: calc(100% - 24px); grid-template-columns: none; gap: 12px; overflow-x: auto; padding: 4px 4px 12px; scroll-snap-type: x proximity; scroll-padding-inline: 4px; align-items: start; }

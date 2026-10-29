@@ -1,3 +1,4 @@
+import { ownerReviewSourcePredecessor } from './v5-owner-review-source-successor.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
@@ -7,6 +8,7 @@ assert.equal(sha(serialized), '3df379a3197c659f8de64450ea196f487c3b71e33a8f268d6
 export const collisionSourcePins = Object.freeze(JSON.parse(serialized));
 // Complete source admission only: unknown bytes remain untouched and fail historical proofs.
 export function collisionCssPredecessor(file, source) {
+  source = ownerReviewSourcePredecessor(file, source);
   const pin = Object.hasOwn(collisionSourcePins,file) ? collisionSourcePins[file] : null;
   if (!pin || sha(source) !== pin.after) return source;
   assert.ok(source.endsWith(pin.suffix), 'Only the unique approved CSS suffix can be removed');

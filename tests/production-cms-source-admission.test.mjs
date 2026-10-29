@@ -1,3 +1,4 @@
+import { ownerReviewSourcePredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
@@ -135,7 +136,7 @@ test('validation text callback preserves original messages, first issue, unknown
 test('investment CMS scope and regression registration admit only exact reviewed successors', async () => {
   const { websiteV5InvestmentCopySuccessors, websiteV5InvestmentCopyPredecessor, websiteV5CopyPredecessor } = await import('../qa/website-v5-phase-a-proof.mjs');
   for (const [file, entry] of Object.entries(websiteV5InvestmentCopySuccessors)) {
-    const source = read(file);
+    const source = ownerReviewSourcePredecessor(file, read(file));
     assert.equal(cmsSha(source), entry.after, file + ': reviewed current source');
     const predecessor = websiteV5InvestmentCopyPredecessor(file, source);
     assert.equal(cmsSha(predecessor), entry.before, file + ': complete frozen predecessor');

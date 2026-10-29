@@ -20,7 +20,7 @@ function remaining(timestamp: number): TimeLeft {
   };
 }
 
-export default function HealthHappyCountdown({ placement }: { placement: Placement }) {
+export default function HealthHappyCountdown({ placement, splitDigits = false }: { placement: Placement; splitDigits?: boolean }) {
   const text = usePublicCopy();
   const [now, setNow] = useState<number | null>(null);
   const countdownRef = useRef<HTMLElement | null>(null);
@@ -68,7 +68,7 @@ export default function HealthHappyCountdown({ placement }: { placement: Placeme
     { id: "seconds", label: text("site.campaign.seconds"), value: left?.seconds },
   ];
   return (
-    <aside ref={countdownRef} className={styles.outside} aria-label={text("site.extra.healthHappyCountdownarialabel")} data-campaign="aia-health-happy-2026" data-campaign-placement={placement}>
+    <aside ref={countdownRef} className={splitDigits ? `${styles.outside} ${styles.splitDigits}` : styles.outside} data-countdown-style={splitDigits ? "tiles" : undefined} aria-label={text("site.extra.healthHappyCountdownarialabel")} data-campaign="aia-health-happy-2026" data-campaign-placement={placement}>
       <div className={styles.frame}>
         <div className={styles.info}>
           <div className={styles.brandLine}>
@@ -83,7 +83,12 @@ export default function HealthHappyCountdown({ placement }: { placement: Placeme
             <div className={styles.timePart} key={id}>
               {i !== 0 && <span className={styles.colon} aria-hidden="true">:</span>}
               <span className={styles.timeUnit}>
-                <strong className={styles.numeral}>{value === undefined ? '--' : String(value).padStart(2, '0')}</strong>
+                <strong className={styles.numeral}>
+                  {splitDigits ? <>
+                    <span className={styles.srOnly}>{value === undefined ? '--' : String(value).padStart(2, '0')}</span>
+                    <span className={styles.digits} aria-hidden="true">{Array.from(value === undefined ? '--' : String(value).padStart(2, '0')).map((digit, index) => <span className={styles.digit} key={index}>{digit}</span>)}</span>
+                  </> : value === undefined ? '--' : String(value).padStart(2, '0')}
+                </strong>
                 <span className={styles.timeLabel}>{label}</span>
               </span>
             </div>

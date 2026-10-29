@@ -1,3 +1,4 @@
+import { ownerReviewSourcePredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import { inlineCssObservationPredecessor } from '../qa/v5-inline-css-proof.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -134,6 +135,13 @@ const digest = (value) => createHash('sha256').update(JSON.stringify(value)).dig
 // delta, then restore the baseline's first hop so every other byte of the frozen
 // output (config, CSP, headers, all other redirects) is still compared.
 function baselineFirstHop(observation) {
+  // The exact reviewed WebP-only config restores only its format preference for historic output checks.
+  const currentSource = current['apps/web/next.config.ts'];
+  const priorSource = ownerReviewSourcePredecessor('apps/web/next.config.ts', currentSource);
+  if (priorSource !== currentSource) {
+    assert.deepEqual(observation.config.images.formats, ['image/webp']);
+    observation = { ...observation, config: { ...observation.config, images: { ...observation.config.images, formats: ['image/avif', 'image/webp'] } } };
+  }
   const responses = observation.responses.map((response) => {
     const url = new URL(response.url);
     const redirect = WEB_REDIRECTS.find(({ prefix }) => url.pathname === prefix || url.pathname.startsWith(`${prefix}/`));
@@ -148,7 +156,7 @@ function baselineFirstHop(observation) {
     assert.equal(response.headers.location, final, `${url.pathname}: legacy redirect must reach its final URL in one hop`);
     return { ...response, headers: { ...response.headers, location: legacy.href }, helperDestination: legacy.href };
   });
-  return inlineCssObservationPredecessor({ ...observation, responses }, current['apps/web/next.config.ts']);
+  return inlineCssObservationPredecessor({ ...observation, responses }, priorSource);
 }
 if (process.argv.includes('--print-baseline')) {
   const baseline = Object.fromEntries(files.map((file) => [file, execFileSync('git', ['show', `${baselineSha}:${file}`], { encoding: 'utf8' })]));
@@ -280,4 +288,28 @@ test('Production Web build inlines the GA4 identity and GTM semantic event contr
   assert.match(read('features/analytics/components/ClientWidgets.tsx'), /\{gaId && <GoogleAnalytics gaId=\{gaId\} \/>\}/);
   assert.match(read('lib/analytics.ts'), /process\.env\.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED !== 'true'/);
   assert.match(read('features/analytics/components/GoogleAnalytics.tsx'), /trackEvent\('line_oa_click'/);
+});
+
+
+test('Web and compatibility config select WebP; the installed optimizer serves WebP without rewriting the original', async () => {
+  const { config } = await observe(current, {});
+  assert.deepEqual(config.images.formats, ['image/webp']);
+  assert.match(read('next.config.ts'), /formats: \["image\/webp"\]/);
+  const { ImageOptimizerCache, imageOptimizer } = createRequire(import.meta.url)('next/dist/server/image-optimizer');
+  const runtime = { ...config, images: { ...config.images, minimumCacheTTL: 14400 } };
+  const params = ImageOptimizerCache.validateParams({ headers: { accept: 'image/avif,image/webp,image/*,*/*;q=0.8' } }, { url: '/assets/ccpun-avatar-v5-256.png', w: '256', q: '75' }, runtime, false);
+  assert.equal(params.errorMessage, undefined);
+  assert.equal(params.mimeType, 'image/webp', 'AVIF-capable browsers still receive the owner-selected WebP');
+  const originalPath = 'public/assets/ccpun-avatar-v5-256.png';
+  const original = readFileSync(originalPath);
+  const originalHash = createHash('sha256').update(original).digest('hex');
+  const sharp = createRequire(import.meta.url)('sharp');
+  const before = await sharp(original).metadata();
+  const output = await imageOptimizer({ buffer: original, contentType: 'image/png', cacheControl: 'public, max-age=3600', etag: originalHash }, params, runtime, { isDev: false, silent: true });
+  const delivered = await sharp(output.buffer).metadata();
+  assert.equal(output.contentType, 'image/webp');
+  assert.equal(delivered.format, 'webp');
+  assert.equal(delivered.width, before.width);
+  assert.equal(delivered.height, before.height);
+  assert.equal(createHash('sha256').update(readFileSync(originalPath)).digest('hex'), originalHash, 'The master remains byte-identical');
 });

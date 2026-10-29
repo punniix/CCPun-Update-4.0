@@ -299,3 +299,7 @@
 @media (min-width:1024px) { :global(main:has(#aia-fund-hero-title)) .modeGrid { padding-right:calc(248px - var(--v5-gutter, 80px)); box-sizing:border-box; } }
 
 .handoffFallback{margin-top:1rem;max-width:100%;overflow-wrap:anywhere}.handoffFallback summary{cursor:pointer}.handoffFallback label{display:block;margin-top:.75rem}.handoffFallback textarea{box-sizing:border-box;width:100%;margin:.5rem 0;padding:.75rem;border:1px solid var(--w43-border);border-radius:.5rem;background:var(--w43-deep);color:inherit;font:inherit;resize:vertical}.handoffFallback textarea:focus-visible,.handoffFallback a:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+
+/* The v5 six-choice grid shares the tallest natural row; selected borders retain their reserved width. */
+:global([data-v5-header] ~ main) .categoryGrid { grid-auto-rows: 1fr; align-items: stretch; }
+:global([data-v5-header] ~ main) .categoryCard { box-sizing: border-box; width: 100%; min-width: 0; height: 100%; }

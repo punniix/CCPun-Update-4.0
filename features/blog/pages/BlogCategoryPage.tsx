@@ -193,6 +193,7 @@ export default async function BlogCategoryHub({ params }: { params: Promise<{ ca
         description={category.description ?? hub?.description}
         hub={hub}
         articles={relevantArticles}
+        totalArticleCount={visibleArticles.length}
         topics={linkableTopics(registry, visibleArticles)}
         copy={copy}
       />
@@ -223,6 +224,7 @@ export default async function BlogCategoryHub({ params }: { params: Promise<{ ca
       description={hub.description}
       hub={hub}
       articles={relevantArticles}
+      totalArticleCount={publishedArticles.length}
       topics={linkableTopics(registry, publishedArticles)}
       copy={copy}
     />

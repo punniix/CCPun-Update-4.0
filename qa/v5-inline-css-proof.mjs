@@ -1,3 +1,4 @@
+import { ownerReviewSourcePredecessor } from './v5-owner-review-source-successor.mjs';
 import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
 const file = "apps/web/next.config.ts";
@@ -9,6 +10,7 @@ const sha = (source) => createHash("sha256").update(source).digest("hex");
 // Admit only the full reviewed Web source. Unknown or mutated sources stay intact
 // so the original whole-source owner proof rejects them.
 export function inlineCssPredecessor(path, source) {
+  source = ownerReviewSourcePredecessor(path, source);
   if (path !== file || sha(source) !== inlineCssSuccessorSha) return source;
   const addition = "  experimental: {\n    inlineCss: true,\n";
   assert.equal(source.split(addition).length, 2);

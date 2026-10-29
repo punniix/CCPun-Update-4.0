@@ -25,6 +25,7 @@ import ArticleShareActions from "@/features/blog/website-43/ArticleShareActions"
 import { ArticleEngagementProvider, ArticleEngagementSummary } from "@/features/blog/website-43/ArticleEngagement";
 import { estimateArticleReadingMinutes } from "@/features/blog/website-43/articleReadingTime";
 import styles from "./V5Blog.module.css";
+import Toc from "./V5ArticleToc";
 import { renderV5ArticleBody } from "./V5ArticleBody";
 import { resolveNextSteps } from "./next-step";
 import NextStepCiLink from "./NextStepCiLink";
@@ -36,18 +37,6 @@ const HEALTH_HAPPY_SLUG = "aia-health-happy-describe";
 
 type Heading = { index: number; id: string; label: string; level: number };
 
-function Toc({ groups }: { groups: Array<{ primary: Heading; children: Heading[] }> }) {
-  return (
-    <ol>
-      {groups.map(({ primary, children }) => (
-        <li key={primary.id}>
-          <a href={`#${primary.id}`}>{primary.label}</a>
-          {children.length > 0 && <ol>{children.map((child) => <li key={child.id}><a href={`#${child.id}`}>{child.label}</a></li>)}</ol>}
-        </li>
-      ))}
-    </ol>
-  );
-}
 
 export default async function V5Article({ article, relatedArticles = [], allArticles = [], preview = false }: { article: Article; relatedArticles?: Article[]; allArticles?: readonly Article[]; preview?: boolean }) {
   const [copy, homeCopy, siteCopy] = await Promise.all([getPublicCopy("blog"), getPublicCopy("home"), getPublicCopy("site")]);

@@ -7,6 +7,8 @@ import shell from '@/components/layout/v5/V5.module.css';
 import { V5ArticleCard } from '@/components/layout/v5/V5Primitives';
 import { newestFirst, toV5Cards } from '@/components/layout/v5/article-card-data';
 import { getPublishedArticles } from '@/components/layout/v5/shell-data';
+import { V5_AIA_FUND_TOOL, V5_INVESTMENT_TOOL, V5_TOOL_LINKS } from "@/components/layout/v5/constants";
+import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
 
 export const metadata: Metadata = {
   title: "ไม่พบหน้า | CCPun",
@@ -24,6 +26,10 @@ export const metadata: Metadata = {
 
 export default async function NotFound() {
   const text = publicCopyText(await getPublicCopy("site"));
+  const tools = [
+    ...V5_TOOL_LINKS.map((tool) => ({ href: tool.href, label: text(tool.nameKey) })),
+    ...(INVESTMENT_ALLOCATION_ENABLED ? [V5_INVESTMENT_TOOL, V5_AIA_FUND_TOOL] : []),
+  ];
   // v5 404 (FigCraft 12): recovery links plus the latest articles; a CMS outage still renders the page.
   const latest = toV5Cards(newestFirst(await getPublishedArticles().catch(() => [])).slice(0, 3));
   return (
@@ -37,6 +43,12 @@ export default async function NotFound() {
             <Link className={shell.button} href="/">{text.node("site.extra.primaryButton")}</Link>
             <Link className={shell.buttonOutline} href="/blog/">{text.node("site.extra.blogRecovery")}</Link>
           </div>
+        </div>
+      </section>
+      <section className={shell.section} style={{ paddingTop: 0 }} aria-labelledby="not-found-tools">
+        <div className={`${shell.inner} ${shell.notFoundTools}`}>
+          <h2 id="not-found-tools" className={shell.h2} style={{ marginBottom: 24 }}>{text.node("site.nav.tools")}</h2>
+          <nav aria-label={text("site.nav.tools")}><ul className={shell.chips}>{tools.map((tool) => <li key={tool.href}><Link className={shell.buttonOutline} href={tool.href}>{tool.label}</Link></li>)}</ul></nav>
         </div>
       </section>
       {latest.length > 0 && <section className={shell.section} style={{ paddingTop: 0 }} aria-labelledby="not-found-latest">

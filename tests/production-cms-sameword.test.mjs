@@ -1,3 +1,4 @@
+import { ownerReviewHtmlPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import { inverseC17OnCurrentUatHtml, c17CurrentUatPins } from '../qa/v5-c17-current-uat-successor.mjs';
 import { inverseWebsiteV5C17Dock } from '../qa/website-v5-c17-render-successor.mjs';
 const inverseC15OnC14Html = (html, key) => inverseC15(inverseC17OnCurrentUatHtml(html, key), key);
@@ -632,4 +633,19 @@ test('Investment Admin preview uses the actual shared Web renderer and draft cop
   const disabled = loadFixtureModule('features/investment-allocation/page.tsx', { mocks: new Map([...mocks, ['@/lib/runtime/investment-availability', { INVESTMENT_ALLOCATION_ENABLED: false }]]) });
   assert.throws(() => disabled.renderInvestmentAllocationPage(copy, site), /fixture-not-found/);
   await assert.rejects(disabled.default(), /fixture-not-found/);
+});
+
+
+test('Owner-reviewed TOC default render restores the exact old article and rejects every unknown DOM or copy byte', async () => {
+  const article = {id:'article-fixture',slug:'article-fixture',title:'บทความเจ้าของ',excerpt:'คำอธิบาย',category:'การเงินส่วนบุคคล',categorySlug:'personal-finance',status:'published',publishedAt:'2026-10-01T00:00:00Z',updatedAt:'2026-10-02T00:00:00Z',tags:[],body:[{type:'heading',level:2,text:'หัวข้อ'},{type:'paragraph',text:'เนื้อหา'}]};
+  const html = await renderFixture('blog', {}, { article, v5Article: true });
+  const prior = ownerReviewHtmlPredecessor(html, 'v5Article');
+  assert.notEqual(prior, html);
+  assert.equal(digest(prior), '1cac44d3f282dd8c6d84908a56ad457b7aa108bf54c8e9821899b0a92afaa906');
+  assert.equal(ownerReviewHtmlPredecessor(prior, 'v5Article'), prior);
+  for (const changed of [html + ' ', html.replace('หัวข้อ', 'หัวข้อเปลี่ยน'), html.replace('class="tocRow"', 'class="tocRow other"'), html.replace('</main>', '<p>unrelated</p></main>')]) {
+    assert.notEqual(changed, html);
+    assert.equal(ownerReviewHtmlPredecessor(changed, 'v5Article'), changed);
+  }
+  assert.equal(ownerReviewHtmlPredecessor(html, 'unowned'), html);
 });

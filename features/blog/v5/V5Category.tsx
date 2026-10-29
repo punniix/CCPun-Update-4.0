@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { PublicCopyProvider } from "@/components/ui/PublicCopyProvider";
-import { getPublicCopy } from "@/lib/content/public-copy";
 import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
 import type { BlogTopicHub } from "@/lib/content/taxonomy";
 import { getTopicFeaturedLink, type TopicLink } from "@/lib/content/topic-navigation";
@@ -9,9 +8,8 @@ import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
 import { V5ArticleCard, V5Breadcrumbs, v5CardGridSizes } from "@/components/layout/v5/V5Primitives";
 import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data";
-import { V5_TOOL_LINKS } from "@/components/layout/v5/constants";
+import { V5_ACCOUNT_LINKS, V5_LINE_URL } from "@/components/layout/v5/constants";
 import styles from "./V5Blog.module.css";
-import { resolveHubTools } from "./next-step";
 import V5CardEngagement, { V5CardMetricsProvider } from "./V5ArticleCardEngagement";
 
 /**
@@ -19,7 +17,7 @@ import V5CardEngagement, { V5CardMetricsProvider } from "./V5ArticleCardEngageme
  * physical URL (no ?page= owner), renders the hub intro and the CI hub's
  * `featuredLink` (plan T03), and links only non-empty sibling hubs (plan T11).
  */
-export default async function V5Category({ slug, title, description, hub, articles, topics, copy }: {
+export default async function V5Category({ slug, title, description, hub, articles, topics, copy, totalArticleCount }: {
   slug: string;
   title: string;
   description?: string;
@@ -27,12 +25,11 @@ export default async function V5Category({ slug, title, description, hub, articl
   articles: Article[];
   topics: TopicLink[];
   copy: PublicCopyValues;
+  totalArticleCount?: number;
 }) {
   const text = publicCopyText(copy);
-  const siteText = publicCopyText(await getPublicCopy("site"));
   const cards = toV5Cards(newestFirst(articles), copy);
   const featuredLink = getTopicFeaturedLink(slug);
-  const tools = resolveHubTools(slug).map((id) => V5_TOOL_LINKS.find((tool) => tool.id === id)!).filter(Boolean);
   const path = `/blog/${slug}/`;
   const listTitle = text("blog.dynamic5").replaceAll("{0}", title);
 
@@ -46,19 +43,17 @@ export default async function V5Category({ slug, title, description, hub, articl
               <h1 id="category-title" className={shell.h1}>{title}</h1>
               {description ? <p className={styles.heroLead}>{description}</p> : null}
             </div>
+              <nav className={styles.chipRow} aria-label={text("blog.website43BlogInteractivearialabel3")}>
+                <ul className={shell.chips}>
+                  <li><Link className={shell.chip} href="/blog/">{text.node("blog.blogCategoriesText")}{totalArticleCount !== undefined && <> <span>{totalArticleCount}</span></>}</Link></li>
+                  {topics.map((topic) => <li key={topic.slug}><Link className={shell.chip} href={topic.href} aria-current={topic.slug === slug ? "page" : undefined}>{topic.title} <span>{topic.count}</span></Link></li>)}
+                  {!topics.some((topic) => topic.slug === slug) && <li><span className={shell.chip} aria-current="page">{title} <span>{articles.length}</span></span></li>}
+                </ul>
+              </nav>
           </div>
         </section>
 
-        {topics.length > 0 && <div className={styles.categoryChips}>
-          <div className={shell.inner}>
-            <nav className={styles.chipRow} aria-label={text("blog.website43BlogInteractivearialabel3")}>
-              <ul className={shell.chips}>
-                <li><Link className={shell.chip} href="/blog/">{text.node("blog.blogCategoriesText")}</Link></li>
-                {topics.map((topic) => <li key={topic.slug}><Link className={shell.chip} href={topic.href} aria-current={topic.slug === slug ? "page" : undefined}>{topic.title}</Link></li>)}
-              </ul>
-            </nav>
-          </div>
-        </div>}
+
 
         {hub && hub.intro.length > 0 && <section className={shell.section} aria-labelledby={`hub-intro-${hub.slug}`}>
           <div className={`${shell.inner} ${styles.intro}`}>
@@ -83,15 +78,17 @@ export default async function V5Category({ slug, title, description, hub, articl
               ? <V5CardMetricsProvider><div className={shell.cardGrid}>{cards.map((card, index) => <V5ArticleCard key={card.id} article={card} showExcerpt sizes={v5CardGridSizes(cards.length)} priority={index === 0 && !(hub && hub.intro.length > 0)}
                 metaEnd={<V5CardEngagement articleId={card.id} title={card.title} />} />)}</div></V5CardMetricsProvider>
               : <p className={styles.empty}>{text.node("blog.div")}</p>}
-            {tools.length > 0 && <div className={styles.toolsCard}>
+            <div className={styles.toolsCard}>
               <div>
-                <h2>{text.node("blog.topicTools.title")}</h2>
-                <p>{text.node("blog.topicTools.description")}</p>
+                <h2>{text.node(slug === "investment" ? "blog.categoryAccounts.title" : "blog.h2")}</h2>
+                {slug !== "investment" && <p>{text.node("blog.lead")}</p>}
               </div>
               <div className={styles.toolsActions}>
-                {tools.map((tool) => <Link key={tool.id} className={shell.buttonOutline} href={tool.href}>{siteText.node(tool.nameKey)}</Link>)}
+                {slug === "investment"
+                  ? V5_ACCOUNT_LINKS.map((account) => <a key={account.id} className={shell.buttonOutline} href={account.href} target="_blank" rel="noopener noreferrer">{text.node(account.labelKey)}</a>)
+                  : <a className={shell.button} href={V5_LINE_URL} target="_blank" rel="noopener noreferrer" data-analytics-surface="blog" data-analytics-location="blog_article">{text.node("blog.faqCta")}</a>}
               </div>
-            </div>}
+            </div>
           </div>
         </section>
 

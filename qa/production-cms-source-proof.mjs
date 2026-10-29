@@ -1,3 +1,4 @@
+import { ownerReviewSourcePredecessor } from './v5-owner-review-source-successor.mjs';
 import { eyebrowPredecessor } from "./v5-eyebrow-proof.mjs";
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -241,6 +242,7 @@ export function canonicalNavigationPredecessor(file, source) {
   return source;
 }
 export function assertProductionCmsOwner(file, source = read(file)) {
+  source = ownerReviewSourcePredecessor(file, source);
   assert.equal(cmsSha(JSON.stringify(productionCmsOwners)), '1205b8e92dafafacff0a2ff3421f3acf7ff87e4d70c65a54a4ae5540aeb269fe', 'frozen CMS identities');
   assert.ok(hasProductionCmsOwner(file), 'Unknown CMS source owner: '+file);
   source = websiteV5InvestmentCopyPredecessor(file, source);

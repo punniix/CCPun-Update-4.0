@@ -27,3 +27,9 @@ export const V5_INVESTMENT_TOOL = { href: "/tools/investment-allocation/", label
  * main tool and the /tools/ hub only where the flag is on; not in the header menu or sitemaps.
  */
 export const V5_AIA_FUND_TOOL = { href: "/tools/aia-fund-allocation/", label: "กองทุน บลจ. เอไอเอ" } as const;
+
+/** Owner-provided account-opening destinations; shared by the investment category CTA. */
+export const V5_ACCOUNT_LINKS = [
+  { id: "phillip", href: "https://aoo.poems.in.th/?mkt_token=LucWeJjAOydw", labelKey: "blog.categoryAccounts.phillip" },
+  { id: "maybank", href: "https://trading.maybank.co.th/mbi-link/mbi-dynamic-link.html?page=MBI_OPEN_ACCOUNT&openExternalBrowser=1&data=%22%7B%5C%22ic%5C%22%3A%5C%225124%5C%22%2C%5C%22referral%5C%22%3A%5C%22%5C%22%7D%22", labelKey: "blog.categoryAccounts.maybank" },
+] as const;
