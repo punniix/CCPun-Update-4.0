@@ -1,0 +1,192 @@
+{
+  "lib/content/public-copy-registry.ts": {
+    "before": "41a1e88bc29ee25eedfdd2ff13fa6e246941a13e8878909eb6d15a991328a8d0",
+    "after": "058d180b6371c17a36a544c2d24efc0e56ed0047cbe27951fcf4cea5f377fbde",
+    "replacements": [
+      [
+        "\"home.website43Hometitle5\": \"ก่อนเริ่มวางแผนกับ CCPun\"",
+        "\"home.website43Hometitle5\": \"คำถามก่อนเริ่มวางแผนกับ CCPun\""
+      ]
+    ]
+  },
+  "lib/content/tool-copy-defaults.ts": {
+    "before": "f20a2fb52b7c7b830cb5abf612f589c011d821b577452d02c72b90979ca8164e",
+    "after": "722753e452481b63ffe8c0102cf1457c177fccd97e24aa59dcfae1fbe6d5993f",
+    "replacements": [
+      [
+        "\"ci.landing.heading3\": \"Recovery Reserve แยกให้เห็นที่มาและกรอกตามสถานการณ์จริง\"",
+        "\"ci.landing.heading3\": \"ทุนสำรองช่วงพักฟื้น (Recovery Reserve) แยกให้เห็นที่มาและกรอกตามสถานการณ์จริง\""
+      ],
+      [
+        "\"fhc.landing.calculatorHeading.heading\": \"เริ่มจากภาระที่คนข้างหลังต้องดูแล\"",
+        "\"fhc.landing.calculatorHeading.heading\": \"คำนวณทุนประกันชีวิต เริ่มจากภาระที่คนข้างหลังต้องดูแล\""
+      ]
+    ]
+  },
+  "features/blog/v5/V5Article.tsx": {
+    "before": "be5726c65fe2bb28f8dbe7b7b92b2d8c2bd6a996d80ec8e19e427dc0b09d8f6b",
+    "after": "5fddc35fcefd01f62aec91194965fd33a447a08f9d18cd6c81068346da06a38b",
+    "replacements": [
+      [
+        "<div className={styles.nextStep}>",
+        "<h2 className={shell.h2}>{text.node(\"blog.nextStep.eyebrow\")}</h2>\n              <div className={styles.nextStep}>"
+      ]
+    ]
+  },
+  "features/ci-planning/components/result/CIResult.tsx": {
+    "before": "d52e93f39f48b7ea7a2b43d0164b7c6baa6c9e558ff14c25a245695c830a1aac",
+    "after": "28eb33aba1fe3bc9ae633b93c5189d94f2655723faceb57940c635d7d9e023a0",
+    "replacements": [
+      [
+        "      <p className=\"ccpun-calculator-result-eyebrow\">{t.node(\"ci.result.description\")}</p>\n",
+        ""
+      ],
+      [
+        "<p className=\"ccpun-calculator-result-eyebrow\">{differenceLabel}</p>",
+        "<h3 className=\"ccpun-calculator-result-panel-title\">{differenceLabel}</h3>"
+      ],
+      [
+        "<p className=\"ccpun-calculator-result-eyebrow\">{t.node(\"ci.recovery.description\")}</p>",
+        "<p className=\"ccpun-calculator-result-body\">{t.node(\"ci.recovery.description\")}</p>"
+      ]
+    ],
+    "removalOffsets": {
+      "0": 5393
+    }
+  },
+  "features/ci-planning/components/steps/RecoveryReserveSection.tsx": {
+    "before": "55fcb9ff3d909717056b1280748bb680253c4a3a7495583f2797752a4172c87a",
+    "after": "ccc3980682db2ce0145a839bfabf7079aecd967834cac1607763fc2824f234e6",
+    "replacements": [
+      [
+        "<p className=\"text-xs font-medium text-primary\">{t.node(\"ci.recovery.description\")}</p>",
+        "<p className=\"text-sm leading-6 text-foreground\">{t.node(\"ci.recovery.description\")}</p>"
+      ],
+      [
+        "<p className=\"text-xs font-medium text-primary\">{t.node(\"ci.recovery.description6\")}</p>",
+        "<p className=\"text-sm leading-6 text-foreground\">{t.node(\"ci.recovery.description6\")}</p>"
+      ]
+    ]
+  },
+  "features/financial-health-check/components/LifeCoverageWizard.tsx": {
+    "before": "88e6dddd92a860dbde4f00b9ad9ed127964c1a60b0d8b23ed872adc05e258814",
+    "after": "8d0efd58228eee190a619b1b69674a11866424aa8cfff9193cfcb54f042e4179",
+    "replacements": [
+      [
+        "      <p className=\"ccpun-calculator-result-eyebrow\">{t.node(\"fhc.wizard.description\")}</p>\n",
+        ""
+      ]
+    ],
+    "removalOffsets": {
+      "0": 6017
+    }
+  },
+  "lib/content/money-story-copy-defaults.ts": {
+    "before": "c5129fb710e5a28a64abb07f9268c8d2931848d2901739ffd21e7ab363a89242",
+    "after": "e3e6f8a502a7b13a616ec4758c9a331deffe2002ef0f5e22b0d857c52fcd6126",
+    "replacements": [
+      [
+        "\"moneyStory.kicker3\": \"ผลลัพธ์ · \"",
+        "\"moneyStory.kicker3\": \"ชีวิตของ\""
+      ]
+    ]
+  },
+  "features/money-story/components/MoneyStoryScreens.tsx": {
+    "before": "f5164f5715f2c33b921a53304b4e6116a1273b7cb2064d709bdc071f5873cc17",
+    "after": "910f6b56cfd844435e2131d115fb1c0594540fc68395e7ff1f0b9e982b3f7caa",
+    "replacements": [
+      [
+        "<p className={styles.kicker}>{text.node(\"moneyStory.kicker3\")}{label(character.name)}</p>",
+        "<p className={styles.muted}>{text.node(\"moneyStory.kicker3\")}{label(character.name)}</p>"
+      ]
+    ]
+  },
+  "features/coming-soon/page.tsx": {
+    "before": "3df2b878f314948d10d847761b8a07ed05af6092a58b11db741c69b645bc3d57",
+    "after": "623ad96bb61bb92b23f9aec29ea79b6826ed7259a266bbaa7454f0744fb4393d",
+    "replacements": [
+      [
+        "<p className={styles.status}>หน้านี้กำลังสร้างอยู่</p>",
+        "<p className={shell.lead}>หน้านี้กำลังสร้างอยู่</p>"
+      ]
+    ]
+  },
+  "features/investment-allocation/aia-page.tsx": {
+    "before": "8dcd774a64625d0614b73dfb4005bbf8123f9783f81186da8f6b29086e19ecca",
+    "after": "4cd49f03a0f494a323dbf71d3f6af2634744f0d38e52a3beb3e5323f6c8136b0",
+    "replacements": [
+      [
+        "title={<>กองทุนของ บลจ. เอไอเอ<br /><span>เลือกเอง แล้วดูว่าเงินอยู่ตรงไหน</span></>}",
+        "title=\"กองทุนของ บลจ. เอไอเอ\"\n        subtitle={<span className={shell.lead}>เลือกเอง แล้วดูว่าเงินอยู่ตรงไหน</span>}"
+      ]
+    ]
+  },
+  "features/investment-allocation/PortfolioBuilder.tsx": {
+    "before": "4bd1e98487e3c8fe3b1d0f020582528eee4b172509633bed182074559b1c464d",
+    "after": "2073227ef1882fea99176044a852cc0d03147bab1cc4c72c87f1592a0b135140",
+    "replacements": [
+      [
+        "<h2>เห็นภาพโดยไม่เลือกแทน</h2>",
+        "<h2>สรุประหว่างจัดพอร์ต</h2>"
+      ]
+    ]
+  },
+  "components/layout/v5/V5Tool.module.css": {
+    "before": "d7cce699ec8e143702128b625f97c574a655128e47ced8628443af3c8f37196d",
+    "after": "b3a9423fc1020341f57b839d3a8530c5eaa32297d893318006e6d8f2336a8a80",
+    "replacements": [
+      [
+        ".msWrap [data-character] + p:has(+ h2) { display: none; }\n",
+        ""
+      ]
+    ],
+    "removalOffsets": {
+      "0": 22202
+    }
+  },
+  "tests/money-story-presentation-parity.test.mjs": {
+    "before": "2fab8aac076c4fe2f2dbe4a1acfbfe1dc0c19beab4f714495b55324bb5644b5b",
+    "after": "00079404d4a2d1a7daaab921a5aebd22219fb613d2ca3a05a50f8039a843ddef",
+    "replacements": [
+      [
+        "",
+        "import { inverseEyebrowMoneyTree } from \"../qa/v5-eyebrow-money-tree.mjs\";\n"
+      ],
+      [
+        "function digest(tree) {\n",
+        "function digest(tree) {\n  tree = inverseEyebrowMoneyTree(tree);\n"
+      ]
+    ]
+  },
+  "components/layout/website-43/Website43.module.css": {
+    "before": "973eed337a31212f28ee1210327773568a8534b6d85142ade317872ac7e49b6d",
+    "after": "5727a4c6073f3057d7f31201b3b4d16a45a37e2a4856b1c20ac8dc8c76cfff52",
+    "replacements": [
+      [
+        ".calculatorStage :global(.ccpun-calculator-result-eyebrow) { margin: 0; color: var(--w43-gold); font-size: 12px; font-weight: 600; line-height: 1.45; }\n",
+        ""
+      ]
+    ],
+    "removalOffsets": {
+      "0": 27616
+    }
+  },
+  "features/investment-allocation/InvestmentAllocationTool.tsx": {
+    "before": "576d5bcd5cb7ef30a7df81347e974bac588b8f5d0deefc81a851288aa2e912a4",
+    "after": "f221d446fab898f4f4bf96d66780b3a5156efd376512d6af11c8e77a2b57c92c",
+    "replacements": [
+      [
+        "              <span className={styles.modeBadge}>เริ่มง่าย</span>\n",
+        ""
+      ],
+      [
+        "              <span className={styles.modeBadge}>ขั้นสูง</span>\n",
+        ""
+      ]
+    ],
+    "removalOffsets": {
+      "0": 1150,
+      "1": 1518
+    }
+  }
+}

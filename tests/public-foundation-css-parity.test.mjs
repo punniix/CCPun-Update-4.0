@@ -1,3 +1,4 @@
+import { adminCmsBridgePredecessor } from "../qa/admin-cms-web-bridge-successor.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -12,7 +13,7 @@ const baseline = {
 
 test('remaining shared foundation CSS preserves the Production declaration/order baseline', () => {
   for (const [file, expected] of Object.entries(baseline)) {
-    const source = readFileSync(file, 'utf8').replace(/\n{3,}/g, '\n\n').trim();
+    const source = adminCmsBridgePredecessor(file, readFileSync(file, 'utf8')).replace(/\n{3,}/g, '\n\n').trim();
     assert.equal(createHash('sha256').update(source).digest('hex'), expected, file);
   }
 });

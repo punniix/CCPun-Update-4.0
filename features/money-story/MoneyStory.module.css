@@ -136,3 +136,27 @@
 @media (max-width:680px) { .sideRight { grid-template-columns: 1fr; } .coverageList { grid-template-columns: 1fr; } .balanceSummary small { font-size: 14px; } .balanceSummary strong { font-size: 16px; } }
 
 @media (prefers-reduced-motion:reduce){.primary,.secondary,.choice,.recoveryChoice,.danger{transform:none!important}}
+
+/* C5: the v5 light theme supplies the same surfaces and text as the surrounding page. */
+:global(html[data-theme="light"]) .root .side { background:var(--v5-card-alt); }
+:global(html[data-theme="light"]) .root :is(.card,.resultSnapshot) { background:var(--v5-card); }
+:global(html[data-theme="light"]) .root :is(.meterDetail small,.goalFormula) { color:var(--v5-muted); }
+:global(html[data-theme="light"]) .root .danger { color:var(--v5-text); }
+:global(html[data-theme="light"]) .root :is(.primary,.secondary,.danger,.undoButton):disabled { opacity:1; color:var(--v5-muted); background:var(--v5-surface); border-color:var(--v5-border); }
+:global(html:not([data-theme="light"])) .root :is(.startActions .primary,.undoButton):disabled { opacity:.85; }
+
+/* The game caption floor applies to both themes without changing larger type. */
+.root { --ms-type-caption:14px; }
+.root :is(small,.changeCharacterButton,.undoButton,.seed,.category,.sensitive,.characterPickCopy em,.meterHeader span:last-child,.meterDetail span,.goalJourneyHeader span,.goalMilestoneLine,.decisionList strong,.timeline li,.emptyResultNote,.recoveryExhausted) { font-size:14px; }
+.root .mobileSwipeHint { font-size:14px!important; }
+
+/* Owner-approved dock clearance: selection controls only; gameplay geometry is unchanged. */
+@media (max-width:479px) {
+  .start > .characterPicker { display:grid; grid-template-columns:minmax(0,1fr); margin:22px 60px 0 0; padding:0 0 10px; overflow:visible; scroll-snap-type:none; }
+  .start > .characterPicker > .characterPickCard { flex:none; width:100%; }
+  .start > .mobileSwipeHint { display:none!important; }
+}
+@media (min-width:681px) and (max-width:1023px) { .start > .characterPicker { margin-right:calc(52px - var(--v5-gutter, 32px)); } }
+@media (min-width:1024px) { .start > .characterPicker { margin-left:auto; margin-right:calc(224px - var(--v5-gutter, 80px)); } }
+
+@media (min-width:480px) and (max-width:680px) { .start > .startActions { padding-right:44px; } }

@@ -14,6 +14,8 @@ window.requestAnimationFrame = (fn) => window.setTimeout(fn, 0);
 Element.prototype.scrollIntoView = function () {};
 const { createRoot } = await import('react-dom/client');
 const require = createRequire(import.meta.url);
+// Node journeys exercise real React behavior; CSS is validated by the actual app build and CSS audits.
+require.extensions['.css'] = module => { module.exports = { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) }; };
 const FHC = require('../features/financial-health-check/components/LifeCoverageWizard.tsx').default;
 const CI = require('../features/ci-planning/components/CIWizard.tsx').default;
 const setValue = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;

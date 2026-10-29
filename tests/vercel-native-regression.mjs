@@ -215,7 +215,8 @@ assert.match(categoryRegistry, /CATEGORY_STATUS_VALUES = \["draft", "active"\]/)
 assert.match(categoryRegistry, /resolveCategoryRoute/);
 assert.match(categoryRegistrySanity, /_type == "category"/);
 assert.match(blogArchivePage, /listCategoryRegistry/);
-assert.match(blogArchivePage, /listCategoryMenuEntries/);
+assert.match(blogArchivePage, /listLinkableTopics/);
+assert.match(read('lib/content/topic-navigation.ts'), /listCategoryMenuEntries/);
 assert.match(blogPresentation, /Website43BlogInteractive/);
 assert.match(blogData, /getArticlePath/);
 assert.match(blogData, /getArticleSemanticTopic/);
@@ -238,12 +239,12 @@ const fhcDescriptionLength = [...new Intl.Segmenter('th', { granularity: 'graphe
 assert.ok(fhcDescriptionLength >= 140 && fhcDescriptionLength <= 155, `FHC description must be 140-155 Thai graphemes, received ${fhcDescriptionLength}`);
 assert.match(fhcDescription, /เฉพาะความคุ้มครองชีวิต/);
 assert.match(read('features/financial-health-check/components/FHCLifeResultImageDownloadButton.tsx'), /ประกันไม่ใช่เงินฝาก/);
-const fhcLanding = read('features/financial-health-check/components/FHCLandingIntro.tsx');
+const fhcLanding = read('features/financial-health-check/v5/V5Fhc.tsx');
 assert.match(fhcLanding, /3 เรื่องที่ควรทบทวนให้เชื่อมกัน/);
 assert.doesNotMatch(fhcLanding, /7 เรื่องใน 3 กลุ่ม/);
 
-const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx');
-const privacyPolicy = read('apps/web/app/privacy/page.tsx');
+const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx') + '\n' + read('features/legal/v5/V5CookiePolicy.tsx');
+const privacyPolicy = read('apps/web/app/privacy/page.tsx') + '\n' + read('features/legal/v5/V5Privacy.tsx');
 const consentUi = [read('features/analytics/components/CookieConsent.tsx'), read('features/analytics/components/CookieConsentPreferences.tsx')].join('\n');
 for (const disclosure of [cookiePolicy, privacyPolicy, consentUi]) {
   assert.match(disclosure, /Google Analytics/);
@@ -467,7 +468,7 @@ assert.match(analyticsRegression, /discard calculator values/);
 assert.match(analyticsRegression, /semantic event layer must fail closed without consent/);
 
 for (const landingSource of [
-  read('features/ci-planning/components/CILandingIntro.tsx'),
+  read('features/ci-planning/v5/CiLandingViewTracker.tsx'),
   read('features/financial-health-check/components/LifeCoverageWizard.tsx'),
 ]) {
   assert.match(landingSource, /landingTrackedRef/);

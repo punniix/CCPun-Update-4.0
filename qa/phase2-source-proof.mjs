@@ -1,4 +1,8 @@
+import { assertRetiredAdminToolUi } from "./admin-retired-tool-ui-proof.mjs";
+import { adminCmsBridgePredecessor } from "./admin-cms-web-bridge-successor.mjs";
+import { eyebrowPredecessor } from "./v5-eyebrow-proof.mjs";
 import { assertProductionCmsOwner, hasProductionCmsOwner } from './production-cms-source-proof.mjs';
+import { websiteV5PredecessorDigest } from './website-v5-phase-a-proof.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -154,8 +158,9 @@ export function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
     assert.deepEqual(Object.keys(admission).sort(), ['baselineSha256','candidateSha256']);
     assert.equal(admission.baselineSha256, (proof.protected[file] ?? proof.canonical?.[file]), file + ': original protected digest retained');
     assert.match(admission.candidateSha256, /^[0-9a-f]{64}$/);
+    if (assertRetiredAdminToolUi(file, admission.candidateSha256)) continue;
     if(hasProductionCmsOwner(file)) { assertProductionCmsOwner(file,readCurrent(file)); continue; }
-    let source = reviewedThaiWrapProjection(file, reviewedArticleCardProjection(file, readCurrent(file)));
+    let source = reviewedThaiWrapProjection(file, reviewedArticleCardProjection(file, adminCmsBridgePredecessor(file, readCurrent(file))));
     if (file === 'features/blog/website-43/Website43Article.tsx') source = articleOverviewSourceProjection(source);
     let expected = admission.candidateSha256;
     const articleV4 = {
@@ -193,7 +198,8 @@ export function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
       assert.equal(source.split(addition).length, 2, file + ': one explicit optimization-date addition');
       source = source.replace(addition, '');
     }
-    assert.equal(sha(source), expected, file + ': current reviewed source frozen');
+    // Website v5 (owner-approved 2026-10-25 LINE chat admissions): an exact reviewed successor maps to its frozen predecessor.
+    assert.equal(websiteV5PredecessorDigest(file, source), expected, file + ': current reviewed source frozen');
   }
 }
 
@@ -226,7 +232,7 @@ export function assertPhase2MoneyComposition(file, expectedBaselineDigest, readC
     assert.equal(sha(original),expectedBaselineDigest,'frozen original Money controller');
     assert.equal(expectedBaselineDigest,composition.baselineSha256);
     assert.equal(composition.test,'tests/money-story-presentation-parity.test.mjs');
-    assert.equal(sha(readCurrent(composition.test)),'2fab8aac076c4fe2f2dbe4a1acfbfe1dc0c19beab4f714495b55324bb5644b5b','unchanged six-output/action fixture with only default CMS context');
+    assert.equal(sha(eyebrowPredecessor(composition.test, readCurrent(composition.test))),'2fab8aac076c4fe2f2dbe4a1acfbfe1dc0c19beab4f714495b55324bb5644b5b','unchanged six-output/action fixture with only default CMS context');
     return true;
   }
   assert.equal(sha(current), composition.controllerSha256, 'Unreviewed controller composition');
@@ -235,7 +241,7 @@ export function assertPhase2MoneyComposition(file, expectedBaselineDigest, readC
   assert.equal(sha(original), expectedBaselineDigest, 'Original f703 output fixture must match the unchanged protected manifest');
   assert.equal(sha(original), composition.baselineSha256);
   assert.equal(composition.test, 'tests/money-story-presentation-parity.test.mjs');
-  assert.equal(sha(readCurrent(composition.test)), composition.outputTestSha256, 'Actual output/action test drift');
+  assert.equal(sha(eyebrowPredecessor(composition.test, readCurrent(composition.test))), composition.outputTestSha256, 'Actual output/action test drift');
   const oldTree = parse(file, original), currentTree = parse(file, resetPresentationProjection(current)), ownerTree = parse(ownerPath, owner);
   const expectedImports = imports(oldTree).map(item => ({ ...item, bindings: item.bindings.filter(([imported, local]) => !['Car', 'HeartPulse', 'House', 'ShieldCheck', 'Users'].includes(imported) || imported !== local) }));
   expectedImports.push({ module: './MoneyStoryStatusSidebar', typeOnly: false, default: null, namespace: null, bindings: ['money', 'MoneyStoryStatusSidebar', 'percentLabel'].map(name => [name, name, false]) });

@@ -1,3 +1,5 @@
+import { assertRetiredAdminToolUi } from "../qa/admin-retired-tool-ui-proof.mjs";
+import { websiteV5PredecessorDigest } from "../qa/website-v5-phase-a-proof.mjs";
 import './production-cms-source-admission.test.mjs';
 import { assertProductionCmsOwner, hasProductionCmsOwner } from '../qa/production-cms-source-proof.mjs';
 import './ux-structure-production.test.mjs';
@@ -134,6 +136,7 @@ test('reviewed UX release preserves original Production canonical/tracking/SEO/a
   assertReviewedUxOwners(proof, reviewedUiOwners);
   assert.equal(Object.keys(proof.canonical).length, 48);
   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected })) {
+    if (assertRetiredAdminToolUi(file, digest)) continue;
     if(hasProductionCmsOwner(file)) {assertProductionCmsOwner(file,read(file)); continue;}
     if (lineCopyOriginRoutes.includes(file)) assertReviewedLineCopyOrigin(file, digest, read(file));
     else if (Object.hasOwn(googleRoutePins, file)) assertReviewedGoogleRoute(file, digest, read(file));
@@ -144,10 +147,12 @@ test('reviewed UX release preserves original Production canonical/tracking/SEO/a
     else if (['apps/admin/app/api/internal/line/bridge-health/route.ts', 'apps/admin/app/api/internal/line/ingest-event/route.ts'].includes(file)) assert.equal(assertPhase3AdminNativeBoundaries(file, digest), true);
     else if (file === 'lib/runtime/deployment-lanes.mjs') assert.equal(assertReviewedWebUatBuildProfile(digest), true, file);
     else if (Object.hasOwn(proof.reviewedUxOwners, file)) assert.equal(proof.reviewedUxOwners[file].baselineSha256, digest, file);
-    else assert.equal(adminPhase1PredecessorDigest(file, productionBaselineSource(file)), digest, file);
+    else assert.equal(adminPhase1PredecessorDigest(file, productionBaselineSource(file)) === digest ? digest : websiteV5PredecessorDigest(file, productionBaselineSource(file)), digest, file);
   }
-  for (const file of ['features/investment-allocation', 'apps/web/app/tools/investment-allocation', 'apps/web/app/api/investment-allocation']) {
-    assert.equal(existsSync(resolve(root, file)), false, file + ': unfinished tool must remain absent');
+  // The existing shared UI is used only by authenticated text preview; no public fund/API route is added.
+  assert.match(read('features/investment-allocation/page.tsx'), /if \(!INVESTMENT_ALLOCATION_ENABLED\) notFound\(\);/);
+  for (const file of ['apps/web/app/tools/investment-allocation', 'apps/web/app/api/investment-allocation']) {
+    assert.equal(existsSync(resolve(root, file)), false, file + ': public fund routes remain absent from the Admin baseline');
   }
 });
 

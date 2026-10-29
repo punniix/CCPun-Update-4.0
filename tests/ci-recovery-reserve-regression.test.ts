@@ -72,8 +72,8 @@ test('in-form summary shows the income base separately from its Recovery-inclusi
   const summary = productionCmsDisplaySource('features/ci-planning/components/steps/StepExpenses.tsx');
   assert.match(summary, /ทุนตามรายได้ก่อน Recovery<\/dt><dd[^>]*>\{planPreview\.incomeBaseNeed > 0 \? baht\(planPreview\.incomeBaseNeed\)/);
   assert.match(summary, /ทุนตามรายได้รวม<\/dt><dd[^>]*>\{planPreview\.incomeBaseNeed > 0 \? baht\(planPreview\.incomeTotalNeed\)/);
-  const styles = readFileSync('components/layout/website-43/Website43.module.css', 'utf8');
-  assert.match(styles, /human-centered-ci-expenses[^\n]*\.text-xs[\s\S]*human-centered-ci-resources[^\n]*\.text-xs\) \{ font-size: 14px; \}/);
+  const styles = readFileSync('components/layout/v5/V5Tool.module.css', 'utf8');
+  assert.match(styles, /\.calcScope :global\(\.text-xs\) \{ font-size: 14px;/);
 });
 
 test('income-only planning adds Recovery only to income method', () => {

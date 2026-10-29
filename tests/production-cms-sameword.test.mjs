@@ -1,8 +1,15 @@
+import { inverseC17OnCurrentUatHtml } from '../qa/v5-c17-current-uat-successor.mjs';
+const inverseC15OnC14Html = (html, key) => inverseC15(inverseC17OnCurrentUatHtml(html, key), key);
+import { inverseEyebrowHtml } from "../qa/v5-eyebrow-html.mjs";
+import { inverseC15OnC14Html as inverseC15 } from '../qa/v5-c15-c14-merge-successor.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { websiteV5PhaseBRenderGoldens } from '../qa/website-v5-phase-a-proof.mjs';
+import { inverseWebsiteV5C14 } from '../qa/website-v5-c14-successor.mjs';
+import { inverseWebsiteV5C11Header } from '../qa/website-v5-c11-render-successor.mjs';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 const require = createRequire(import.meta.url);
 const React = require('react');
@@ -42,7 +49,7 @@ const files = {
   moneyStory:'features/money-story/page.tsx',
   site:'components/layout/website-43/Website43Shared.tsx',
 };
-const serverNames = new Set(['Website43Home','HomeFooter','Website43Footer','Website43Blog','renderWebsite43Blog','Website43Article','Website43ArticleToc','ClientFHC','Website43Navbar','Website43ToolHero','Website43Brand']);
+const serverNames = new Set(['V5ChatDockServer','V5Page','V5BlogIndex','V5Header','V5Footer','V5CiPlanning','V5Fhc','V5MoneyStory','V5Privacy','V5CookiePolicy','Website43Home','HomeFooter','Website43Footer','Website43Blog','renderWebsite43Blog','Website43Article','Website43ArticleToc','ClientFHC','Website43Navbar','Website43ToolHero','Website43Brand']);
 async function resolveServer(node) {
   if (Array.isArray(node)) return Promise.all(node.map(resolveServer));
   if (!React.isValidElement(node)) return node;
@@ -50,7 +57,7 @@ async function resolveServer(node) {
   const children = await resolveServer(node.props.children);
   return React.cloneElement(node, {}, ...(Array.isArray(children) ? children : [children]));
 }
-export async function renderFixture(scope, props = {}, {sources = new Map(), overrides = {}, article = null} = {}) {
+export async function renderFixture(scope, props = {}, {sources = new Map(), overrides = {}, article = null, v5Article = false} = {}) {
   const mocks = new Map([
     ['@/components/ui/PublicCopyProvider',copyProvider],
     ['@/lib/content/public-copy',{getPublicCopy:async requested=>({...registry.parsePublicCopy(requested,null),...overrides})}],
@@ -64,10 +71,15 @@ export async function renderFixture(scope, props = {}, {sources = new Map(), ove
     ['@/lib/cookie-consent',{getConsentData:()=>null}],
     ['next/headers',{draftMode:async()=>({isEnabled:false})}],
     ['next/navigation',{usePathname:()=> '/',notFound:()=>{throw new Error('fixture-not-found')}}],
+    // LINE chat button (owner-approved 2026-10-25): render the dock from a fixed config, and the
+    // v5 nav with Investment Allocation off, exactly as Production keeps it.
+    ['@/lib/content/line-chat-config',{getLineChatConfig:async()=>({config:{enabled:true,topics:[],placements:[],campaigns:[]},source:'default',invalid:false})}],
+    ['@/lib/runtime/investment-availability',{INVESTMENT_ALLOCATION_ENABLED:false}],
   ]);
   // Existing fixture loader intentionally does not load assets. Stable named CSS
   // projections retain class identity so a layout change changes these goldens.
-  const allFiles = [...new Set([...Object.values(files),'features/ci-planning/components/CILandingIntro.tsx','features/financial-health-check/components/FHCLandingIntro.tsx','features/financial-health-check/components/ClientFHC.tsx','features/home/website-43/Website43HomeStatic.tsx','features/blog/website-43/Website43Blog.tsx','features/blog/website-43/Website43BlogInteractive.tsx','features/blog/website-43/Website43Article.tsx','features/blog/website-43/Website43ArticleBody.tsx','features/money-story/components/MoneyStoryGame.tsx','features/money-story/components/MoneyStoryScreens.tsx','features/money-story/components/MoneyStoryStatusSidebar.tsx','features/ci-planning/components/CIWizard.tsx','features/financial-health-check/components/LifeCoverageWizard.tsx'])];
+  // Admin retains its existing article owner; only mock CSS for renderers actually under this bridge.
+  const allFiles = [...new Set([...Object.values(files),'features/home/website-43/Website43HomeStatic.tsx','features/blog/website-43/Website43Blog.tsx','features/blog/website-43/Website43BlogInteractive.tsx','features/blog/website-43/Website43Article.tsx','features/blog/website-43/Website43ArticleBody.tsx','features/money-story/components/MoneyStoryGame.tsx','features/money-story/components/MoneyStoryScreens.tsx','features/money-story/components/MoneyStoryStatusSidebar.tsx','features/ci-planning/components/CIWizard.tsx','features/financial-health-check/components/LifeCoverageWizard.tsx','components/layout/v5/V5Page.tsx','components/layout/v5/V5ChatDockServer.tsx','components/layout/v5/V5ChatDock.tsx','components/layout/v5/V5Header.tsx','components/layout/v5/V5Footer.tsx','components/layout/v5/V5Primitives.tsx','components/layout/v5/V5LegacyBridge.tsx','features/blog/v5/V5BlogIndex.tsx','features/blog/v5/V5BlogSearch.tsx','features/blog/v5/V5GroupPager.tsx','components/layout/v5/V5ToolParts.tsx','features/ci-planning/v5/V5CiPlanning.tsx','features/financial-health-check/v5/V5Fhc.tsx','features/money-story/v5/V5MoneyStory.tsx','features/legal/v5/V5Privacy.tsx','features/legal/v5/V5CookiePolicy.tsx','features/blog/website-43/ArticleShareActions.tsx','features/blog/website-43/ArticleEngagement.tsx','features/blog/website-43/ArticleDetailAccess.tsx'])];
   for (const file of allFiles) {
     const source = sources.get(file) ?? readFileSync(file,'utf8');
     for (const [,id] of source.matchAll(/from ['"]([^'"]+\.(?:css|svg))['"]/g)) {
@@ -75,7 +87,7 @@ export async function renderFixture(scope, props = {}, {sources = new Map(), ove
       else mocks.set(id,{__esModule:true,default:{src:id,width:32,height:32}});
     }
   }
-  const path = article ? 'features/blog/website-43/Website43Article.tsx' : files[scope];
+  const path = article ? (v5Article ? 'features/blog/v5/V5Article.tsx' : 'features/blog/website-43/Website43Article.tsx') : files[scope];
   const fixtureModule = loadFixtureModule(path,{sources,mocks});
   const render = scope === 'site' ? fixtureModule.Website43Footer : fixtureModule.default;
   const tree = await render(article ? {article,...props} : scope === 'home' ? {copy:overrides,...props} : props);
@@ -154,9 +166,13 @@ const cases = [
   ['privacy',{}],['cookies',{}],['moneyStory',{}],
 ];
 test('eight original scopes retain exact b871 public HTML, current design and six-card archive',async()=>{
-  assert.deepEqual(Object.keys(registry.PUBLIC_COPY_SCOPES),['site','home','ci','fhc','blog','privacy','cookies','moneyStory']);
+  assert.deepEqual(Object.keys(registry.PUBLIC_COPY_SCOPES),['about','toolsHub','investment','site','home','ci','fhc','blog','privacy','cookies','moneyStory']);
   for (const [index,[scope,props]] of cases.entries()) {
-    let html = await renderFixture(scope,props);
+    // Website v5 Phase A: /blog/ now renders the v5 index, so its b871 HTML golden (cases 5-7)
+    // is retired deliberately and replaced by the v5 archive assertions below. The unchanged
+    // Website 4.3 Blog presentation keeps its own render contract in website43-blog-article-regression.
+    if (scope === 'blog') continue;
+    let html = inverseWebsiteV5C14(inverseC15OnC14Html(await renderFixture(scope,props), index), index);
     if (scope === 'blog') {
       const hint = '<link rel="preload" href="/assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.lossless.webp" as="image" fetchPriority="high"/>';
       const heroHint = '<link rel="preload" as="image" href="/assets/website-43/blog-hero.png" imageSizes="(max-width: 639px) 100vw, 60vw" fetchPriority="high"/>';
@@ -164,10 +180,20 @@ test('eight original scopes retain exact b871 public HTML, current design and si
       assert.equal(html.split(hint).length, 2, 'Blog emits the approved hint exactly once');
       html = html.replace(hint, '');
     }
+    // Website v5 Phase B: tool/legal scopes render the v5 shell; their reviewed v5 digest replaces the b871 golden.
+    if (Object.hasOwn(websiteV5PhaseBRenderGoldens.v5, index)) { assert.equal(digest(inverseWebsiteV5C11Header(html, index)), websiteV5PhaseBRenderGoldens.v5[index], `${index}:${scope} (v5)` ); continue; }
+    html = inverseEyebrowHtml(html, index);
     html = inverseCanonicalShellLinks(html, scope);
-    assert.equal(digest(html),baseline[index],`${index}:${scope}`);
+    assert.equal(digest(html),websiteV5PhaseBRenderGoldens.retained[index] ?? baseline[index],`${index}:${scope}`);
   }
-  assert.equal((await renderFixture('blog',{})).match(/class="articleCard"/g)?.length,6);
+  // v5 archive (plan T02): every published article is linked in the /blog/ HTML, ?q= is
+  // preserved in the search field, and ?page= never creates another listing owner.
+  const archive = await renderFixture('blog',{searchParams:Promise.resolve({})});
+  const articleHrefs = new Set([...archive.matchAll(/href="(\/blog\/personal-finance\/fixture-\d\/)"/g)].map(m=>m[1]));
+  assert.equal(articleHrefs.size, 8);
+  assert.doesNotMatch(archive, /[?&]page=/);
+  assert.match(await renderFixture('blog',{searchParams:Promise.resolve({q:'ไม่มีผล'})}), /value="ไม่มีผล"/);
+  assert.equal(await renderFixture('blog',{searchParams:Promise.resolve({page:'2'})}), archive);
 });
 test('seven original metadata objects preserve every field in ordinary and review lanes',async()=>{
   for (const scope of Object.keys(files).filter(scope=>scope!=='site')) for (const review of [false,true]) assert.equal(digest(JSON.stringify(await metadataFixture(scope,review))),metadataBaseline[scope+':'+review]);
@@ -219,7 +245,7 @@ test('SEO edits preserve indexing and canonical controls; only explicit sharing 
   for(const url of ['https://cdn.sanity.io/images/ccb9lnw5/uat/asset-1200x630.webp','https://cdn.sanity.io/images/other/production/asset.webp','https://evil.invalid/asset.webp','https://ccpun.com/assets/%2e%2e/private.webp','https://user@ccpun.com/assets/a.webp'])assert.equal(image(url),false,url);
 });
 test('Production preview authorizes before reads and refuses wrong lane, scope or data-plane identity',async()=>{
-  for(const config of [{denied:true,environment:'production-admin',allowed:true},{environment:'web-uat',allowed:true},{environment:'production-admin',allowed:false},{environment:'production-admin',allowed:true,scope:'investment'}]) {
+  for(const config of [{denied:true,environment:'production-admin',allowed:true},{environment:'web-uat',allowed:true},{environment:'production-admin',allowed:false},{environment:'production-admin',allowed:true,scope:'unknown'}, {environment:'production-admin',allowed:true,scope:'__proto__'}, {environment:'production-admin',allowed:true,scope:'home/evil'}]) {
     const trace=[];let queries=0;const api=loadFixtureModule('lib/admin/public-copy-preview.ts',{mocks:new Map([
       ['@/lib/admin/require-permission',{requireAdminPermission:async permission=>{trace.push(permission);if(config.denied)throw new Error('fixture-denied');}}],
       ['@/lib/admin/environment',{getAdminEnvironment:()=>config.environment,isAdminReadDataPlaneAllowed:()=>config.allowed}],
@@ -255,7 +281,7 @@ test('original article fallback and managed author branches retain complete b871
   const articles=[base,{...base,authorName:'ผู้เขียนภายนอก'},{...base,author:{name:'ผู้เขียนจัดการ',professionalQualifications:[{shortName:'CFP',identifier:'123'}],profileRole:'บทบาท',profileBio:'ประวัติ',profileCtaLabel:'อ่านประวัติ',profileCtaUrl:'#about-ccpun',profileAvatar:{src:'/assets/ccpun.webp',alt:'ชื่อผู้เขียน',width:96,height:96}}}];
   for(const[index,article]of articles.entries()) {
     const html = await renderFixture('blog',{preview:index===2},{article});
-    assert.equal(digest(inverseCanonicalShellLinks(html,'article')),articleBaseline[index]);
+    assert.equal(digest(inverseCanonicalShellLinks(inverseWebsiteV5C14(html, 'legacyArticle'+index),'article')),articleBaseline[index]);
     if(index===0){
       const breadcrumb=html.match(/<nav\b[^>]*class="breadcrumbs"[^>]*>[\s\S]*?<\/nav>/g);assert.equal(breadcrumb?.length,1);
       assert.equal(breadcrumb[0].split('href="/blog/"').length-1,1,'actual Article breadcrumb links directly to canonical Blog URL');
@@ -292,6 +318,11 @@ test('protected preview page cannot start its author query before scoped authori
     ['@/lib/admin/public-copy-preview',{getPublicCopyPreview:async()=>{throw new Error('fixture-denied');}}],
     ['@/lib/content/sanity',{getPrimaryAuthorPreviewProfile:async()=>{authorReads++;return null;}}],
     ['@/features/home/website-43/Website43Home',{__esModule:true,default:()=>null}],
+    // Website v5 Phase A: the preview renders the same v5 Home as the candidate Web release.
+    ['@/features/home/v5/V5Home',{__esModule:true,default:()=>null}],
+    ['@/features/about/page',{renderAboutPage:()=>null}],
+    ['@/features/tools-hub/page',{renderToolsHubPage:()=>null}],
+    ['@/features/investment-allocation/page',{renderInvestmentAllocationContent:()=>null}],
     ['@/features/ci-planning/page',{renderCiPlanningPage:()=>null}],
     ['@/features/financial-health-check/page',{renderFinancialHealthCheckPage:()=>null}],
     ['@/features/blog/pages/BlogArchivePage',{renderBlogPage:()=>null}],
@@ -301,17 +332,17 @@ test('protected preview page cannot start its author query before scoped authori
   ]);const page=loadFixtureModule('apps/admin/app/(control-plane)/content/website-preview/page.tsx',{mocks});await assert.rejects(page.default({searchParams:Promise.resolve({scope:'home'})}),/fixture-denied/);assert.equal(authorReads,0);
 });
 test('copy and SEO preview links require registered page and matching fixed published or draft ID',()=>{
-  const config=loadFixtureModule('cms/sanity/config/presentation.ts',{mocks:new Map([['sanity/presentation',{defineLocations:value=>value,presentationTool:value=>value}]])}).createStudioPresentationPlugin();
+  const config=loadFixtureModule('cms/sanity/config/presentation.ts',{mocks:new Map([['sanity/presentation',{defineLocations:value=>value,presentationTool:value=>value}]])}).createStudioPresentationPlugin("uat");
   const pages=loadFixtureModule('lib/content/page-seo-registry.ts');
   for(const[scope,page]of Object.entries(registry.PUBLIC_COPY_SCOPES)) {
     for(const prefix of ['', 'drafts.'])assert.equal(config.resolve.locations.publicPageCopy.resolve({id:prefix+registry.publicCopyDocumentId(scope),scope}).locations[0].href,'/content/website-preview/'+scope+'/');
     assert.deepEqual(config.resolve.locations.publicPageCopy.resolve({id:'wrong',scope}).locations,[]);
-    if(scope==='site')continue;
+    if(scope==='site'||!pages.getPageSeoPage(page.pathname))continue;
     for(const prefix of ['', 'drafts.'])assert.deepEqual(config.resolve.locations.pageSeo.resolve({id:prefix+pages.pageSeoDocumentId(page.pathname),pathname:page.pathname}).locations,[{title:'ดูฉบับร่างหน้าเว็บไซต์และ SEO',href:'/content/website-preview/seo-'+scope+'/'}]);
     assert.deepEqual(config.resolve.locations.pageSeo.resolve({id:'wrong',pathname:page.pathname}).locations,[]);
   }
   for(const pathname of ['*','/tools/investment-allocation/','https://evil.invalid/','/new-page/'])assert.deepEqual(config.resolve.locations.pageSeo.resolve({id:'pageSeo-home',pathname}).locations,[]);
-  assert.deepEqual(config.resolve.locations.pageSeo.resolve(null).locations,[]);assert.deepEqual(config.resolve.locations.publicPageCopy.resolve({scope:'investment',id:'publicPageCopy-investment-th'}).locations,[]);
+  assert.deepEqual(config.resolve.locations.pageSeo.resolve(null).locations,[]);assert.deepEqual(config.resolve.locations.publicPageCopy.resolve({scope:'unknown',id:'publicPageCopy-investment-th'}).locations,[]);
 });
 test('fixed singletons initialize validated editable drafts and authorize only exact Production page publishing',()=>{
   const definitions=new Map([['sanity',{defineType:value=>value,defineField:value=>value,defineArrayMember:value=>value}],['../../components/PublicCopyEntriesInput',{__esModule:true,default:function PublicCopyEntriesInput(){return null;}}]]);
@@ -354,7 +385,7 @@ test('native Presentation mutation refresh remains preview-only and starts on th
     ['next-sanity/visual-editing',{VisualEditing:props=>{callbacks.push(props.refresh);return null;}}],
   ])}).default;renderToStaticMarkup(React.createElement(component));
   for(const source of ['mutation','manual'])await callbacks[0]({source});assert.equal(refreshes,2);
-  const plugin=loadFixtureModule('cms/sanity/config/presentation.ts',{mocks:new Map([['sanity/presentation',{defineLocations:v=>v,presentationTool:v=>v}]])}).createStudioPresentationPlugin();
+  const plugin=loadFixtureModule('cms/sanity/config/presentation.ts',{mocks:new Map([['sanity/presentation',{defineLocations:v=>v,presentationTool:v=>v}]])}).createStudioPresentationPlugin("uat");
   assert.equal(plugin.previewUrl.initial,'/content/website-preview/home/');
   assert.ok(readFileSync('components/preview/DraftPreviewRuntime.tsx','utf8').includes('import("./LiveVisualEditing")'));
   for(const path of ['lib/content/sanity-fetch.ts','lib/content/public-copy.ts','apps/web/app/layout.tsx'])assert.ok(!/LiveVisualEditing|next-sanity\/visual-editing/.test(readFileSync(path,'utf8')),path);
@@ -391,7 +422,7 @@ test('Production page actions admit only the fixed original singleton IDs and le
   const policy=loadFixtureModule('cms/sanity/policy/studio-policy.ts',{mocks:new Map([['../../../lib/admin/environment',{isStudioDataPlaneAllowed:()=>true}]])});
   const actions=['publish','delete','unpublish','unpublishVersion','discardChanges','restore'].map(action=>({action}));
   const pages=loadFixtureModule('lib/content/page-seo-registry.ts').PAGE_SEO_PAGES;
-  for(const[type,ids]of [['publicPageCopy',Object.keys(registry.PUBLIC_COPY_SCOPES).map(registry.publicCopyDocumentId)],['pageSeo',pages.map(p=>p.documentId)]]){
+  for(const[type,ids]of [['publicPageCopy',['site','home','ci','fhc','blog','privacy','cookies','moneyStory'].map(registry.publicCopyDocumentId)],['pageSeo',pages.map(p=>p.documentId)]]){
     for(const id of ids)for(const prefix of ['', 'drafts.'])assert.deepEqual(policy.filterStudioDocumentActions(actions,'production','production-admin',type,'kyfxgjnq',prefix+id).map(a=>a.action),['publish','discardChanges','restore']);
     for(const id of [undefined,'unknown','publicPageCopy-investment-th','pageSeo-investment-allocation','versions.release.publicPageCopy-home-th',type==='publicPageCopy'?'pageSeo-home':'publicPageCopy-home-th'])assert.deepEqual(policy.filterStudioDocumentActions(actions,'production','production-admin',type,'kyfxgjnq',id),[]);
   }
@@ -403,18 +434,18 @@ test('Production page actions admit only the fixed original singleton IDs and le
   assert.ok(readFileSync('sanity.config.ts','utf8').includes('context.schemaType, projectId, context.documentId)'));
 });
 test('private full-width preview omits Admin chrome only on its exact route after server authorization',()=>{
-  for(const pathname of ['/content/website-preview/','/content/website-preview',...Object.keys(registry.PUBLIC_COPY_SCOPES).flatMap(scope=>['/content/website-preview/'+scope+'/']),...Object.keys(registry.PUBLIC_COPY_SCOPES).filter(s=>s!=='site').map(scope=>'/content/website-preview/seo-'+scope+'/'),'/content/website-preview/author-home/','/content/website-preview/seo-site/','/content/website-preview/home/evil','/content/website-preview/evil','/content/website-preview-evil/','/dashboard/','/studio/']){
+  for(const pathname of ['/content/website-preview/','/content/website-preview',...Object.keys(registry.PUBLIC_COPY_SCOPES).flatMap(scope=>['/content/website-preview/'+scope+'/']),...Object.keys(registry.PUBLIC_COPY_SCOPES).filter(s=>s!=='site'&&loadFixtureModule('lib/content/page-seo-registry.ts').getPageSeoPage(registry.PUBLIC_COPY_SCOPES[s].pathname)).map(scope=>'/content/website-preview/seo-'+scope+'/'),'/content/website-preview/author-home/','/content/website-preview/seo-site/','/content/website-preview/seo-investment/','/content/website-preview/home/evil','/content/website-preview/evil','/content/website-preview-evil/','/dashboard/','/studio/']){
     const component=loadFixtureModule('features/admin/components/AdminProtectedChrome.tsx',{mocks:new Map([
       ['next/navigation',{usePathname:()=>pathname}],['./AdminDataRefresh',{__esModule:true,default:()=>null}],['./AdminNavigation',{__esModule:true,default:()=>null}],
     ])}).AdminProtectedChrome;
     const html=renderToStaticMarkup(React.createElement(component,{title:'ADMIN CHROME',currentEnvironmentLabel:'Production',identityLabel:'Owner',role:'owner',navItems:[],showInbox:false,showLogout:false,logout:async()=>{},safety:null},React.createElement('section',null,'PUBLIC PAGE PREVIEW')));
-    if(['/content/website-preview/','/content/website-preview',...Object.keys(registry.PUBLIC_COPY_SCOPES).map(scope=>'/content/website-preview/'+scope+'/'),...Object.keys(registry.PUBLIC_COPY_SCOPES).filter(s=>s!=='site').map(scope=>'/content/website-preview/seo-'+scope+'/'),'/content/website-preview/author-home/'].includes(pathname))assert.equal(html,'<section>PUBLIC PAGE PREVIEW</section>');else assert.ok(html.includes('ADMIN CHROME'),pathname);
+    if(['/content/website-preview/','/content/website-preview',...Object.keys(registry.PUBLIC_COPY_SCOPES).map(scope=>'/content/website-preview/'+scope+'/'),...Object.keys(registry.PUBLIC_COPY_SCOPES).filter(s=>s!=='site'&&loadFixtureModule('lib/content/page-seo-registry.ts').getPageSeoPage(registry.PUBLIC_COPY_SCOPES[s].pathname)).map(scope=>'/content/website-preview/seo-'+scope+'/'),'/content/website-preview/author-home/'].includes(pathname))assert.equal(html,'<section>PUBLIC PAGE PREVIEW</section>');else assert.ok(html.includes('ADMIN CHROME'),pathname);
   }
   const layout=readFileSync('apps/admin/app/(control-plane)/layout.tsx','utf8');assert.ok(layout.indexOf('await auth()')<layout.indexOf('return <AdminProtectedChrome'));assert.ok(layout.includes('if (!role) redirect("/login/")'));
 });
 
 test('native Presentation selects the exact page copy or SEO form for every private preview URL',async()=>{
-  const plugin=loadFixtureModule('cms/sanity/config/presentation.ts',{mocks:new Map([['sanity/presentation',{defineLocations:v=>v,presentationTool:v=>v}]])}).createStudioPresentationPlugin();
+  const plugin=loadFixtureModule('cms/sanity/config/presentation.ts',{mocks:new Map([['sanity/presentation',{defineLocations:v=>v,presentationTool:v=>v}]])}).createStudioPresentationPlugin("uat");
   const resolve=plugin.resolve.mainDocuments[0].resolve;const pages=loadFixtureModule('lib/content/page-seo-registry.ts');
   for(const[scope,config]of Object.entries(registry.PUBLIC_COPY_SCOPES)){
     assert.deepEqual(resolve({params:{scope}}),{filter:'_id == $id && _type == $type',params:{id:registry.publicCopyDocumentId(scope),type:'publicPageCopy'}});
@@ -423,10 +454,10 @@ test('native Presentation selects the exact page copy or SEO form for every priv
   }
   assert.deepEqual(resolve({params:{scope:'author-home'}}),{filter:'_type == "author" && _id in ["ccpun-author-ccpun-profile", "ccpun-prod-mirror-author-ccpun"]'});
   for(const id of ['ccpun-author-ccpun-profile','ccpun-prod-mirror-author-ccpun'])for(const prefix of ['', 'drafts.'])assert.equal(plugin.resolve.locations.author.resolve({id:prefix+id}).locations[0].href,'/content/website-preview/author-home/');assert.deepEqual(plugin.resolve.locations.author.resolve({id:'unowned-author'}).locations,[]);
-  for(const scope of ['investment','seo-investment','unknown','home/evil','seo-site'])assert.equal(resolve({params:{scope}}),undefined);
+  for(const scope of ['seo-investment','unknown','__proto__','home/evil','seo-site'])assert.equal(resolve({params:{scope}}),undefined);
   const route=loadFixtureModule('apps/admin/app/(control-plane)/content/website-preview/[scope]/page.tsx',{mocks:new Map([['next/navigation',{notFound:()=>{throw Error('fixture404')}}],['../page',{__esModule:true,default:()=>null}]])}).default;
   const authorRoute=await route({params:Promise.resolve({scope:'author-home'})});assert.equal((await authorRoute.props.searchParams).scope,'home');
-  for(const requested of ['home','ci','site','seo-home','seo-moneyStory'])assert.equal((await(await route({params:Promise.resolve({scope:requested})})).props.searchParams).scope,requested.replace(/^seo-/,''));
+  for(const requested of ['investment','home','ci','site','seo-home','seo-moneyStory'])assert.equal((await(await route({params:Promise.resolve({scope:requested})})).props.searchParams).scope,requested.replace(/^seo-/,''));
   const filtered=await route({params:Promise.resolve({scope:'blog'}),searchParams:Promise.resolve({scope:'investment',q:'คำค้น',page:'2'})});assert.deepEqual(await filtered.props.searchParams,{scope:'blog',q:'คำค้น',page:'2'});
-  for(const requested of ['investment','seo-site','unknown','home/evil'])await assert.rejects(route({params:Promise.resolve({scope:requested})}),/fixture404/);
+  for(const requested of ['seo-investment','seo-site','unknown','__proto__','home/evil'])await assert.rejects(route({params:Promise.resolve({scope:requested})}),/fixture404/);
 });

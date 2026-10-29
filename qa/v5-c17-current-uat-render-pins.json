@@ -1,0 +1,34 @@
+{
+  "1": {
+    "before": "a2818c445487716d568ba6817b61d96073b8ab853335aa90e9e8ad9c48b0f92e",
+    "after": "a2818c445487716d568ba6817b61d96073b8ab853335aa90e9e8ad9c48b0f92e"
+  },
+  "2": {
+    "before": "ebf0a4f91512a2ef0325bb8a2ef96cb0384636f92da97128cc7cbce8f092e4cd",
+    "after": "ebf0a4f91512a2ef0325bb8a2ef96cb0384636f92da97128cc7cbce8f092e4cd"
+  },
+  "3": {
+    "before": "9580645fe79efaf9eb3965d71ace782b6aea2b7778cb584a326819367077ffc5",
+    "after": "1395e1e06ca9e9eba33a39e26854bf3add131e80cd14f1f7673d49192800e842"
+  },
+  "4": {
+    "before": "99ca9068f56032d47d14e38614034f54776d9d628d9980d3b61f1220f918176a",
+    "after": "6f078983231439ae21da3fdf5e4ec20067cf2c5cfadcd1b514b8763fe7ca15d6"
+  },
+  "8": {
+    "before": "f2e67d3d96ff3290131162df827f3750bb702f69666edae89f9a885ecd37fb56",
+    "after": "ad7b4269c52dcdc8816db6137f358524ec512e73d0e55ac8b50b128f3d9922f6"
+  },
+  "9": {
+    "before": "a75a042cacdc019d4e2f2054dababc98df9d5f43f17fb06cbc91b1745f4b072c",
+    "after": "17280c0d51b92c7acb5b1c536f4a483f02e27a61f294465553c8ea0c86c668e0"
+  },
+  "10": {
+    "before": "1f0b17f1ea5a116ba4a34c0a026cd319c3ffb6b5304daf4876dbe37f946ca6b4",
+    "after": "16e1661917d062a5efec2b9fea149c70d16202f63b4226f2a6cd478458e73f8c"
+  },
+  "v5Article": {
+    "before": "4e0f04594911dc443ebf6098962896db44d7c94c8d6ab68a245c6dad3a3a6b63",
+    "after": "1cac44d3f282dd8c6d84908a56ad457b7aa108bf54c8e9821899b0a92afaa906"
+  }
+}

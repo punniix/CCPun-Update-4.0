@@ -1,7 +1,9 @@
+import { adminCmsBridgePredecessor } from "../qa/admin-cms-web-bridge-successor.mjs";
+import { adminPreviewCompilerPredecessor, previewRemovedUtilityTokens, previewRetiredCompatClass, adminPreviewCompilerPins } from "../qa/admin-cms-css-successor.mjs";
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import test from 'node:test';
@@ -88,7 +90,7 @@ test('Tailwind preserves automatic native app discovery and excludes only histor
 test('original CSS owner manifest stays protected while exact reviewed UI owners are admitted', () => {
   assertReviewedUxOwners(proof, reviewedUiOwners);
   for (const [path, expected] of Object.entries(proof.protected)) {
-    if (!Object.hasOwn(proof.reviewedUxOwners,path)) assert.equal(sha(read(path)),expected,path);
+    if (!Object.hasOwn(proof.reviewedUxOwners,path)) assert.equal(sha(adminCmsBridgePredecessor(path, read(path))),expected,path);
   }
 });
 
@@ -161,14 +163,14 @@ test('actual Root and Web compilers preserve original authored rules with exact 
   for(const [context,options,original]of [['root',{optimize:false},baselineCss],['web',{base:resolve('apps/web'),optimize:false},gunzipSync(Buffer.from(proof.nativeWeb.compiledCssGzip,'base64')).toString()]]) {
     const admission=proof.reviewedCurrentCompiler[context];const captured=gunzipSync(Buffer.from(admission.compiledCssGzip,'base64')).toString();
     const expected= context==='root' ? '67638ca5fa86d3698aca48ee320f7e9eb3652b307d2b7bfc6febf82e4f5e3cb4' : '251ccb344a8056f190916ad06eb9a806b72affa352a3398cd72247842e6a23db';assert.equal(sha(captured),expected);assert.equal(admission.compiledSha256,expected);
-    const compiled=await postcss([tailwind(options)]).process(source,{from:resolve(file)});assert.equal(compiled.css,captured,'Actual locked compiler equals reviewed output');assert.equal(Buffer.byteLength(compiled.css),admission.compiledBytes);assert.equal(gzipSync(compiled.css).length,admission.compiledGzipBytes);assert(Buffer.byteLength(compiled.css)<=(context==='root'?proof.compiledBytes:proof.nativeWeb.compiledBytes),'Reviewed UX stays within original CSS payload budget');
-    retainedRecords(context,rules(original),rules(compiled.css),admission);retainedAtRules(context,atRules(original),atRules(compiled.css));
+    const compiled=await postcss([tailwind(options)]).process(source,{from:resolve(file)});const projected=adminPreviewCompilerPredecessor(context,compiled.css);assert.equal(sha(projected),sha(captured),'Only the exact reviewed scanner-utility delta is admitted');assert.equal(projected,captured,'Actual locked compiler reconstructs reviewed output');assert.equal(Buffer.byteLength(projected),admission.compiledBytes);assert.equal(gzipSync(projected).length,admission.compiledGzipBytes);assert(Buffer.byteLength(compiled.css)<=(context==='root'?proof.compiledBytes:proof.nativeWeb.compiledBytes),'Reviewed UX stays within original CSS payload budget');
+    retainedRecords(context,rules(original),rules(projected),admission);retainedAtRules(context,atRules(original),atRules(projected));
     for(const rule of admission.removedRules){assert.match(rule.selector,/^\.(?:[\w/-]|\\.)+$/);const utility=rule.selector.slice(1).replace(/\\(.)/g,'$1');assert(!runtimeLiteralTokens.has(utility),'Removed utility has actual runtime consumer: '+utility);}
     for(const message of compiled.messages.filter(message=>message.type==='dir-dependency'))assert(!['qa','tests','docs','scripts'].some(directory=>message.dir===resolve(directory)||message.dir.startsWith(resolve(directory)+'/')));
-    const unknown=structuredClone(admission);unknown.addedRules.push({selector:'.unknown',ancestry:[],declarations:[]});assert.throws(()=>retainedRecords(context,rules(original),rules(compiled.css),unknown));
-    const changed=rules(compiled.css);const target=changed.find(rule=>!addedSelectors[context].includes(rule.selector)&&!defaults(rule)&&rule.declarations.length);target.declarations[0][1]+=' mutation';assert.throws(()=>retainedRecords(context,rules(original),changed,admission));
-    const mutated=atRules(compiled.css);const index=mutated.findIndex(node=>node.name==='property');mutated[index].declarations[2][1]='unreviewed';assert.throws(()=>retainedAtRules(context,atRules(original),mutated));
-    const reordered=atRules(compiled.css);const positions=reordered.flatMap((node,index)=>node.name==='property'?[index]:[]);[reordered[positions[0]],reordered[positions[1]]]=[reordered[positions[1]],reordered[positions[0]]];assert.throws(()=>retainedAtRules(context,atRules(original),reordered));
+    const unknown=structuredClone(admission);unknown.addedRules.push({selector:'.unknown',ancestry:[],declarations:[]});assert.throws(()=>retainedRecords(context,rules(original),rules(projected),unknown));
+    const changed=rules(projected);const target=changed.find(rule=>!addedSelectors[context].includes(rule.selector)&&!defaults(rule)&&rule.declarations.length);target.declarations[0][1]+=' mutation';assert.throws(()=>retainedRecords(context,rules(original),changed,admission));
+    const mutated=atRules(projected);const index=mutated.findIndex(node=>node.name==='property');mutated[index].declarations[2][1]='unreviewed';assert.throws(()=>retainedAtRules(context,atRules(original),mutated));
+    const reordered=atRules(projected);const positions=reordered.flatMap((node,index)=>node.name==='property'?[index]:[]);[reordered[positions[0]],reordered[positions[1]]]=[reordered[positions[1]],reordered[positions[0]]];assert.throws(()=>retainedAtRules(context,atRules(original),reordered));
   }
 });
 
@@ -220,8 +222,11 @@ test('native Web compiler freezes reviewed current output while preserving origi
   const candidate = await postcss([tailwind({ base: resolve('apps/web'), optimize: false })]).process(source, { from: resolve(file) });
   // This matches the app build driver's cwd. Root standalone sizes cannot certify it.
   const reviewed = gunzipSync(Buffer.from(proof.reviewedCurrentCompiler.web.compiledCssGzip, 'base64')).toString();
-  assert.equal(candidate.css, reviewed, 'Actual native app output equals the reviewed UX output; original gzip remains frozen');
-  assert.equal(Buffer.byteLength(candidate.css), proof.reviewedCurrentCompiler.web.compiledBytes);
+  const projected = adminPreviewCompilerPredecessor('web', candidate.css);
+  assert.equal(sha(projected), sha(reviewed), 'Only the exact reviewed scanner-utility delta is admitted');
+  assert.equal(projected, reviewed, 'Actual native app output reconstructs the reviewed UX output; original gzip remains frozen');
+  assert.equal(Buffer.byteLength(projected), proof.reviewedCurrentCompiler.web.compiledBytes);
+  assert.ok(Buffer.byteLength(candidate.css) <= proof.reviewedCurrentCompiler.web.compiledBytes);
   assert.equal(sha(original), '8ef2b65a4b29c8b1e562fdcf16434a4104de01c537fdc5ddd5996506eaf5a22d');
 });
 
@@ -301,4 +306,31 @@ test('native Web excludes only unreachable Admin utility candidates while keepin
   // Web wrapper; the exclusion may not turn into a hard-coded class safelist.
   assert.match(compileNativeWebInIsolation(webSource + '\n@source inline("w-[137px]");\n'), /width: 137px/);
   assert.doesNotMatch(candidate, /width: 137px/);
+});
+
+test('text-preview compiler successor removes only unused source utilities/compatibility rule and rejects every unknown output byte', async () => {
+  const tokens = new Set();
+  const walk = directory => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+      const path = directory + '/' + entry.name;
+      if (entry.isDirectory()) walk(path);
+      else if (/\.[cm]?[jt]sx?$/.test(entry.name)) {
+        const tree = ts.createSourceFile(path, read(path), ts.ScriptTarget.Latest, true);
+        const visit = node => { if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) for (const token of node.text.split(/\s+/)) tokens.add(token); ts.forEachChild(node, visit); };
+        visit(tree);
+      }
+    }
+  };
+  for (const directory of ['features', 'components', 'apps', 'app', 'lib']) walk(directory);
+  for (const token of [...previewRemovedUtilityTokens, previewRetiredCompatClass]) assert.equal(tokens.has(token), false, 'removed utility has no current runtime literal consumer: ' + token);
+  for (const [context, options] of [['root', { optimize: false }], ['web', { base: resolve('apps/web'), optimize: false }]]) {
+    const css = (await postcss([tailwind(options)]).process(source, { from: resolve(file) })).css;
+    assert.equal(sha(css), adminPreviewCompilerPins[context].after);
+    assert.equal(sha(adminPreviewCompilerPredecessor(context, css)), adminPreviewCompilerPins[context].before);
+    for (const changed of [css + ' ', css.replace('box-sizing: border-box', 'box-sizing: content-box')]) {
+      assert.notEqual(changed, css);
+      assert.equal(adminPreviewCompilerPredecessor(context, changed), changed, 'unknown authored or output changes never normalize');
+    }
+  }
 });

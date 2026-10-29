@@ -154,7 +154,7 @@ const AMOUNT_FIELDS: Array<{ field: AmountField; label: string; help?: string }>
   return (
     <section className="border-t border-white/10 pt-5" data-ui="ci-recovery-reserve" aria-labelledby="ci-recovery-title">
       <div className="space-y-2">
-        <p className="text-xs font-medium text-primary">{t.node("ci.recovery.description")}</p>
+        <p className="text-sm leading-6 text-foreground">{t.node("ci.recovery.description")}</p>
         <h4 id="ci-recovery-title" className="text-base font-medium text-foreground">{t.node("ci.expenses.metricLabel5")}</h4>
         <p className="text-xs leading-6 text-white/70">
           {t.node("ci.recovery.description2")}</p>
@@ -373,7 +373,7 @@ const AMOUNT_FIELDS: Array<{ field: AmountField; label: string; help?: string }>
 
       {selected !== 'none' ? (
         <div className="mt-5 rounded-xl border border-primary/30 bg-primary/[0.08] p-4">
-          <p className="text-xs font-medium text-primary">{t.node("ci.recovery.description6")}</p>
+          <p className="text-sm leading-6 text-foreground">{t.node("ci.recovery.description6")}</p>
           <output className="mt-1 block text-2xl font-semibold tabular-nums text-primary" aria-live="polite">
             {baht(recoveryPreview.reserveNeed)}
           </output>

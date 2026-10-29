@@ -275,9 +275,9 @@ const ciResultSource = readFileSync(
   'utf8',
 );
 const ciConstantsSource = readFileSync(new URL('../features/ci-planning/calculator/constants.ts', import.meta.url), 'utf8');
-const ciPageSource = readFileSync(new URL('../features/ci-planning/page.tsx', import.meta.url), 'utf8');
+const ciPageSource = readFileSync(new URL('../features/ci-planning/page.tsx', import.meta.url), 'utf8') + '\n' + readFileSync(new URL('../features/ci-planning/v5/V5CiPlanning.tsx', import.meta.url), 'utf8');
 const ciLandingSource = readFileSync(
-  new URL('../features/ci-planning/components/CILandingIntro.tsx', import.meta.url),
+  new URL('../features/ci-planning/v5/V5CiPlanning.tsx', import.meta.url),
   'utf8',
 );
 const ciExpensesSurfaceSource = [
@@ -361,7 +361,6 @@ for (const legacyFhcResolverToken of ['bit.ly', 'NEXT_PUBLIC_LINE_OA_BITLY_URL']
 }
 
 for (const requiredLandingCopy of [
-  'เครื่องมือวางแผนทุนโรคร้ายแรง · Research Preview',
   'เงินก้อนจากประกันโรคร้ายแรงที่มี ',
   'เพียงพอรับภาระจริงไหม?',
   'วางแผนทุนโรคร้ายแรงจากรายได้และภาระ | CCPun',
@@ -388,7 +387,7 @@ for (const requiredLandingCopy of [
   );
 }
 assert(!ciLandingSource.includes('คำถามที่ไม่มีคำตอบเดียว'), 'lean CI landing must remove the deleted eyebrow');
-assert(ciPageSource.includes('Website43ToolHero') && ciPageSource.includes('line2="เพียงพอรับภาระจริงไหม?"'), 'CI hero must keep the approved Website 4.3 split-title treatment');
+assert(ciPageSource.includes('V5ToolHero') && ciPageSource.includes('เพียงพอรับภาระจริงไหม?'), 'current CI text hero must retain its complete approved split title');
 assert(!ciPageSource.includes('· Beta'), 'CI Research Preview must not retain the Beta label');
 assert(!navConfigSource.includes('วางแผนเงินก้อนโรคร้ายแรง (Beta)'), 'CI navigation must not retain the Beta label');
 for (const activeCiSource of [ciPageSource, ciExpensesSurfaceSource, ciExistingSource, ciResultSource, ciCalculatorSource, ciTypesSource]) {
@@ -396,46 +395,19 @@ for (const activeCiSource of [ciPageSource, ciExpensesSurfaceSource, ciExistingS
   assert(!/multiPay|Multi-pay|ความคุ้มครองโรคร้ายแรงที่อาจจ่ายได้หลายครั้ง/.test(activeCiSource), 'active CI scope must not retain Multi-pay');
 }
 equal(
-  (ciPageSource.match(/ctaHref="#ci-calculator"/g) ?? []).length,
+  (ciPageSource.match(/href: '#ci-calculator'/g) ?? []).length,
   1,
   'lean CI landing must have exactly one pre-calculator anchor',
 );
 equal(
-  (ciPageSource.match(/ctaLabel="เริ่มประเมิน"/g) ?? []).length,
+  (ciPageSource.match(/label: 'เริ่มประเมิน'/g) ?? []).length,
   1,
   'CI tool hero must have exactly one primary pre-calculator CTA label',
 );
-for (const storyImage of [
-  '/assets/ci-story-income-v6.webp',
-  '/assets/ci-story-debt-v6.webp',
-  '/assets/ci-story-coverage-v6.webp',
-]) {
-  equal(
-    (ciLandingSource.match(new RegExp(storyImage.replace(/\//g, '\\/'), 'g')) ?? []).length,
-    1,
-    `lean CI landing must declare the distinct story image once: ${storyImage}`,
-  );
-}
-assert(!ciLandingSource.includes('/assets/ci-planning-consultation-v1.webp'), 'lean CI landing must not repeat the legacy composite image');
-assert(ciLandingSource.includes('src={beat.src}'), 'lean CI landing must map one image source per story beat');
-for (const approvedImageAlt of [
-  'ภาพประกอบผู้รับการรักษาด้วยคีโมกำลังทบทวนค่าใช้จ่ายกับคู่ชีวิต ขณะที่งานและรายได้อาจหยุดลง',
-  'ภาพประกอบครอบครัวกำลังทบทวนค่างวดบ้าน รถ และค่าใช้จ่ายที่ยังต้องดูแล',
-  'ภาพประกอบครอบครัวหลายวัยกำลังทบทวนเงินก้อนจากประกันโรคร้ายแรงและสินทรัพย์ที่พร้อมใช้',
-]) {
-  assert(ciLandingSource.includes(approvedImageAlt), `lean CI landing must keep the approved image alt: ${approvedImageAlt}`);
-}
-assert(
-  ciLandingSource.includes('ภาพประกอบสร้างด้วย Generative AI'),
-  'lean CI landing must disclose the Generative AI image',
-);
-equal(
-  (ciLandingSource.match(/ภาพประกอบสร้างด้วย Generative AI/g) ?? []).length,
-  1,
-  'Generative AI caption must appear exactly once',
-);
-assert(!ciLandingSource.includes('<figure'), 'lean CI landing must not contain a standalone image figure');
-assert(!ciLandingSource.includes('rounded-full'), 'lean CI landing must not restore image chips');
+// The retired image carousel has no current renderer. Actual V5 text-card, full-copy,
+// FAQ/schema, one-anchor and ordering coverage lives in calculator-design-language.
+assert(!ciLandingSource.includes('ci-story-'), 'current CI text story must not request retired images');
+assert(ciLandingSource.includes('V5InfoCards'), 'current CI story uses the approved text cards');
 assert(
   ciExpensesSurfaceSource.includes('หนี้อื่นๆ คงเหลือทั้งหมด'),
   'Step 1 must use the exact other-debt field label',
@@ -471,11 +443,11 @@ for (const source of [ciResultSource, imageSource]) {
 }
 assert(!ciResultSource.includes('ดูวิธีคิดและข้อจำกัด'), 'CI result must not restore the expanded formula section');
 assert(!ciPageSource.includes('ข้อมูลของคุณทำงานอย่างไรในเครื่องมือนี้'), 'CI landing must remove the privacy explainer section');
-assert(ciPageSource.includes('"@type": "FAQPage"'), 'CI page must include FAQPage schema');
+assert(/['"]@type['"]: ['"]FAQPage['"]/.test(ciPageSource), 'CI page must include FAQPage schema');
 assert(
-  ciPageSource.includes('mainEntity: CI_FAQS.map')
-    && ciPageSource.includes('{CI_FAQS.map((faq) =>'),
-  'visible FAQ and FAQPage schema must share CI_FAQS',
+  ciPageSource.includes('mainEntity: faqs.map')
+    && ciPageSource.includes('<V5Faq items={faqs}'),
+  'visible FAQ and FAQPage schema must share the actual current faqs array',
 );
 assert(
   ciResultSource.includes("if (result.calculatedNeed > 0) return 'expense'")

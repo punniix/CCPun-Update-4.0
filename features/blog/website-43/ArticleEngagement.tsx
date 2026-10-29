@@ -4,7 +4,7 @@ import { BLOG_COPY_DEFAULTS } from "@/lib/content/blog-copy-defaults";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { isAnalyticsEnabled } from '@/lib/cookie-consent';
-import styles from '@/components/layout/website-43/Website43.module.css';
+import styles from '@/features/blog/v5/ArticleWidgets.module.css';
 
 type Metrics = {
   views: number | null;

@@ -134,11 +134,12 @@ for (const sitemapSource of [sitemap, webSitemap]) {
   assert.doesNotMatch(sitemapSource, /\?category=|\?tag=/);
 }
 
-// Main Blog dropdown is injected from the server-side registry; query filters
+// Current Blog topic links are injected from the server-side registry; query filters
 // remain UX state and are never canonical SEO destinations.
 assert.match(blogPage, /listCategoryRegistry/);
-assert.match(blogPage, /listCategoryMenuEntries/);
-assert.match(blogPage, /categories=\{categories\}/);
+assert.match(blogPage, /listLinkableTopics/);
+assert.match(await read('lib/content/topic-navigation.ts'), /listCategoryMenuEntries/);
+assert.match(blogPage, /topics=\{topics\}/);
 assert.doesNotMatch(blogPage, /BLOG_TOPIC_HUBS/);
 assert.match(blogPresentation, /categories\?: Website43BlogCategoryItem\[\]/);
 assert.match(blogPresentation, /ทุกหมวดหมู่/);

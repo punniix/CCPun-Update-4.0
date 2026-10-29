@@ -1,3 +1,5 @@
+import { assertRetiredAdminToolUi } from "../qa/admin-retired-tool-ui-proof.mjs";
+import { ownerReviewSourcePredecessor } from "../qa/v5-owner-review-source-successor.mjs";
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
@@ -11,6 +13,7 @@ test('same-word CMS admission rejects every unknown or modified source, includin
   for(const[file,pins]of Object.entries(productionCmsOwners)) {
     assert.match(pins.after,/^[a-f0-9]{64}$/);
     if(pins.before!==null) assert.match(pins.before,/^[a-f0-9]{64}$/);
+    if (assertRetiredAdminToolUi(file, pins.after)) continue;
     const source=read(file); assertProductionCmsOwner(file,source);
     assert.throws(()=>assertProductionCmsOwner(file,source+'\n// unreviewed source drift\n'));
   }
@@ -29,7 +32,7 @@ test('published-only reader hardening retains the frozen predecessor proof and d
   assert.equal(productionCmsOwners[file].after,'fe2f34b82b8e02b87b6d71502d089951d14e8bd1789a458a4d4c0bbfa3b77d9c');
   assert.ok(!source.includes('draftMode'));assert.ok(!source.includes('IS_DRAFT_PREVIEW_ALLOWED'));
   assertProductionCmsOwner(file,source);
-  let predecessor=source;
+  let predecessor=ownerReviewSourcePredecessor(file, source);
   for(const[current,old]of [
     // Sized copy (size fields and value encoding) is the newest reviewed reader step.
     [

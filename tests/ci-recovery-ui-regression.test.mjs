@@ -14,6 +14,8 @@ window.requestAnimationFrame = (fn) => window.setTimeout(fn, 0);
 Element.prototype.scrollIntoView = function () {};
 const { createRoot } = await import('react-dom/client');
 const require = createRequire(import.meta.url);
+// Node journeys retain real calculator behavior; the app build and CSS audit validate styling.
+require.extensions['.css'] = module => { module.exports = { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) }; };
 const CI = require('../features/ci-planning/components/CIWizard.tsx').default;
 const setValue = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
 

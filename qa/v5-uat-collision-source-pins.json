@@ -1,0 +1,32 @@
+{
+  "components/layout/v5/V5.module.css": {
+    "before": "ce6d28143d3d5b9a84bfa5030c7218d0cd51f3b5a0c420d648f6ccc090f263da",
+    "after": "c297679c24477de582ba1d086963bd314234c48a14f828c54a3fce724f82a88b",
+    "suffix": "\n/* Only category/404 recovery expanded links; headline links and card paint stay intact. */\n@media (max-width:1023px) { :global(section:is([aria-labelledby=\"category-articles\"],[aria-labelledby=\"not-found-latest\"])) .articleCardTitle a::after { right:calc(80px - var(--v5-gutter)); } }\n@media (min-width:1024px) { :global(#v5-blog-scope) .articleCardTitle a::after, :global(section[aria-labelledby=\"not-found-latest\"]) .articleCardTitle a::after { right:calc(248px - var(--v5-gutter)); } }\n"
+  },
+  "components/layout/v5/V5Tool.module.css": {
+    "before": "40bfbd86ebab9a382e6e148f03fd700ce297d0ea52157fa365264004aa0b8eb2",
+    "after": "9be2510301a2121eafefff43ef4b4b27fc4c4a45162dbb7d226c6edf49e74706",
+    "suffix": "\n/* Desktop clearance is local to the two measured paragraphs, not the reading/form columns. */\n@media (min-width:1024px) {\n  .legalBody :global(#privacy-collect) > p:nth-of-type(3) { padding-right:clamp(48px, calc(764px - 50vw), calc(248px - var(--v5-gutter))); }\n  :global(#fhc-calculator) .asideCard > p:last-child { padding-right:calc(224px - var(--v5-gutter)); }\n}\n"
+  },
+  "features/blog/v5/V5Blog.module.css": {
+    "before": "b5e374b86cea3d6eeb90b8a1a2ffbb448e9fa1660392838527fcc5284570003f",
+    "after": "b3d16a11dc6c0b61ef0a4a1879bc4124d7d23e1885cb3e83e69b55bcc3d283cb",
+    "suffix": "\n/* Clearance for the category list heading and the desktop featured-card excerpt only. */\n@media (max-width:479px) { .categoryHero ~ section :global(#category-articles) { display:block; box-sizing:border-box; padding-right:60px; } }\n@media (min-width:1024px) { .featuredLead > div > p, .featuredLead > div > div:has(button) { padding-right:calc(216px - var(--v5-gutter, 80px)); } }\n"
+  },
+  "features/investment-allocation/InvestmentAllocation.module.css": {
+    "before": "3e885a27763cc7820159252395864c079a0ca4800f3372be1201ae6fbfeb8f20",
+    "after": "dd3a7b27c17e7e7fc1d1876a5f980c3619db44c043fc4bbba88d54dc13702724",
+    "suffix": "\n/* Reserve only the native mode-choice controls beside the fixed LINE dock. */\n@media (max-width:1023px) { .modeGrid { padding-right:calc(80px - var(--v5-gutter, 20px)); box-sizing:border-box; } }\n@media (max-width:479px) { :global(main:has(#aia-fund-hero-title)) .modeLead { padding-right:60px; } }\n@media (min-width:1024px) { :global(main:has(#aia-fund-hero-title)) .modeGrid { padding-right:calc(248px - var(--v5-gutter, 80px)); box-sizing:border-box; } }\n"
+  },
+  "features/money-story/MoneyStory.module.css": {
+    "before": "db5fd882cf020f0d5292901f4020d1445765505dd4ca63e7b15ce5a81a471b39",
+    "after": "c6ab64a3b945c443623214ba42fc949af830842b23ae28026f1424f3c011890a",
+    "suffix": "\n/* Owner-approved dock clearance: selection controls only; gameplay geometry is unchanged. */\n@media (max-width:479px) {\n  .start > .characterPicker { display:grid; grid-template-columns:minmax(0,1fr); margin:22px 60px 0 0; padding:0 0 10px; overflow:visible; scroll-snap-type:none; }\n  .start > .characterPicker > .characterPickCard { flex:none; width:100%; }\n  .start > .mobileSwipeHint { display:none!important; }\n}\n@media (min-width:681px) and (max-width:1023px) { .start > .characterPicker { margin-right:calc(52px - var(--v5-gutter, 32px)); } }\n@media (min-width:1024px) { .start > .characterPicker { margin-left:auto; margin-right:calc(224px - var(--v5-gutter, 80px)); } }\n\n@media (min-width:480px) and (max-width:680px) { .start > .startActions { padding-right:44px; } }\n"
+  },
+  "features/tools-hub/ToolsHub.module.css": {
+    "before": "7b78c11d35cba3ee327e1295d2b721458ad353439483c2c75db95791b45b9c26",
+    "after": "83c1feee22ea57e01d6213ef019057dcb8e5a0c2c0b360a141df85cd0a80ae1a",
+    "suffix": "\n/* Shorten the transparent expanded hit area beside LINE without changing the tool card. */\n@media (max-width:1023px) { .card h2 a::after { right:calc(80px - var(--v5-gutter)); } }\n@media (max-width:479px) { .card:has(h2 a[href=\"/tools/financial-health-check/\"]) > p { padding-right:40px; } }\n@media (min-width:1024px) { .card h2 a::after { right:calc(248px - var(--v5-gutter)); } }\n"
+  }
+}

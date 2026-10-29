@@ -1,3 +1,6 @@
+import { ABOUT_COPY_DEFAULTS } from "./about-copy-defaults";
+import { TOOLS_HUB_COPY_DEFAULTS } from "./tools-hub-copy-defaults";
+import { INVESTMENT_COPY_DEFAULTS } from "./investment-copy-defaults";
 import { SITE_COPY_DEFAULTS } from "./site-copy-defaults";
 export { SITE_COPY_DEFAULTS } from "./site-copy-defaults";
 import { MONEY_STORY_COPY_DEFAULTS } from "./money-story-copy-defaults";
@@ -89,21 +92,31 @@ export const HOME_COPY_DEFAULTS = {
   "home.h33": "วางแผนการเงินเมื่อเจอโรคร้ายแรง",
   "home.p6": "เตรียมเงินก้อนรับมือภาระค่าใช้จ่าย เมื่อเจอโรคร้ายแรง",
   "home.website43Homeeyebrow4": "คำถามที่พบบ่อย",
-  "home.website43Hometitle5": "ก่อนเริ่มวางแผนกับ CCPun",
+  "home.website43Hometitle5": "คำถามก่อนเริ่มวางแผนกับ CCPun",
   "home.faq1.question": "CCPun คือใคร?",
   "home.faq1.answer": "CCPun คือผู้ให้คำแนะนำด้านประกันและการลงทุน โดยมีใบอนุญาตตัวแทนประกันชีวิต นายหน้าประกันวินาศภัย และผู้วางแผนการลงทุน โดยให้คำแนะนำที่ตั้งต้นจากปัญหาที่คุณมี และนำแผนไปพัฒนาต่อเป็นคำแนะนำที่เหมาะกับตัวคุณ",
   "home.faq2.question": "CCPun ช่วยให้คำแนะนำทางการเงินด้านใดได้บ้าง",
-  "home.faq2.answer": "ช่วยวางแผนการลงทุนและให้คำปรึกษาด้านประกันและการเงิน โดยเช็กจากปัญหา ความคุ้มครอง และเป้าหมายทางการเงินที่ลูกค้าต้องการให้ไปถึง"
+  "home.faq2.answer": "ช่วยวางแผนการลงทุนและให้คำปรึกษาด้านประกันและการเงิน โดยเช็กจากปัญหา ความคุ้มครอง และเป้าหมายทางการเงินที่ลูกค้าต้องการให้ไปถึง",
+  "home.coreGuides.title": "คู่มือหลัก",
+  "home.latest.title": "บทความล่าสุด",
+  "home.moneyStory.description": "เกมจำลองชีวิตการเงิน 12 เดือน",
+  "home.contactBand.title": "ถ้าอยากรู้ว่าตอนนี้พร้อมแค่ไหน ทักมาคุยทาง LINE ได้เลย"
 } as const;
 
 
 
-export const PUBLIC_COPY_SCOPES = { site: { label: "เมนู ท้ายเว็บ และคุกกี้", pathname: "*", defaults: SITE_COPY_DEFAULTS }, home: { label: "หน้าแรก", pathname: "/", defaults: HOME_COPY_DEFAULTS }, ci: { label: "วางแผนทุนโรคร้ายแรง", pathname: "/ci-planning/", defaults: CI_COPY_DEFAULTS }, fhc: { label: "ตรวจสุขภาพการเงิน", pathname: "/tools/financial-health-check/", defaults: FHC_COPY_DEFAULTS }, blog: { label: "บทความและหน้าอ่านบทความ", pathname: "/blog/", defaults: BLOG_COPY_DEFAULTS }, privacy: { label: "นโยบายความเป็นส่วนตัว", pathname: "/privacy/", defaults: PRIVACY_COPY_DEFAULTS }, cookies: { label: "นโยบายคุกกี้", pathname: "/cookie-policy/", defaults: COOKIES_COPY_DEFAULTS }, moneyStory: { label: "เกม Money Story", pathname: "/play/money-story/", defaults: MONEY_STORY_COPY_DEFAULTS } } as const;
+export const PUBLIC_COPY_SCOPES = { about: { label: "รู้จักปั้น (ข้อความเดิมระหว่างตรวจ UAT)", pathname: "/about/", defaults: ABOUT_COPY_DEFAULTS }, toolsHub: { label: "รวมเครื่องมือ", pathname: "/tools/", defaults: TOOLS_HUB_COPY_DEFAULTS }, investment: { label: "เครื่องมือกองทุน (หลักและ บลจ. เอไอเอ)", pathname: "/tools/investment-allocation/", defaults: INVESTMENT_COPY_DEFAULTS }, site: { label: "เมนู ท้ายเว็บ และคุกกี้", pathname: "*", defaults: SITE_COPY_DEFAULTS }, home: { label: "หน้าแรก", pathname: "/", defaults: HOME_COPY_DEFAULTS }, ci: { label: "วางแผนทุนโรคร้ายแรง", pathname: "/ci-planning/", defaults: CI_COPY_DEFAULTS }, fhc: { label: "ตรวจสุขภาพการเงิน", pathname: "/tools/financial-health-check/", defaults: FHC_COPY_DEFAULTS }, blog: { label: "บทความและหน้าอ่านบทความ", pathname: "/blog/", defaults: BLOG_COPY_DEFAULTS }, privacy: { label: "นโยบายความเป็นส่วนตัว", pathname: "/privacy/", defaults: PRIVACY_COPY_DEFAULTS }, cookies: { label: "นโยบายคุกกี้", pathname: "/cookie-policy/", defaults: COOKIES_COPY_DEFAULTS }, moneyStory: { label: "เกม Money Story", pathname: "/play/money-story/", defaults: MONEY_STORY_COPY_DEFAULTS } } as const;
 export type PublicCopyScope = keyof typeof PUBLIC_COPY_SCOPES;
+// Existing Production document IDs stay pinned; new v5 copy scopes are UAT-only.
+export const PRODUCTION_PUBLIC_COPY_SCOPES = ["site", "home", "ci", "fhc", "blog", "privacy", "cookies", "moneyStory"] as const;
+export function isPublicCopyScopeAvailable(scope: string, dataset: string | undefined): scope is PublicCopyScope {
+  return Object.hasOwn(PUBLIC_COPY_SCOPES, scope)
+    && (dataset === "uat" || (dataset === "production" && (PRODUCTION_PUBLIC_COPY_SCOPES as readonly string[]).includes(scope)));
+}
 export type SiteCopyKey = keyof typeof SITE_COPY_DEFAULTS;
-export type PublicCopyKey = SiteCopyKey | keyof typeof HOME_COPY_DEFAULTS | keyof typeof CI_COPY_DEFAULTS | keyof typeof FHC_COPY_DEFAULTS | keyof typeof BLOG_COPY_DEFAULTS | keyof typeof PRIVACY_COPY_DEFAULTS | keyof typeof COOKIES_COPY_DEFAULTS | keyof typeof MONEY_STORY_COPY_DEFAULTS;
+export type PublicCopyKey = keyof typeof ABOUT_COPY_DEFAULTS | keyof typeof TOOLS_HUB_COPY_DEFAULTS | keyof typeof INVESTMENT_COPY_DEFAULTS | SiteCopyKey | keyof typeof HOME_COPY_DEFAULTS | keyof typeof CI_COPY_DEFAULTS | keyof typeof FHC_COPY_DEFAULTS | keyof typeof BLOG_COPY_DEFAULTS | keyof typeof PRIVACY_COPY_DEFAULTS | keyof typeof COOKIES_COPY_DEFAULTS | keyof typeof MONEY_STORY_COPY_DEFAULTS;
 export type PublicCopyValues = Partial<Record<PublicCopyKey, string>>;
-const ALL_COPY_DEFAULTS = { ...SITE_COPY_DEFAULTS, ...HOME_COPY_DEFAULTS, ...CI_COPY_DEFAULTS, ...FHC_COPY_DEFAULTS, ...BLOG_COPY_DEFAULTS, ...PRIVACY_COPY_DEFAULTS, ...COOKIES_COPY_DEFAULTS, ...MONEY_STORY_COPY_DEFAULTS };
+const ALL_COPY_DEFAULTS = { ...ABOUT_COPY_DEFAULTS, ...TOOLS_HUB_COPY_DEFAULTS, ...INVESTMENT_COPY_DEFAULTS, ...SITE_COPY_DEFAULTS, ...HOME_COPY_DEFAULTS, ...CI_COPY_DEFAULTS, ...FHC_COPY_DEFAULTS, ...BLOG_COPY_DEFAULTS, ...PRIVACY_COPY_DEFAULTS, ...COOKIES_COPY_DEFAULTS, ...MONEY_STORY_COPY_DEFAULTS };
 export function publicCopyText(values: PublicCopyValues): CopyText<PublicCopyKey> {
   return createCopyText<PublicCopyKey>(key => values[key] ?? ALL_COPY_DEFAULTS[key]);
 }

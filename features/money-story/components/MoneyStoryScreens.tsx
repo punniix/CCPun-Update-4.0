@@ -329,7 +329,7 @@ function decisionImpactText(option: EventOption) {
               id={character.id}
               className={styles.resultPortrait}
             />
-            <p className={styles.kicker}>{text.node("moneyStory.kicker3")}{label(character.name)}</p>
+            <p className={styles.muted}>{text.node("moneyStory.kicker3")}{label(character.name)}</p>
             <h2>{resultTitle}</h2>
           </div>
 

@@ -1,3 +1,4 @@
+import { adminCmsBridgePredecessor } from "../../qa/admin-cms-web-bridge-successor.mjs";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -163,7 +164,7 @@ test("Thai Studio labels change titles only; persisted names and option values s
 
 test("Admin v1 frozen-proof admissions are exact and reject any further edit", () => {
   for (const [file, { before, after }] of Object.entries(adminPhase1QuickWinSources)) {
-    const source = read(file);
+    const source = adminCmsBridgePredecessor(file, read(file));
     assert.equal(adminPhase1PredecessorDigest(file, source), before, `${file} is exactly the reviewed successor`);
     assert.notEqual(adminPhase1PredecessorDigest(file, source + "\n// unreviewed"), before, file);
     assert.notEqual(before, after);

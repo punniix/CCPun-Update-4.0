@@ -1,0 +1,213 @@
+{
+  "0": {
+    "before": "20ac4db844e51790ac3d6c492931c5ae9a72c91233c18d974c601b6e63233c9f",
+    "after": "f2d424a02eb07ed0863bfd973ebda61aadb640bee394d497340510765bac98f4",
+    "edits": [
+      [
+        "<a href=\"/#about-ccpun\">รู้จักปั้น</a>",
+        "<a href=\"/#about-ccpun\">เกี่ยวกับ Pun</a>",
+        1
+      ]
+    ]
+  },
+  "1": {
+    "before": "183debcf7444c76e4eae10d90567f3d5ed6a6276c3beeb2ace186b418577bdf8",
+    "after": "613ed8e7be987467dc71556656b848c49becb917d6294c1669308f8445848377",
+    "edits": [
+      [
+        "<a href=\"/#about-ccpun\">รู้จักปั้น</a>",
+        "<a href=\"/#about-ccpun\">เกี่ยวกับ Pun</a>",
+        1
+      ]
+    ]
+  },
+  "2": {
+    "before": "079902ba51788977a12a8e4bfbcb156e794a33d2c246bf395d48e880ec9364c8",
+    "after": "6cbac548d98e482e88cba7da90b4be2186eeeb4b691967936bc2b4e8dff3f0b7",
+    "edits": [
+      [
+        "<a href=\"/#about-ccpun\">รู้จักปั้น</a>",
+        "<a href=\"/#about-ccpun\">เกี่ยวกับ Pun</a>",
+        1
+      ]
+    ]
+  },
+  "3": {
+    "before": "61f1a6e85d6de01def25c36d6f709ab5142bc065c2a93007d2634aba1792858b",
+    "after": "4b3b23fa364be8670e79575947862fac2642c9c135f9d451cfa1c9a4c9ec8ef0",
+    "edits": [
+      [
+        "<a class=\"navLink\" href=\"/about/\">รู้จักปั้น</a>",
+        "<a class=\"navLink\" href=\"/about/\">เกี่ยวกับ Pun</a>",
+        1
+      ],
+      [
+        "<a href=\"/about/\">รู้จักปั้น</a>",
+        "<a href=\"/about/\">เกี่ยวกับ Pun</a>",
+        2
+      ]
+    ]
+  },
+  "4": {
+    "before": "c612b43c9aec116d8427c993b68ded550655253115777f7df9f9aaa0893c2266",
+    "after": "b8073de97f2c64344e72176dcb7ddd285efd647ba9ed9acbbcc28a7e37055fff",
+    "edits": [
+      [
+        "<a class=\"navLink\" href=\"/about/\">รู้จักปั้น</a>",
+        "<a class=\"navLink\" href=\"/about/\">เกี่ยวกับ Pun</a>",
+        1
+      ],
+      [
+        "<a href=\"/about/\">รู้จักปั้น</a>",
+        "<a href=\"/about/\">เกี่ยวกับ Pun</a>",
+        2
+      ]
+    ]
+  },
+  "8": {
+    "before": "cff0f55cff146bd4800fd8e6e82c0c3926f17382c5c2dd9d2e10e6cab3ff60be",
+    "after": "f2e67d3d96ff3290131162df827f3750bb702f69666edae89f9a885ecd37fb56",
+    "edits": [
+      [
+        "<a class=\"navLink\" href=\"/about/\">รู้จักปั้น</a>",
+        "<a class=\"navLink\" href=\"/about/\">เกี่ยวกับ Pun</a>",
+        1
+      ],
+      [
+        "<a href=\"/about/\">รู้จักปั้น</a>",
+        "<a href=\"/about/\">เกี่ยวกับ Pun</a>",
+        2
+      ]
+    ]
+  },
+  "9": {
+    "before": "e7bda04b3c68389e400271ee67907dec911a952f1c9f3017969cd592f0fad2b5",
+    "after": "a75a042cacdc019d4e2f2054dababc98df9d5f43f17fb06cbc91b1745f4b072c",
+    "edits": [
+      [
+        "<a class=\"navLink\" href=\"/about/\">รู้จักปั้น</a>",
+        "<a class=\"navLink\" href=\"/about/\">เกี่ยวกับ Pun</a>",
+        1
+      ],
+      [
+        "<a href=\"/about/\">รู้จักปั้น</a>",
+        "<a href=\"/about/\">เกี่ยวกับ Pun</a>",
+        2
+      ]
+    ]
+  },
+  "10": {
+    "before": "5a9bc4a67ff1b84deb3c70627b45031c01733cde02d303ed10e504a5f880893f",
+    "after": "1f0b17f1ea5a116ba4a34c0a026cd319c3ffb6b5304daf4876dbe37f946ca6b4",
+    "edits": [
+      [
+        "<a class=\"navLink\" href=\"/about/\">รู้จักปั้น</a>",
+        "<a class=\"navLink\" href=\"/about/\">เกี่ยวกับ Pun</a>",
+        1
+      ],
+      [
+        "<a href=\"/about/\">รู้จักปั้น</a>",
+        "<a href=\"/about/\">เกี่ยวกับ Pun</a>",
+        2
+      ]
+    ]
+  },
+  "legacyArticle0": {
+    "before": "da9df04ddb1460f3a1a99cddb176183219dbefad8917a34aed4e54e41563061e",
+    "after": "1761634cc93f84a35cad86360022947b0d5238a0ceafa8fe44faf13c56498e30",
+    "edits": [
+      [
+        "<a href=\"/#about-ccpun\">รู้จักปั้น</a>",
+        "<a href=\"/#about-ccpun\">เกี่ยวกับ Pun</a>",
+        1
+      ]
+    ]
+  },
+  "legacyArticle1": {
+    "before": "26d8493dd1c9e4f8e49467c61687c2f716f58b2d04ae66b84ad33e01d338bed0",
+    "after": "bed95473a96df787b1d043807081a0e5c8c1740bc4aca59a0769242df9ecaf83",
+    "edits": [
+      [
+        "<a href=\"/#about-ccpun\">รู้จักปั้น</a>",
+        "<a href=\"/#about-ccpun\">เกี่ยวกับ Pun</a>",
+        1
+      ]
+    ]
+  },
+  "legacyArticle2": {
+    "before": "790058379045c0ec84fceb6d23c7ccb6c1d5b14f7ba0d91bda56a3325beefe1d",
+    "after": "b12813923baf51bdc1a294897ab11c392dd3483e70316e84118fb61564845d79",
+    "edits": [
+      [
+        "<a href=\"/#about-ccpun\">รู้จักปั้น</a>",
+        "<a href=\"/#about-ccpun\">เกี่ยวกับ Pun</a>",
+        1
+      ]
+    ]
+  },
+  "v5Article": {
+    "before": "ace0d6694c14d3f36e162c84f4dd843f7394e120da54a08ee46a81e38f491d43",
+    "after": "94d3b2dc2b80added99bdd9a4efdd8d791945b0fa17dafbfbcbfbc16187a3ada",
+    "edits": [
+      [
+        "<a class=\"navLink\" href=\"/about/\">รู้จักปั้น</a>",
+        "<a class=\"navLink\" href=\"/about/\">เกี่ยวกับ Pun</a>",
+        1
+      ],
+      [
+        "<a href=\"/about/\">รู้จักปั้น</a>",
+        "<a href=\"/about/\">เกี่ยวกับ Pun</a>",
+        2
+      ],
+      [
+        "<span>อัปเดต <time dateTime=\"2026-10-02T00:00:00Z\">2 ตุลาคม 2569</time></span>",
+        "",
+        1
+      ]
+    ]
+  },
+  "legacyFooter0": {
+    "before": "12f4626c022c1dcb1e3636135392a2462a883fd134aa7b07d9702731c2647163",
+    "after": "df2e1e2f97f5d07410e0856363e6a64eea488675cb4b48124c30315f82cbb4d5",
+    "edits": [
+      [
+        "<a href=\"/#about-ccpun\">รู้จักปั้น</a>",
+        "<a href=\"/#about-ccpun\">เกี่ยวกับ Pun</a>",
+        1
+      ]
+    ]
+  },
+  "legacyFooter1": {
+    "before": "d40523f549ee7534aad53ac6b706502967db0f959b223bd0e5164a7de2e4d01b",
+    "after": "a45781535dd3f1fe6281c3ee7974c480a31353663627bd86b3a80898aece7ef7",
+    "edits": [
+      [
+        "<a href=\"/#about-ccpun\">รู้จักปั้น</a>",
+        "<a href=\"/#about-ccpun\">เกี่ยวกับ Pun</a>",
+        1
+      ]
+    ]
+  },
+  "legacyFooter2": {
+    "before": "996dfe816522814a7a28e818ca8bb5488800e25d87a831e77bb94e1cea349eb3",
+    "after": "2ee6c7f5295eb70c968ad93db2906d7403008f31909e114fb759ca65979cb70a",
+    "edits": [
+      [
+        "<a href=\"/#about-ccpun\">รู้จักปั้น</a>",
+        "<a href=\"/#about-ccpun\">เกี่ยวกับ Pun</a>",
+        1
+      ]
+    ]
+  },
+  "legacyFooter3": {
+    "before": "822993d6f5869e982d9d3814e6f9f3238adf8ed1110dea1114c4f9d2708115ff",
+    "after": "58cbb62a2614799970916bf1a819c64b8bce3f27698489cb85f23063b62f261a",
+    "edits": [
+      [
+        "<a href=\"/#about-ccpun\">รู้จักปั้น</a>",
+        "<a href=\"/#about-ccpun\">เกี่ยวกับ Pun</a>",
+        1
+      ]
+    ]
+  }
+}

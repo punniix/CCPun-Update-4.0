@@ -1,10 +1,15 @@
 import "server-only";
 import { cache } from "react";
 import { sanityFetch } from "./sanity-fetch";
-import { PUBLIC_COPY_SCOPES, parsePublicCopy, publicCopyDocumentId, type PublicCopyScope, type PublicCopyValues } from "./public-copy-registry";
+import { resolveContentEnvironment } from "./sanity-lane";
+import { PUBLIC_COPY_SCOPES, isPublicCopyScopeAvailable, parsePublicCopy, publicCopyDocumentId, type PublicCopyScope, type PublicCopyValues } from "./public-copy-registry";
 
 // One fresh read per scope/request; no cross-request cache of drafts or published copy.
 export const getPublicCopy = cache(async (scope: PublicCopyScope) => {
+  // New page-copy scopes are reviewed in UAT only. Never request them from Production.
+  const environment = resolveContentEnvironment();
+  const dataset = ["development", "web-uat", "local-uat", "admin-uat"].includes(environment) ? "uat" : "production";
+  if (!isPublicCopyScopeAvailable(scope, dataset)) return {};
   try {
     const { data } = await sanityFetch({
       query: '*[_id == $id && _type == "publicPageCopy"][0]{_id, _type, scope, locale, entries[]{_key, key, text, size, sizeMobile, sizeDesktop}}',

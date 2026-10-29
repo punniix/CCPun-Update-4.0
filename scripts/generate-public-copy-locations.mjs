@@ -15,7 +15,19 @@ const OUTPUT = path.join(ROOT, "lib/content/public-copy-locations.json");
 // Source files in the order a visitor meets them on each page. Files not listed
 // still contribute; they sort after the listed ones.
 const PAGE_FILES = {
+  about: ["features/about/page.tsx", "features/about/father-story-copy.ts"],
+  toolsHub: ["features/tools-hub/page.tsx"],
+  investment: [
+    "features/investment-allocation/page.tsx",
+    "features/investment-allocation/aia-page.tsx",
+    "features/investment-allocation/InvestmentAllocationTool.tsx",
+    "features/investment-allocation/SingleFundBuilder.tsx",
+    "features/investment-allocation/PortfolioBuilder.tsx",
+  ],
   site: [
+    // Website v5 shell renders first on Phase A pages; 4.3 files stay listed for Phase B pages.
+    "components/layout/v5/V5Header.tsx",
+    "components/layout/v5/V5Footer.tsx",
     "components/layout/website-43/Website43Navbar.tsx",
     "features/home/website-43/Website43HomeStatic.tsx",
     "components/layout/website-43/Website43Shared.tsx",
@@ -29,8 +41,10 @@ const PAGE_FILES = {
     "apps/web/app/not-found.tsx",
     "apps/web/app/layout.tsx",
   ],
-  home: ["features/home/website-43/Website43Home.tsx"],
+  home: ["features/home/v5/V5Home.tsx", "features/home/website-43/Website43Home.tsx"],
+  // Website v5 Phase B: the v5 renderer is what visitors meet first; 4.3 files stay listed as rollback.
   ci: [
+    "features/ci-planning/v5/V5CiPlanning.tsx",
     "features/ci-planning/page.tsx",
     "features/ci-planning/components/CILandingIntro.tsx",
     "features/ci-planning/components/CIWizard.tsx",
@@ -43,6 +57,7 @@ const PAGE_FILES = {
     "features/ci-planning/result-image.ts",
   ],
   fhc: [
+    "features/financial-health-check/v5/V5Fhc.tsx",
     "features/financial-health-check/page.tsx",
     "features/financial-health-check/components/FHCLandingIntro.tsx",
     "features/financial-health-check/components/ClientFHC.tsx",
@@ -50,6 +65,14 @@ const PAGE_FILES = {
     "features/financial-health-check/components/FHCLifeResultImageDownloadButton.tsx",
   ],
   blog: [
+    "features/blog/v5/V5BlogIndex.tsx",
+    "features/blog/v5/V5BlogSearch.tsx",
+    "features/blog/v5/V5GroupPager.tsx",
+    "features/blog/v5/V5Category.tsx",
+    "features/blog/v5/V5ArticleCardEngagement.tsx",
+    "features/blog/v5/V5Article.tsx",
+    "features/blog/v5/V5ArticleBody.tsx",
+    "features/blog/v5/V5ArticleEngagementMeta.tsx",
     "features/blog/website-43/Website43Blog.tsx",
     "features/blog/website-43/Website43BlogInteractive.tsx",
     "features/blog/website-43/ArticleCardEngagement.tsx",
@@ -63,9 +86,10 @@ const PAGE_FILES = {
     "features/blog/website-43/ArticleDetailAccess.tsx",
     "features/blog/website-43/blogData.ts",
   ],
-  privacy: ["features/legal/pages/PrivacyPage.tsx"],
-  cookies: ["features/legal/pages/CookiePolicyPage.tsx"],
+  privacy: ["features/legal/v5/V5Privacy.tsx", "features/legal/pages/PrivacyPage.tsx"],
+  cookies: ["features/legal/v5/V5CookiePolicy.tsx", "features/legal/pages/CookiePolicyPage.tsx"],
   moneyStory: [
+    "features/money-story/v5/V5MoneyStory.tsx",
     "features/money-story/page.tsx",
     "features/money-story/components/MoneyStoryScreens.tsx",
     "features/money-story/components/MoneyStoryGame.tsx",
@@ -75,6 +99,26 @@ const PAGE_FILES = {
 
 // Human section names for whole files that have no visible heading of their own.
 const FILE_SECTIONS = {
+  "features/investment-allocation/page.tsx": "หน้าเครื่องมือหลัก",
+  "features/investment-allocation/aia-page.tsx": "หน้ากองทุน บลจ. เอไอเอ",
+  "features/investment-allocation/InvestmentAllocationTool.tsx": "เลือกวิธีใช้เครื่องมือ",
+  "features/investment-allocation/SingleFundBuilder.tsx": "เลือกกองเดียว",
+  "features/investment-allocation/PortfolioBuilder.tsx": "จัดหลายกอง",
+  "components/layout/v5/V5Header.tsx": "เมนูด้านบน",
+  "components/layout/v5/V5Footer.tsx": "ท้ายเว็บและส่วนที่ใช้ร่วมกัน",
+  "features/blog/v5/V5BlogIndex.tsx": "หน้ารวมบทความ",
+  "features/blog/v5/V5BlogSearch.tsx": "หน้ารวมบทความ · ค้นหาและรายการ",
+  "features/blog/v5/V5GroupPager.tsx": "หน้ารวมบทความ · ตัวแบ่งหน้าในหมวด",
+  "features/blog/v5/V5Category.tsx": "หน้าหมวดหมู่บทความ",
+  "features/blog/v5/V5ArticleCardEngagement.tsx": "การ์ดบทความ · ยอดอ่านและหัวใจ",
+  "features/blog/v5/V5ArticleEngagementMeta.tsx": "หน้าอ่านบทความ · ยอดอ่าน",
+  "features/blog/v5/V5Article.tsx": "หน้าอ่านบทความ",
+  "features/blog/v5/V5ArticleBody.tsx": "หน้าอ่านบทความ · เนื้อหา",
+  "features/ci-planning/v5/V5CiPlanning.tsx": "หน้าวางแผนทุนโรคร้ายแรง",
+  "features/financial-health-check/v5/V5Fhc.tsx": "หน้าตรวจสุขภาพการเงิน",
+  "features/money-story/v5/V5MoneyStory.tsx": "หน้าเกม Money Story",
+  "features/legal/v5/V5Privacy.tsx": "หน้านโยบายความเป็นส่วนตัว",
+  "features/legal/v5/V5CookiePolicy.tsx": "หน้านโยบายคุกกี้",
   "components/layout/website-43/Website43Navbar.tsx": "เมนูด้านบน",
   "components/layout/website-43/Website43Shared.tsx": "ท้ายเว็บและส่วนที่ใช้ร่วมกัน",
   "features/home/website-43/Website43HomeStatic.tsx": "ท้ายเว็บและส่วนที่ใช้ร่วมกัน",
@@ -247,6 +291,7 @@ for (const file of [...files].sort()) {
 // Keys composed at runtime (game events, calculator presets) keep registry order
 // and are grouped by their key prefix.
 const PREFIX_SECTIONS = {
+  "investment.labels": "คำอธิบายประเภทและความเสี่ยง",
   "moneyStory.event": "เหตุการณ์ในเกม", "moneyStory.character": "ตัวละครในเกม", "moneyStory.choice": "ตัวเลือกในเกม",
   "ci.recovery.preset": "ขั้นที่ 2 · ชุดค่าใช้จ่ายพักฟื้นสำเร็จรูป", "ci.recovery.source": "ขั้นที่ 2 · แหล่งข้อมูลอ้างอิง",
   "ci.recovery.mode": "ขั้นที่ 2 · เงินสำรองช่วงพักฟื้น", "ci.method": "วิธีคำนวณ", "ci.image": "รูปผลลัพธ์สำหรับแชร์",
@@ -263,9 +308,38 @@ const prefixSection = key => {
   return "ข้อความที่ระบบเลือกแสดงตามสถานการณ์";
 };
 
+// These two small compositions use shared copy and runtime key arrays. Keep their
+// new editable fields in the actual page reading order, without changing existing maps.
+const PAGE_ENTRY_LOCATIONS = {
+  about: [
+    ["about.breadcrumb.home", "ส่วนหัวและเส้นทาง", "ลิงก์", true],
+    ["about.father.heading", "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "หัวข้อย่อย", true],
+    ["about.father.paragraph1", "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "ย่อหน้า", true],
+    ["about.father.photoAlt", "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "คำอธิบายรูป", false],
+    ["about.father.caption", "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "คำบรรยายภาพ", true],
+    ...[2, 3, 4, 5, 6].map(index => [`about.father.paragraph${index}`, "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "ย่อหน้า", true]),
+    ...[1, 2, 3].map(index => [`about.father.question${index}`, "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "รายการคำถาม", true]),
+    ["about.father.paragraph7", "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "ย่อหน้าปิด", true],
+    ["about.next.tools", "อ่านและใช้เครื่องมือต่อ", "ลิงก์", true],
+  ],
+  toolsHub: [
+    ["toolsHub.breadcrumb.label", "ส่วนหัวและเส้นทาง", "ข้อความสำหรับโปรแกรมอ่านหน้าจอ", false],
+    ["toolsHub.breadcrumb.home", "ส่วนหัวและเส้นทาง", "ลิงก์", true],
+    ["toolsHub.label", "ส่วนหัวและเส้นทาง", "ชื่อหน้า", true],
+    ["toolsHub.hero.title", "ส่วนหัวและเส้นทาง", "หัวข้อใหญ่สุดของหน้า", true],
+    ["toolsHub.hero.lead", "ส่วนหัวและเส้นทาง", "คำอธิบายหน้า", true],
+    ["toolsHub.investment.title", "การ์ดวางแผนกองทุน", "ชื่อเครื่องมือ", true],
+    ["toolsHub.investment.body", "การ์ดวางแผนกองทุน", "คำอธิบายเครื่องมือ", true],
+    ["toolsHub.aia.title", "การ์ดกองทุน บลจ. เอไอเอ", "ชื่อเครื่องมือ", true],
+    ["toolsHub.aia.body", "การ์ดกองทุน บลจ. เอไอเอ", "คำอธิบายเครื่องมือ", true],
+  ],
+};
+
 const result = {};
 for (const [scope, config] of Object.entries(PUBLIC_COPY_SCOPES)) {
-  const entries = Object.keys(config.defaults).map((key, registryIndex) => {
+  const explicit = PAGE_ENTRY_LOCATIONS[scope];
+  if (explicit && (explicit.length !== Object.keys(config.defaults).length || new Set(explicit.map(([key]) => key)).size !== explicit.length || explicit.some(([key]) => !Object.hasOwn(config.defaults, key)))) throw new Error(`Page copy location coverage mismatch: ${scope}`);
+  const entries = explicit ? explicit.map(([key, section, kind, visible], order) => ({ key, section, kind, visible, order })) : Object.keys(config.defaults).map((key, registryIndex) => {
     const location = found.get(key);
     return location
       ? { key, ...location }

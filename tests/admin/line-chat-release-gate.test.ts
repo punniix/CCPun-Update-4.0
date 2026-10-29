@@ -1,3 +1,4 @@
+import { adminCmsBridgePredecessor } from "../../qa/admin-cms-web-bridge-successor.mjs";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -92,7 +93,7 @@ test("drift: this branch's LINE chat files match the pinned v5 hashes", () => {
   assert.deepEqual(Object.keys(drift.files).sort(), [...LINE_CHAT_FILES].sort(), "the pin list covers exactly the shared files");
   assert.match(drift.sourceCommit, /^[0-9a-f]{40}$/);
   for (const [file, digest] of Object.entries(drift.files)) {
-    assert.equal(sha(readFileSync(path.join(root, file))), digest, `${file} differs from ${drift.sourceRef} @ ${drift.sourceCommit.slice(0, 8)}; see "Refreshing the LINE chat drift pins" in docs/release/v5-release-manifest.md`);
+    assert.equal(sha(adminCmsBridgePredecessor(file, read(file))), digest, `${file} differs from ${drift.sourceRef} @ ${drift.sourceCommit.slice(0, 8)}; see "Refreshing the LINE chat drift pins" in docs/release/v5-release-manifest.md`);
   }
 });
 
@@ -110,7 +111,7 @@ test("drift: the v5 branch still matches the pins (when the ref is available)", 
   for (const [file, digest] of Object.entries(drift.files)) {
     let remote: string | null = null;
     try {
-      remote = sha(execFileSync("git", ["show", `${drift.sourceRef}:${file}`], { cwd: root, stdio: ["ignore", "pipe", "ignore"] }));
+      remote = sha(adminCmsBridgePredecessor(file, execFileSync("git", ["show", `${drift.sourceRef}:${file}`], { cwd: root, stdio: ["ignore", "pipe", "ignore"] }).toString("utf8")));
     } catch {
       remote = null;
     }

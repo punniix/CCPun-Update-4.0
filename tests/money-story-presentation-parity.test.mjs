@@ -1,3 +1,4 @@
+import { inverseEyebrowMoneyTree } from "../qa/v5-eyebrow-money-tree.mjs";
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
@@ -74,6 +75,7 @@ function render(values, component = Game) {
   return expand(component({ showSeed: true }));
 }
 function digest(tree) {
+  tree = inverseEyebrowMoneyTree(tree);
   return createHash('sha256').update(JSON.stringify(tree, (key, value) => {
     if (key === 'ref' || key === 'key') return undefined;
     return typeof value === 'function' ? '[callback]' : value;

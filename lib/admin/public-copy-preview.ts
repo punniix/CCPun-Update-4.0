@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAdminPermission } from "./require-permission";
 import { getAdminEnvironment, isAdminReadDataPlaneAllowed } from "./environment";
 import { sanityFetch } from "../content/sanity-fetch";
-import { PUBLIC_COPY_SCOPES, parsePublicCopy, publicCopyDocumentId, type PublicCopyScope } from "../content/public-copy-registry";
+import { PUBLIC_COPY_SCOPES, isPublicCopyScopeAvailable, parsePublicCopy, publicCopyDocumentId, type PublicCopyScope } from "../content/public-copy-registry";
 import { getPageSeoPage, validatePageSeoFields } from "../content/page-seo-registry";
 import { encodeCopyValue, splitCopyValue } from "../content/public-copy-style";
 
@@ -36,7 +36,7 @@ export async function getPublicCopyPreview(scope: PublicCopyScope = "home") {
   const dataset = ["production-admin", "local-production"].includes(environment) ? "production"
     : ["admin-uat", "local-uat"].includes(environment) ? "uat" : null;
   if (!dataset || !isAdminReadDataPlaneAllowed(dataset, environment)) notFound();
-  if (!Object.hasOwn(PUBLIC_COPY_SCOPES, scope)) notFound();
+  if (!isPublicCopyScopeAvailable(scope, dataset)) notFound();
   const contentScope = scope === "site" ? "home" : scope;
   const read = async (scope: PublicCopyScope) => {
     const { data } = await sanityFetch({
@@ -45,12 +45,13 @@ export async function getPublicCopyPreview(scope: PublicCopyScope = "home") {
     });
     return withEditTargets(scope, parsePublicCopy(scope, data) as Record<string, string>);
   };
-  const seoPage = getPageSeoPage(PUBLIC_COPY_SCOPES[contentScope].pathname)!;
-  const [copy, site, { data: seo }] = await Promise.all([
-    read(contentScope), read("site"), sanityFetch({
+  const seoPage = getPageSeoPage(PUBLIC_COPY_SCOPES[contentScope].pathname);
+  const [copy, site, home, { data: seo }] = await Promise.all([
+    read(contentScope), read("site"),
+    contentScope === "about" || contentScope === "toolsHub" ? read("home") : Promise.resolve(undefined), seoPage ? sanityFetch({
       query: '*[_id == $id && _type == "pageSeo" && pathname == $pathname][0]{seoTitle, seoDescription, ogTitle, ogDescription, ogImageUrl}',
       params: { id: seoPage.documentId, pathname: seoPage.pathname }, perspective: "drafts",
-    }),
+    }) : Promise.resolve({ data: null }),
   ]);
-  return { copy, site, seo: { ...seoPage.defaults, ...Object.fromEntries(Object.entries(validatePageSeoFields(seo ?? {}, dataset)).filter(([, value]) => value)) } };
+  return { copy, site, home, dataset, seo: seoPage ? { ...seoPage.defaults, ...Object.fromEntries(Object.entries(validatePageSeoFields(seo ?? {}, dataset)).filter(([, value]) => value)) } : null };
 }

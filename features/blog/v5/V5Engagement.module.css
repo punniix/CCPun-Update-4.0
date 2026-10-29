@@ -1,0 +1,18 @@
+/* Hearts and view counts on v5 cards and the article header (owner-approved 2026-10-25).
+   Neutral tokens only: the heart is a secondary control, never the gold primary action.
+   Slots keep their size before counts load, so nothing moves when numbers arrive. */
+.cardMetrics { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0 4px; flex-shrink: 0; margin-inline-start: auto; }
+.articleMetrics { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0 4px; min-height: 44px; margin-block: -12px; margin-inline-start: -8px; }
+.views { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; min-width: 8ch; color: var(--v5-muted); font-size: var(--v5-text-meta); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.articleMetrics .views { justify-content: flex-start; }
+/* Narrow phones (v5 polish, UAT): the header counts take their own row under the date from the first paint, so the web-font swap or a longer count never wraps them to a new line later. */
+@media (max-width: 379px) { .articleMetrics { flex-basis: 100%; } }
+.heart { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 44px; min-height: 44px; padding: 0 8px; border: 0; border-radius: var(--v5-radius-sm); background: transparent; color: var(--v5-muted); font: inherit; font-size: var(--v5-text-meta); font-variant-numeric: tabular-nums; cursor: pointer; transition: background-color var(--v5-motion-fast, 160ms) ease, color var(--v5-motion-fast, 160ms) ease; }
+.heart[aria-pressed="true"] { color: var(--v5-text); }
+.heart:hover { background: var(--v5-border-soft); color: var(--v5-text); }
+.heart:disabled { opacity: .6; cursor: wait; }
+.heartCount { display: inline-block; min-width: 3ch; text-align: start; }
+.error { flex-basis: 100%; margin: 0; color: var(--v5-muted); font-size: 13px; text-align: end; }
+.articleError { flex-basis: 100%; color: var(--v5-muted); font-size: 13px; }
+.srOnly { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (prefers-reduced-motion: reduce) { .heart { transition: none; } }

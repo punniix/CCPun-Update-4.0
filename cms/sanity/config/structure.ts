@@ -1,4 +1,4 @@
-import { PUBLIC_COPY_SCOPES, publicCopyDocumentId } from "../../../lib/content/public-copy-registry";
+import { PUBLIC_COPY_SCOPES, publicCopyDocumentId, isPublicCopyScopeAvailable } from "../../../lib/content/public-copy-registry";
 import { PAGE_SEO_PAGES } from "../../../lib/content/page-seo-registry";
 import { map } from "rxjs";
 import { structureTool, type StructureBuilder, type StructureResolverContext } from "sanity/structure";
@@ -130,10 +130,10 @@ function blogSettingsWorkspace(S: StructureBuilder) {
     );
 }
 
-function publicPagesWorkspace(S: StructureBuilder) {
+function publicPagesWorkspace(S: StructureBuilder, dataset: string) {
   return S.listItem().id("public-pages").title("ข้อความและ SEO หน้าเว็บไซต์").child(
     S.list().id("public-pages-list").title("ข้อความและ SEO หน้าเว็บไซต์").items([
-      ...Object.entries(PUBLIC_COPY_SCOPES).map(([scope, config]) => S.listItem().id(`copy-${scope}`).title(config.label)
+      ...Object.entries(PUBLIC_COPY_SCOPES).filter(([scope]) => isPublicCopyScopeAvailable(scope, dataset)).map(([scope, config]) => S.listItem().id(`copy-${scope}`).title(config.label)
         .child(S.document().schemaType("publicPageCopy").documentId(publicCopyDocumentId(scope as keyof typeof PUBLIC_COPY_SCOPES)).initialValueTemplate("publicPageCopy", { scope }).title(config.label))),
       S.divider(),
       ...PAGE_SEO_PAGES.map(page => S.listItem().id(`seo-${page.documentId}`).title(`SEO · ${page.label}`)
@@ -166,7 +166,7 @@ export function createStudioStructurePlugin(environment: AdminEnvironment) {
         .title("เนื้อหา")
         .items([
           ...(hasArticle ? [articleWorkspace(S, context)] : []),
-          ...(hasPublicCopy ? [publicPagesWorkspace(S)] : []),
+          ...(hasPublicCopy ? [publicPagesWorkspace(S, context.dataset)] : []),
           ...(supportItems.length ? [S.listItem().id("support-data").title("ข้อมูลประกอบ")
             .child(S.list().id("support-data-list").title("ข้อมูลประกอบ").items(supportItems))] : []),
           ...(otherChannels.length ? [S.listItem().id("other-channels").title("ช่องทางอื่น")

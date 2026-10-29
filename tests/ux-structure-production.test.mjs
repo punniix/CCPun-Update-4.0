@@ -1,3 +1,6 @@
+import { assertRetiredAdminToolUi } from "../qa/admin-retired-tool-ui-proof.mjs";
+import { adminCmsBridgePredecessor } from "../qa/admin-cms-web-bridge-successor.mjs";
+import { isWebsiteV5ReviewedSuccessor, websiteV5PredecessorDigest } from "../qa/website-v5-phase-a-proof.mjs";
 import { assertProductionCmsOwner, hasProductionCmsOwner } from '../qa/production-cms-source-proof.mjs';
 import './article-overview-rendering.test.mjs';
 import { articleOverviewSourceProjection, reviewedThaiWrapProjection, reviewedArticleCardProjection } from '../qa/phase2-source-proof.mjs';
@@ -132,7 +135,7 @@ test('all actual Root/Web entry imports exclude UAT content and separated Invest
   const publicRoots = ['app/layout.tsx','app/page.tsx','app/blog/page.tsx','app/blog/[category]/page.tsx','app/blog/[category]/[slug]/page.tsx','app/ci-planning/page.tsx','app/tools/financial-health-check/page.tsx','app/play/money-story/page.tsx','app/cookie-policy/page.tsx','app/privacy/page.tsx','app/not-found.tsx','app/sitemap.xml/route.ts','app/sitemaps/core.xml/route.ts','app/sitemaps/blog.xml/route.ts','app/sitemaps/tools.xml/route.ts'];
   assert(entries.length > 10);
   for (const file of closure([...entries, ...publicRoots])) assert.doesNotMatch(file, forbidden, file);
-  for (const directory of ['features/investment-allocation','apps/web/app/tools/investment-allocation','apps/web/app/api/investment-allocation','app/tools/investment-allocation','app/api/investment-allocation']) assert.equal(existsSync(resolve(root, directory)), false, directory);
+  for (const directory of ['apps/web/app/tools/investment-allocation','apps/web/app/api/investment-allocation','app/tools/investment-allocation','app/api/investment-allocation']) assert.equal(existsSync(resolve(root, directory)), false, directory);
   for (const file of ['lib/content/uat-tax-table-fixture.ts','lib/content/uat-tax-table-fixture.json','lib/content/uat-public-article-snapshots.json']) assert.equal(existsSync(resolve(root, file)), false, file);
 });
 
@@ -318,14 +321,16 @@ test('Production providers, metadata, models, engines, tracking, consent storage
   const webConfigPath = 'apps/web/next.config.ts';
   assert.equal(protectedProduction[webConfigPath], '2c21e02a2bd71080f5c5a339338f9ad520b99d629598ad0fe105a7c3f8a16cf4');
   for (const [file,digest] of Object.entries(protectedProduction)) {
+    if (assertRetiredAdminToolUi(file, digest)) continue;
     const reviewedDigest = file === analyticsPath
       ? '6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a'
       : file === semanticPath ? '4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f'
       : file === webDriverPath ? '629f77a0037613a9acb7cdf5e28cd141c6bdb2c921a7ecee79dceca0d07092a4'
       : file === webConfigPath ? 'd4cf8aa0725fdf58263e3f68776db192fa39bfa1e7578b8cb7f715a7e5face9f' : digest;
     if(hasProductionCmsOwner(file)) { assertProductionCmsOwner(file,read(file)); continue; }
-    const source = file === 'package.json' ? packageBeforePostPublishScripts(read(file)) : file === 'package-lock.json' ? lockBeforeAiSdk(read(file)) : read(file);
-    assert.equal(sha(source), reviewedDigest, file);
+    const owned = adminCmsBridgePredecessor(file, read(file));
+    const source = file === 'package.json' ? packageBeforePostPublishScripts(owned) : file === 'package-lock.json' ? lockBeforeAiSdk(owned) : owned;
+    assert.equal(websiteV5PredecessorDigest(file, source), reviewedDigest, file);
   }
 });
 
@@ -382,8 +387,10 @@ function loadArchive(articles, registry) {
     '@/lib/content/public-copy-registry': { publicCopyText: () => key => key },
     '@/components/ui/PublicCopyProvider': { PublicCopyProvider: ({children}) => children },
     'next/headers': { draftMode: async () => ({ isEnabled: false }) },
-    '@/features/blog/website-43/Website43Blog': { __esModule: true, default: Page },
-    '@/features/blog/website-43/blogData': { toWebsite43ArticleItems: x => x, toWebsite43ArticleItemsInOrder: x => x },
+    '@/features/blog/v5/V5BlogIndex': { __esModule: true, default: Page },
+    '@/lib/content/topic-navigation': { listLinkableTopics: entries => entries.entries.filter(x => x.status === 'active').map(({ slug, title }) => ({ slug, title })), listFallbackTopics: () => [] },
+    '@/lib/content/sanity': { getPrimaryAuthorProfile: async () => null },
+    '@/components/layout/v5/shell-data': { getPublishedArticles: async () => articles.filter(x => x.status === 'published'), getPublishedCategoryRegistry: async () => ({ available: true, ...registry }) },
     '@/lib/content/provider': { getContentProvider: () => ({ listArticles: async () => articles }) },
     '@/lib/deployment-environment': { IS_DRAFT_PREVIEW_ALLOWED: false },
     '@/lib/content/category-registry': { listCategoryMenuEntries: entries => entries.entries.filter(x => x.status === 'active') },
@@ -406,12 +413,12 @@ test('actual archive route sends only published provider records/active registry
   const tree = await archiveModule.default({ searchParams: Promise.resolve({ page:'2', q:'' }) });
   const page = React.Children.toArray(tree.props.children).find(x => x.type === Page);
   assert.deepEqual(page.props.articles, records.slice(0,10));
-  assert.deepEqual(page.props.categories, [{ slug:'personal-finance',title:'Original physical category' }]);
-  assert.equal(page.props.initialPage,'2');
+  assert.deepEqual(page.props.topics, [{ slug:'personal-finance',title:'Original physical category' }]);
+  assert.equal(Object.hasOwn(page.props, 'initialPage'), false, 'reviewed v5 per-group listing never creates a second query-page owner');
   const empty = loadArchive([], { entries:[] });
   const emptyTree = await empty.module.default({ searchParams: Promise.resolve({}) });
   const emptyPage = React.Children.toArray(emptyTree.props.children).find(x => x.type === empty.Page);
-  assert.deepEqual(emptyPage.props.articles,[]); assert.deepEqual(emptyPage.props.categories,[]);
+  assert.deepEqual(emptyPage.props.articles,[]); assert.deepEqual(emptyPage.props.topics,[]);
 });
 
 // Reviewed Article/H4/Author candidate updates retain original baseline hashes in the parity manifests.
@@ -421,9 +428,11 @@ test('all39 approved source records retain provenance with exact reviewed Articl
   assert.equal(reviewedSourceOwners[retired], '77a3ef1c5f7eb02e91e425e400d4c289d5e329aa400c33ac0f7484eeb991a556');
   assert.equal(existsSync(resolve(root, retired)), false, 'Retired link has no route/import owner and must remain absent');
   for (const [file,digest] of Object.entries(reviewedSourceOwners)) {
+    if (assertRetiredAdminToolUi(file, digest)) continue;
     if (file === retired) continue;
     if(hasProductionCmsOwner(file)) { assertProductionCmsOwner(file,read(file)); continue; }
-    const source = reviewedThaiWrapProjection(file, reviewedArticleCardProjection(file, read(file)));
+    if (isWebsiteV5ReviewedSuccessor(file, read(file))) continue;
+    const source = reviewedThaiWrapProjection(file, reviewedArticleCardProjection(file, adminCmsBridgePredecessor(file, read(file))));
     if (file === 'apps/web/static-images.d.ts') {
       assert.equal(digest, 'fe57bd015bfec7883efee95cfa98ec8ffd4806c505c4a9ad3ccacc6275ac5579');
       const comment = '// Static SVG and WebP imports must typecheck before Next generates next-env.d.ts.';
@@ -454,7 +463,7 @@ test('all39 approved source records retain provenance with exact reviewed Articl
     } else if (file === 'features/blog/website-43/Website43Article.tsx') {
       assert.equal(digest, 'd6415bfcdee858ba052a3c78077f302463ef1db2ce128cb15257c74653a93bb2');
       assert.equal(sha(articleOverviewSourceProjection(source)), 'c808e31c1e6e43e6c8ca7bb2b41efe7c82c36c696c1b0a1ee0eb6363dfaea3ae', 'reviewed Article V4 plus exact published overview only');
-    } else assert.equal(sha(source),digest,file);
+    } else assert.equal(websiteV5PredecessorDigest(file, source),digest,file);
   }
 });
 

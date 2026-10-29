@@ -89,7 +89,7 @@ const article = {
 async function serverTree(node) {
   if(Array.isArray(node))return Promise.all(node.map(serverTree));
   if(!React.isValidElement(node))return node;
-  if(typeof node.type==='function'&&(node.type.constructor.name==='AsyncFunction'||['Website43Article','Website43ArticleToc','Website43Footer','Website43Blog','renderWebsite43Blog'].includes(node.type.name)))return serverTree(await node.type(node.props));
+  if(typeof node.type==='function'&&(node.type.constructor.name==='AsyncFunction'||['Website43Article','Website43ArticleToc','Website43Footer','Website43Blog','renderWebsite43Blog','V5Page','V5BlogIndex'].includes(node.type.name)))return serverTree(await node.type(node.props));
   const children=await serverTree(node.props.children);
   return React.cloneElement(node,{},...(Array.isArray(children)?children:[children]));
 }
@@ -214,6 +214,10 @@ const categoryRegistryFixture = buildCategoryRegistry([
 mock('../lib/content/public-copy.ts',{getPublicCopy:async scope=>copyRegistry.parsePublicCopy(scope,null)});
 mock('../lib/content/category-registry-sanity.ts', { listCategoryRegistry: async () => categoryRegistryFixture });
 mock('../lib/content/blog-featured-sanity.ts', { listBlogFeaturedArticleIds: async () => [] });
+// The current Blog preview uses the shared V5 server shell; use synthetic provider boundaries.
+mock('../lib/content/sanity.ts', { getPrimaryAuthorProfile: async () => null });
+mock('../lib/content/line-chat-config.ts', { getLineChatConfig: async () => ({ config: { enabled: true, topics: [], placements: [], campaigns: [] }, source: 'default', invalid: false }) });
+mock('../lib/runtime/investment-availability.ts', loadFixtureModule('lib/runtime/investment-availability.ts'));
 mock('../lib/content/provider.ts', { getContentProvider: () => ({
   listArticles: async (options) => { calls.push(options); return [article, health, draft]; },
   getArticleBySlug: async (slug, options) => { calls.push(options); return [article, health, draft].find((entry) => entry.slug === slug) ?? null; },

@@ -1,3 +1,4 @@
+import { assertRetiredAdminToolUi } from "../qa/admin-retired-tool-ui-proof.mjs";
 import { productionCmsDisplaySource, assertProductionCmsOwner, cmsNativeFollowupOwners } from '../qa/production-cms-source-proof.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -352,6 +353,7 @@ assert.match(
   ]) assert.throws(() => assertProductionCmsOwner(authorFile, mutant), 'request memoization cannot admit a changed author reader');
   for (const [file, { before, after }] of Object.entries(cmsNativeFollowupOwners)) {
     assert.notEqual(before, after, 'the exact reviewed successor never admits the predecessor');
+    if (assertRetiredAdminToolUi(file, after)) { assertRetiredAdminToolUi(file, before); continue; }
     const source = readFileSync(file, 'utf8');
     assertProductionCmsOwner(file, source);
     assert.throws(() => assertProductionCmsOwner(file, source + '\n// unknown successor edit\n'));

@@ -90,7 +90,7 @@ test('Home and Article vertical rhythm use the reviewed public spacing', () => {
 test('Thai reading headings, explicit dividers and content links retain a clear reading rhythm', () => {
   const require = createRequire(import.meta.url);
   const { parse } = require('postcss');
-  const legalCss = read('components/layout/website-43/Website43Legal.module.css');
+  const legalCss = read('components/layout/v5/V5Tool.module.css');
   const sheet = parse(css + '\n' + legalCss);
   const values = (selector) => {
     const result = {};
@@ -113,9 +113,9 @@ test('Thai reading headings, explicit dividers and content links retain a clear 
   assert.equal(dividerHeading['padding-top'], '0');
   assert.equal(dividerHeading['margin-top'], '24px');
   assert.match(article, /<article className=\{styles\.prose\}>\{renderWebsite43ArticleBody/);
-  for (const selector of ['.prose :is(p, li, h2, h3, h4, blockquote) a', '.content a']) {
+  for (const [selector, offset] of [['.prose :is(p, li, h2, h3, h4, blockquote) a', '4px'], ['.legalBody a', '3px']]) {
     assert.equal(values(selector)['text-decoration'], 'underline', 'content links do not rely only on colour');
-    assert.equal(values(selector)['text-underline-offset'], '4px');
+    assert.equal(values(selector)['text-underline-offset'], offset);
   }
   assert.equal(values('.root a')['text-decoration'], 'none', 'navigation and button styling stays scoped');
 });
@@ -127,7 +127,7 @@ test('article metadata uses verified optimization date, consistent type and read
   assert.match(css, /\.articleHeaderMeta \{[^}]*font-size: 14px;[^}]*font-weight: 400;[^}]*line-height: 22px;/);
   assert.match(css, /\.articleDateLabel \{ font-size: inherit; font-weight: 400; \}/);
   assert.match(css, /\.articleHeaderMeta time \{ color: var\(--w43-ink\); font-weight: 500; \}/);
-  assert.match(css, /\.articleReadingTime b \{ color: var\(--w43-ink\); font-weight: 500; \}/);
+  assert.doesNotMatch(article, /styles\.articleReadingTime\b/, 'retired unused reading-time class has no actual article owner');
   assert.match(css, /\.tocList \{ padding-block: 24px 8px; \}/);
   assert.match(css, /\.tocDisclosure > summary, \.tocMobile > summary \{[^}]*justify-content: center;/);
   assert.match(css, /\.articleFeature \{[^}]*height: auto;/);
@@ -145,118 +145,44 @@ test('the Home LCP image is preloaded alongside the bounded critical font budget
   assert.match(home, /home-hero-desktop\.png[\s\S]*?fill preload loading="eager" fetchPriority="high" sizes="100vw"/);
 });
 
-test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI use the new aligned tool shell', () => {
-  const fhc = read('features/financial-health-check/components/ClientFHC.tsx');
-  const ci = read('features/ci-planning/page.tsx');
-  const toolHero = read('components/layout/website-43/Website43ToolHero.tsx');
+test('existing Home and Blog ownership remains while current tool pages use shared v5 composition', () => {
   assert.match(home, /Website43/);
   assert.match(blog, /Website43/);
-  for (const source of [fhc, ci]) {
-    assert.match(source, /components\/layout\/website-43\/Website43ToolHero/);
-    assert.match(source, /Website43Footer/);
-    assert.doesNotMatch(source, /components\/layout\/ToolHero/);
-    assert.doesNotMatch(source, /components\/layout\/Navbar/);
+  for (const file of ['features/ci-planning/v5/V5CiPlanning.tsx','features/financial-health-check/v5/V5Fhc.tsx']) {
+    const source = read(file);
+    assert.match(source, /<V5Page\b[\s\S]*?current=/);
+    assert.match(source, /<V5ToolHero/);
+    assert.match(source, /functionalMotion\.scope/);
+    assert.doesNotMatch(source, /Website43ToolHero|components\/layout\/ToolHero/);
   }
-  assert.match(fhc, /functionalMotion\.scope/);
-  assert.match(fhc, /FHCPlanningContext/);
-  assert.match(ci, /functionalMotion\.scope/);
-  assert.match(ci, /Recovery Reserve/);
-  assert.match(toolHero, /ctaHref/);
-  assert.match(toolHero, /toolHeroGradient/);
-  assert.match(toolHero, /fullBleed\?: boolean/);
-  assert.match(toolHero, /sizes=\{fullBleed \? '100vw' : '\(max-width: 639px\) 100vw, \(max-width: 1023px\) 560px, 820px'\}/);
-  assert.match(ci, /<Website43ToolHero[\s\S]*?strongContrast[\s\S]*?\/>/);
-  assert.match(fhc, /<Website43ToolHero[\s\S]*?strongContrast[\s\S]*?\/>/);
-  assert.doesNotMatch(ci, /fullBleed/);
-  assert.doesNotMatch(fhc, /fullBleed/);
-  assert.match(css, /\.toolHeroImage \{[^}]*object-fit: contain;[^}]*mask-image: linear-gradient\(90deg,transparent 0%,#000 24%\);/);
-  assert.match(css, /\.root \.toolHeroImage \{[^}]*object-fit: contain;/);
-  assert.match(css, /\.toolHeroImage \{ top: 244px;[^}]*object-fit: contain;/);
-  assert.match(responsive, /\.\$\{styles\.toolHeroImage\} \{[^}]*object-fit: contain;[^}]*object-position: right center;/);
-  assert.match(responsive, /\.\$\{styles\.root\} \.\$\{styles\.toolHeroImage\} \{\s*inset: 0 0 auto auto;\s*width: 560px;\s*height: 100%;/);
-  assert.match(responsive, /\.\$\{styles\.toolHero\}::after \{[^}]*inset: clamp\(476px, calc\(21vw \+ 246px\), 548px\) 0 0;\s*height: auto;\s*background: linear-gradient\(180deg, rgba\(6,11,9,0\), #060b09 70px\);/);
-  assert.match(responsive, /\.\$\{styles\.toolHero\}::after \{\s*inset: auto 0 0;\s*height: 150px;\s*background: linear-gradient\(180deg, rgba\(6,11,9,0\), #060b09 40%\);/);
-  assert.match(responsive, /top: 252px;[^}]*height: auto;\s*object-fit: contain;\s*object-position: center center;\s*-webkit-mask-image: linear-gradient\(180deg/);
-  assert.match(responsive, /-webkit-mask-image: linear-gradient\(180deg, transparent 0, #000 20%, #000 82%, transparent 100%\);\s*mask-image: linear-gradient\(180deg, transparent 0, #000 20%, #000 82%, transparent 100%\);/);
-  assert.doesNotMatch(responsive, /top: (?:548|636)px/);
-  assert.match(css, /\.root \.toolHeroFullBleed \.toolHeroImage \{[^}]*inset: 0;[^}]*width: 100%;[^}]*height: 100%;[^}]*object-fit: cover;/);
-  assert.match(css, /\.root \.toolHeroFullBleed \.toolHeroGradient \{[^}]*inset: 0;[^}]*width: 100%;[^}]*height: 100%;[^}]*background: linear-gradient\(90deg,[^}]*rgba\(6,11,9,\.16\) 100%\);/);
-  assert.match(css, /\.root \.toolHeroFullBleed \.primaryButton \{[^}]*width: clamp\(176px, 15\.28vw, 220px\);[^}]*min-height: 52px;/);
-  assert.match(ci, /<Website43ToolHero[\s\S]*?<CILandingIntro \/>[\s\S]*?<section id="ci-calculator"/);
+  assert.match(read('features/ci-planning/v5/V5CiPlanning.tsx'), /Recovery Reserve/);
 });
 
-test('Tool heroes keep text and CTA in native flow at portrait, landscape and tablet sizes', () => {
-  const require = createRequire(import.meta.url);
-  const { transpileModule, ModuleKind } = require('typescript');
-  const exports = {};
-  runInNewContext(transpileModule(responsive, { compilerOptions: { module: ModuleKind.CommonJS, jsx: 4 } }).outputText, {
-    exports,
-    require: (name) => {
-      if (name === 'react/jsx-runtime') return require(name);
-      assert.equal(name, './Website43.module.css');
-      return { default: new Proxy({}, { get: (_target, key) => String(key) }) };
-    },
-  });
-  const { parse } = require('postcss');
-  const sheet = parse(css + '\n' + exports.Website43ResponsiveStyles().props.children);
-  function declarations(selectors, width, height) {
-    const values = {};
-    const ranks = {};
-    sheet.walkRules((rule) => {
-      const matching = rule.selectors.filter((selector) => selectors.includes(selector));
-      if (!matching.length) return;
-      for (let parent = rule.parent; parent?.type !== 'root'; parent = parent.parent) {
-        if (parent.type !== 'atrule' || parent.name !== 'media') continue;
-        const query = parent.params;
-        if (/hover|pointer|prefers-/.test(query)) return;
-        for (const [axis, size] of [['width', width], ['height', height]]) {
-          const min = Number(query.match(new RegExp('min-' + axis + ':\\s*(\\d+)px'))?.[1] ?? 0);
-          const max = Number(query.match(new RegExp('max-' + axis + ':\\s*(\\d+)px'))?.[1] ?? Infinity);
-          if (size < min || size > max) return;
-        }
-        if (/orientation: landscape/.test(query) && width <= height) return;
-      }
-      const specificity = Math.max(...matching.map((selector) => (selector.match(/\./g) ?? []).length));
-      rule.walkDecls((declaration) => {
-        const rank = specificity + (declaration.important ? 100 : 0);
-        if (rank < (ranks[declaration.prop] ?? -1)) return;
-        ranks[declaration.prop] = rank;
-        values[declaration.prop] = declaration.value;
-      });
-    });
-    return values;
+test('current text tool heroes keep title, full lead and calculator CTA in natural responsive flow', () => {
+  const hero = read('components/layout/v5/V5ToolParts.tsx');
+  const toolCss = read('components/layout/v5/V5Tool.module.css');
+  assert.match(hero, /<h1 id=\{id\}/);
+  assert.match(hero, /<a className=\{shell.button\} href=\{cta.href\}>\{cta.label\}<\/a>/);
+  assert.doesNotMatch(hero, /next\/image|<Image|position:\s*absolute/);
+  assert.match(toolCss, /\.heroTitle \{ font-size: clamp\(30px, 6vw, 48px\)/);
+  assert.match(toolCss, /\.heroLead \{ font-size: 18px; line-height: 2; \}/);
+  assert.match(toolCss, /@media \(min-width: 1024px\) \{[\s\S]*?\.heroGrid \{ display: grid;/);
+  for (const selector of ['hero','heroGrid','heroTitle','heroLead','heroAside']) {
+    for (const rule of toolCss.matchAll(new RegExp('\\.' + selector + '(?:\\.[\\w-]+)?\\s*\\{([^}]+)\\}', 'g'))) assert.doesNotMatch(rule[1], /position:\s*absolute|(?:^|;)\s*height:\s*\d+px|overflow:\s*hidden/);
   }
-  for (const [width, height] of [[320, 700], [390, 844], [667, 375], [844, 390], [932, 430], [820, 1180]]) {
-    const hero = declarations(['.toolHero'], width, height);
-    assert.equal(hero.height, 'auto');
-    assert.equal(hero['min-height'], width > height && height <= 500 ? '0' : width <= 639 ? '700px' : '600px');
-    const copy = declarations(['.toolHeroCopy'], width, height);
-    assert.equal(copy.position, 'relative');
-    assert.equal(copy.height, 'auto');
-    for (const selector of ['.toolBadge', '.toolTitle', '.toolDescription']) {
-      assert.equal(declarations([selector], width, height).position, 'static');
-    }
-    assert.equal(declarations(['.toolDescription'], width, height)['font-size'], '16px');
-    const action = declarations(['.primaryButton', '.toolHero .primaryButton', '.root .toolHero .primaryButton'], width, height);
-    assert.equal(action.position, 'static');
-    assert.equal(action['min-height'], '52px');
-    assert.equal(action['margin-top'], '24px');
-  }
-  assert.notEqual(declarations(['.toolHero'], 1440, 900).height, 'auto');
-  assert.equal(declarations(['.toolHeroCopy'], 1440, 900).position, 'absolute');
 });
 
-test('CI Planning keeps the TorYod project badge as secondary proof near the end of the tool page', () => {
-  const ci = read('features/ci-planning/page.tsx');
-  const toryodProjectUrl = 'https://www.toryod.co/projects/35d2877e-e97a-45ee-a6df-aefa5e09e2b3-ccpun-s-ci-planning';
-
-  assert.equal(ci.split(toryodProjectUrl).length - 1, 1, 'TorYod project link appears exactly once');
-  assert.doesNotMatch(ci.split('<section id="ci-calculator"')[0], /toryod\.co/i, 'TorYod must not compete with the hero or primary calculator CTA');
-  assert.match(ci, /toolDisclaimer[\s\S]*?toolProjectRecognition[\s\S]*?toryod\.co\/projects\//, 'TorYod proof stays after the tool disclaimer');
+test('current CI keeps TorYod secondary proof after its FAQ with the exact external target', () => {
+  const ci = read('features/ci-planning/v5/V5CiPlanning.tsx');
+  const toolCss = read('components/layout/v5/V5Tool.module.css');
+  const target = 'https://www.toryod.co/projects/35d2877e-e97a-45ee-a6df-aefa5e09e2b3-ccpun-s-ci-planning';
+  assert.equal(ci.split(target).length - 1, 1);
+  assert.doesNotMatch(ci.split('<section id="ci-calculator"')[0], /toryod\.co/i);
+  assert.ok(ci.indexOf('<V5Faq items={faqs}') < ci.indexOf(target));
   assert.match(ci, /target="_blank"[\s\S]*?rel="noopener"/);
   assert.match(ci, /width="240"[\s\S]*?height="54"[\s\S]*?loading="lazy"/);
-  assert.match(css, /\.toolProjectRecognitionLink img \{[^}]*height: 48px;/);
-  assert.match(css, /@media \(max-width: 639px\)[\s\S]*?\.toolProjectRecognitionLink img \{ height: 44px; \}/);
+  assert.match(toolCss, /\.badgeRow \{ display: flex; flex-wrap: wrap;/);
+  assert.match(toolCss, /\.badgeRow img \{ display: block; height: auto; max-width: 240px;/);
 });
 
 test('Footer controls and warnings stay inside the visible Website 4.3 footer card at every breakpoint', () => {
@@ -321,16 +247,15 @@ test('Blog category filter is a compact publication-style dropdown with stable l
   assert.match(css, /@media \(max-width: 639px\) \{[\s\S]*?\.categoryMenu \{ width: 100%; \}[\s\S]*?\.categoryMenuPanel \{ width: 100%; \}/);
 });
 
-test('Privacy and Cookie Policy use the Production Website 4.3 shell while preserving legal and SEO contracts', () => {
-  const privacy = read('apps/web/app/privacy/page.tsx');
-  const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx');
-  const legalCss = read('components/layout/website-43/Website43Legal.module.css');
+test('current Privacy and Cookie Policy use the v5 shell while preserving legal and SEO contracts', () => {
+  const privacy = read('apps/web/app/privacy/page.tsx') + '\n' + read('features/legal/v5/V5Privacy.tsx');
+  const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx') + '\n' + read('features/legal/v5/V5CookiePolicy.tsx');
+  const legalCss = read('components/layout/v5/V5Tool.module.css');
 
   for (const source of [privacy, cookiePolicy]) {
-    assert.match(source, /Website43Navbar/);
-    assert.match(source, /Website43Footer/);
-    assert.match(source, /w43Styles\.root/);
-    assert.match(source, /legalStyles\.content/);
+    assert.match(source, /<V5Page\b/);
+    assert.match(source, /styles\.legalBody/);
+    assert.match(source, /V5ToolHero/);
     assert.doesNotMatch(source, /components\/layout\/Navbar/);
     assert.doesNotMatch(source, /components\/layout\/Footer/);
   }
@@ -343,10 +268,10 @@ test('Privacy and Cookie Policy use the Production Website 4.3 shell while prese
   assert.match(cookiePolicy, /Meta Pixel เพื่อการวัดผลและการตลาด/);
   assert.match(cookiePolicy, /คุณควบคุมการใช้คุกกี้ได้ 3 วิธี/);
 
-  assert.match(legalCss, /background: var\(--w43-bg\)/);
-  assert.match(legalCss, /border: 1px solid var\(--w43-border\)/);
-  assert.match(legalCss, /color: var\(--w43-gold-bright\)/);
-  assert.match(legalCss, /@media \(max-width: 640px\)/);
-  assert.match(legalCss, /\.content table \{\s*width: 100%;\s*table-layout: fixed;/);
-  assert.match(legalCss, /\.content td,\s*\.content th \{\s*overflow-wrap: anywhere;/);
+  assert.match(legalCss, /\.legalBody \{ min-width: 0; color: var\(--v5-muted\); font-size: 16px;/);
+  assert.match(legalCss, /\.legalBody section \{[^}]*border-top: 1px solid var\(--v5-border-soft\)/);
+  assert.match(legalCss, /\.legalBody a \{[^}]*color: var\(--v5-gold-text\);[^}]*overflow-wrap: anywhere/);
+  assert.match(legalCss, /@media \(max-width: 1023px\)/);
+  assert.match(legalCss, /\.legalBody table \{ width: 100%;/);
+  assert.match(legalCss, /\.tableScroll \{ overflow-x: auto;/);
 });

@@ -50,7 +50,7 @@ export const sanityStudioConfig =
         ...getStudioPublishingOptions(dataset, environment, projectId),
         plugins: [
           createStudioStructurePlugin(environment),
-          createStudioPresentationPlugin(),
+          createStudioPresentationPlugin(dataset),
         ],
         studio: { components: { navbar: StudioNavbarWithAdminBackLink } },
         schema: { types: schemaTypes },
