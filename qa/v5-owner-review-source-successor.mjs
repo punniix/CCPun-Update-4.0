@@ -270,6 +270,21 @@ export function ownerReviewHtmlPredecessor(html, key) {
 
 // Exact generated metadata successor: move the five reviewed entries back; never copy a whole map.
 export function ownerReviewLocationsPredecessor(source) {
+  // Story V2 UAT-only 40 field metadata successor. Only exact reviewed map
+  // may be reduced to the preceding 15 About fields; all other scopes remain byte identical.
+  if (sha(source) === "272e0188c1a6201076dcf38560574669320d85e209d74579b4c99244d4e0634f") {
+    const locations = JSON.parse(source);
+    const oldKeys = ["about.breadcrumb.home", "about.father.heading", "about.father.paragraph1", "about.father.photoAlt", "about.father.caption", "about.father.paragraph2", "about.father.paragraph3", "about.father.paragraph4", "about.father.paragraph5", "about.father.paragraph6", "about.father.question1", "about.father.question2", "about.father.question3", "about.father.paragraph7", "about.next.tools"];
+    const oldSections = ["ส่วนหัวและเส้นทาง", "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "อ่านและใช้เครื่องมือต่อ"];
+    assert.equal(Object.keys(locations.about.entries).length, 55);
+    locations.about.entries = Object.fromEntries(oldKeys.map((key, order) => {
+      assert.ok(locations.about.entries[key], key);
+      return [key, { ...locations.about.entries[key], order }];
+    }));
+    locations.about.sections = oldSections;
+    source = JSON.stringify(locations) + "\n";
+    assert.equal(sha(source), "754138b4ed2ebeae0f2a995804aa0e5dde07ff7b0b986473722ac2a43668f043", "exact pre-V2 map retained");
+  }
   // The unchanged generator reorders only six existing Home locations after the About helper grows.
   if (sha(source) === '754138b4ed2ebeae0f2a995804aa0e5dde07ff7b0b986473722ac2a43668f043') {
     const locations = JSON.parse(source);
@@ -333,4 +348,43 @@ export function oneRowCountdownSourcePredecessor(file, source) {
   const prior = source.replace(current, "  .splitDigits .timer { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0; }\n");
   assert.equal(sha(prior), 'bdf0ab886e7c3076913299ab605db68f9e11abd9838482ce26ea5149c9983fda', 'Only mobile numeral sizing and spacing change; every earlier byte stays frozen');
   return prior;
+}
+
+// Owner-approved Story V2 UAT renderer and CSS are additive strict successors.
+// Reconstruct the original protected source bytes before historical layout tests.
+const ownerStoryV2PageEdits = [
+  [
+    "import OwnerStoryV2 from \"./OwnerStoryV2\";\n",
+    ""
+  ],
+  [
+    "              {IS_REVIEW_ENVIRONMENT ? <p className={styles.ownerHeroIntro}>{text.node(\"about.storyV2.heroIntro\")}</p> : null}\n              {!IS_REVIEW_ENVIRONMENT ? <V5CredentialCards className={styles.credentials} qualification={qualification} licenceCards={licenceCards} /> : null}\n",
+    "              <OwnerCopySlot slot=\"about-hero-sentence\" note=\"ประโยคแนะนำตัวของปั้นหนึ่งประโยค (รอข้อความจากเจ้าของ)\" />\n              <V5CredentialCards className={styles.credentials} qualification={qualification} licenceCards={licenceCards} />\n"
+  ],
+  [
+    "      {IS_REVIEW_ENVIRONMENT ? (\n        <section className={shell.section} aria-label=\"ประวัติและแนวทางการวางแผนการเงิน\">\n          <div className={shell.inner}>\n            <OwnerStoryV2 text={text} qualification={qualification} licenceCards={licenceCards} />\n",
+    "      <section className={shell.section} aria-labelledby=\"about-story\">\n        <div className={`${shell.inner} ${styles.split}`}>\n          <h2 id=\"about-story\" className={shell.h2}>{home.node(\"home.h2\")}</h2>\n          <div className={styles.story}>\n            <OwnerCopySlot slot=\"about-start-years\" note=\"ปีที่เริ่มงานการเงินและการลงทุน และปีที่เริ่มเป็นที่ปรึกษา (รอข้อมูลจากเจ้าของ)\" />\n            <p>{home.node(\"home.p\")}</p>\n            <FatherStory text={text} />\n            <p>{home.node(\"home.p2\")}</p>\n            <p>{home.node(\"home.p3\")}</p>\n"
+  ],
+  [
+    "        </section>\n      ) : (\n        <section className={shell.section} aria-labelledby=\"about-story\">\n          <div className={`${shell.inner} ${styles.split}`}>\n            <h2 id=\"about-story\" className={shell.h2}>{home.node(\"home.h2\")}</h2>\n            <div className={styles.story}>\n              <OwnerCopySlot slot=\"about-start-years\" note=\"ปีที่เริ่มงานการเงินและการลงทุน และปีที่เริ่มเป็นที่ปรึกษา (รอข้อมูลจากเจ้าของ)\" />\n              <p>{home.node(\"home.p\")}</p>\n              <FatherStory text={text} />\n              <p>{home.node(\"home.p2\")}</p>\n              <p>{home.node(\"home.p3\")}</p>\n            </div>\n          </div>\n        </section>\n      )}\n",
+    "        </div>\n      </section>\n"
+  ]
+];
+export function ownerReviewStoryV2SourcePredecessor(file, source) {
+  if (file === 'features/about/page.tsx' && sha(source) === '82c6d9416b4c3c633e90fc2c463dd4cfdd25ec39e1125a8590165f7c1162e463') {
+    for (const [current, previous] of ownerStoryV2PageEdits) {
+      assert.equal(source.split(current).length, 2, file + ': only one reviewed source edit');
+      source = source.replace(current, previous);
+    }
+    assert.equal(sha(source), 'd2070ede6bcaec4dcc56cb39e71aa7fcb11a8ef41973b85bb3bc87425cd92a23', 'Exact historical About page restored');
+    return source;
+  }
+  if (file === 'features/about/About.module.css' && sha(source) === 'dd4c912f5ca4f0f22c1b983f70f1f3e60cd550447c498c3073712db83951ce58') {
+    const marker = '\n/* Owner-approved four-chapter story: FigCraft Responsive v2';
+    assert.equal(source.split(marker).length, 2);
+    source = source.slice(0, source.indexOf(marker));
+    assert.equal(sha(source), 'a3e209f3a607d98e23b8e6596e31a223224af686bcf168253b1fbd3d2ba1e33a', 'Exact historical About CSS restored');
+    return source;
+  }
+  return source;
 }

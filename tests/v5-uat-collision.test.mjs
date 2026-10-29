@@ -1,4 +1,4 @@
-import { aboutToolsLayoutPins, aboutToolsLayoutPredecessor, ownerReviewLocationsPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
+import { aboutToolsLayoutPins, aboutToolsLayoutPredecessor, ownerReviewLocationsPredecessor, ownerReviewStoryV2SourcePredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import { ownerReviewSourcePins, ownerReviewSourcePredecessor, fullCountdownSourcePredecessor, oneRowCountdownSourcePredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import {websiteV5InvestmentCopyPredecessor} from '../qa/website-v5-phase-a-proof.mjs';
 import assert from 'node:assert/strict';
@@ -83,7 +83,11 @@ test('Owner-approved countdown keeps four columns and rejects unreviewed mobile 
 // Native parity admission accepts the complete two-file patch only, never a partial or unknown variant.
 test('About and Tools layout inverses preserve the complete prior CSS and reject unknown or partial edits', () => {
   for (const [file, pin] of Object.entries(aboutToolsLayoutPins)) {
-    const source = readFileSync(file, 'utf8');
+    const current = readFileSync(file, 'utf8');
+    const source = ownerReviewStoryV2SourcePredecessor(file, current);
+    if (current !== source) {
+      assert.equal(ownerReviewStoryV2SourcePredecessor(file, current + ' '), current + ' ', 'Unknown About changes cannot be normalized');
+    }
     assert.equal(sha(source), pin.after, file);
     const prior = aboutToolsLayoutPredecessor(file, source);
     assert.equal(sha(prior), pin.before, file);
@@ -100,10 +104,10 @@ test('About and Tools layout inverses preserve the complete prior CSS and reject
 
 test('About helper metadata reorder retains all existing fields and rejects partial or unknown map bytes', () => {
   const source = readFileSync('lib/content/public-copy-locations.json', 'utf8');
-  assert.equal(sha(source), '754138b4ed2ebeae0f2a995804aa0e5dde07ff7b0b986473722ac2a43668f043');
+  assert.equal(sha(source), '272e0188c1a6201076dcf38560574669320d85e209d74579b4c99244d4e0634f', 'Exact 40-field Story V2 map');
   const map = JSON.parse(source);
   assert.equal(Object.keys(map).length, 11);
-  assert.equal(Object.values(map).reduce((n, scope) => n + Object.keys(scope.entries).length, 0), 1775);
+  assert.equal(Object.values(map).reduce((n, scope) => n + Object.keys(scope.entries).length, 0), 1815);
   assert.equal(sha(ownerReviewLocationsPredecessor(source)), '41ac751407cc2c2d5556db517d40ba7243363b81d02ac56eed73ae345ab96bc0');
   const partial = JSON.parse(source); partial.home.entries['home.p6'].order = 81;
   const missing = JSON.parse(source); delete missing.home.entries['home.p6'];

@@ -1,4 +1,5 @@
 import { ownerReviewHtmlPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
+import { aboutToolsLayoutPins, aboutToolsLayoutPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -10,6 +11,36 @@ const require = createRequire(path.resolve('package.json'));
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const digest = text => createHash('sha256').update(text).digest('hex');
+
+// Frozen 29-Oct UAT Story V2 successor. Reverse exactly four reviewed code
+// regions before the old native layout/CMS proof; mutants are not normalized.
+const ownerV2SourcePatches = [
+  [
+    "import OwnerStoryV2 from \"./OwnerStoryV2\";\n",
+    ""
+  ],
+  [
+    "              {IS_REVIEW_ENVIRONMENT ? <p className={styles.ownerHeroIntro}>{text.node(\"about.storyV2.heroIntro\")}</p> : null}\n              {!IS_REVIEW_ENVIRONMENT ? <V5CredentialCards className={styles.credentials} qualification={qualification} licenceCards={licenceCards} /> : null}\n",
+    "              <OwnerCopySlot slot=\"about-hero-sentence\" note=\"ประโยคแนะนำตัวของปั้นหนึ่งประโยค (รอข้อความจากเจ้าของ)\" />\n              <V5CredentialCards className={styles.credentials} qualification={qualification} licenceCards={licenceCards} />\n"
+  ],
+  [
+    "      {IS_REVIEW_ENVIRONMENT ? (\n        <section className={shell.section} aria-label=\"ประวัติและแนวทางการวางแผนการเงิน\">\n          <div className={shell.inner}>\n            <OwnerStoryV2 text={text} qualification={qualification} licenceCards={licenceCards} />\n",
+    "      <section className={shell.section} aria-labelledby=\"about-story\">\n        <div className={`${shell.inner} ${styles.split}`}>\n          <h2 id=\"about-story\" className={shell.h2}>{home.node(\"home.h2\")}</h2>\n          <div className={styles.story}>\n            <OwnerCopySlot slot=\"about-start-years\" note=\"ปีที่เริ่มงานการเงินและการลงทุน และปีที่เริ่มเป็นที่ปรึกษา (รอข้อมูลจากเจ้าของ)\" />\n            <p>{home.node(\"home.p\")}</p>\n            <FatherStory text={text} />\n            <p>{home.node(\"home.p2\")}</p>\n            <p>{home.node(\"home.p3\")}</p>\n"
+  ],
+  [
+    "        </section>\n      ) : (\n        <section className={shell.section} aria-labelledby=\"about-story\">\n          <div className={`${shell.inner} ${styles.split}`}>\n            <h2 id=\"about-story\" className={shell.h2}>{home.node(\"home.h2\")}</h2>\n            <div className={styles.story}>\n              <OwnerCopySlot slot=\"about-start-years\" note=\"ปีที่เริ่มงานการเงินและการลงทุน และปีที่เริ่มเป็นที่ปรึกษา (รอข้อมูลจากเจ้าของ)\" />\n              <p>{home.node(\"home.p\")}</p>\n              <FatherStory text={text} />\n              <p>{home.node(\"home.p2\")}</p>\n              <p>{home.node(\"home.p3\")}</p>\n            </div>\n          </div>\n        </section>\n      )}\n",
+    "        </div>\n      </section>\n"
+  ]
+];
+function ownerStoryV2SourcePredecessor(file, source) {
+  if (file !== 'features/about/page.tsx' || digest(source) !== '82c6d9416b4c3c633e90fc2c463dd4cfdd25ec39e1125a8590165f7c1162e463') return source;
+  for (const [newText, oldText] of ownerV2SourcePatches) {
+    assert.equal(source.split(newText).length, 2, 'Only one reviewed source edit');
+    source = source.replace(newText, oldText);
+  }
+  assert.equal(digest(source), 'd2070ede6bcaec4dcc56cb39e71aa7fcb11a8ef41973b85bb3bc87425cd92a23', 'Every prior About source byte restored');
+  return source;
+}
 const registry = loadFixtureModule('lib/content/public-copy-registry.ts');
 const defaults = scope => registry.PUBLIC_COPY_SCOPES[scope].defaults;
 
@@ -50,7 +81,13 @@ const ORIGINAL_847 = {
 for (const scope of ['about', 'toolsHub']) for (const review of [false, true]) for (const investment of [false, true]) {
   test(`${scope} default output preserves Web847 apart from the exact admitted About layout markup (review=${review}, investment=${investment})`, async () => {
     const key = `${scope}:${review}:${investment}`;
-    assert.equal(digest(ownerReviewHtmlPredecessor(await renderPage(scope, { review, investment }), key)), ORIGINAL_847[key]);
+    const html = await renderPage(scope, { review, investment });
+    if (scope === 'about' && review) {
+      assert.match(html, /data-owner-story-v2="approved-20261029"/, 'The reviewed 4-chapter story replaces the old UAT trial');
+      assert.doesNotMatch(html, /data-uat-trial="about-father-story"/, 'The old Father story is never duplicated');
+      return;
+    }
+    assert.equal(digest(ownerReviewHtmlPredecessor(html, key)), ORIGINAL_847[key], 'Production/About and ToolsHub historical HTML remains frozen');
   });
 }
 test('father compatibility exports retain every original value and paragraph order', () => {
@@ -79,11 +116,12 @@ test('new document identities and text guards reject unknown, duplicate, HTML, c
 });
 test('injected About page/Home/site drafts reach the actual page without published fetches', async () => {
   const fetches = [];
-  const html = await renderPage('about', { fetches }, [{ 'about.father.heading': 'หัวข้อทดสอบ UAT' }, { 'site.footer.about': 'ชื่อหน้าทดสอบ UAT' }, { 'home.eyebrow2': 'ชื่อที่ปรึกษาทดสอบ UAT' }, null]);
+  const html = await renderPage('about', { fetches }, [{ 'about.storyV2.c1.heading': 'หัวข้อทดสอบ UAT', 'about.father.heading': 'ข้อความเก่าที่ห้ามแสดงซ้ำ' }, { 'site.footer.about': 'ชื่อหน้าทดสอบ UAT' }, { 'home.eyebrow2': 'ชื่อที่ปรึกษาทดสอบ UAT' }, null]);
   for (const copy of ['หัวข้อทดสอบ UAT', 'ชื่อหน้าทดสอบ UAT', 'ชื่อที่ปรึกษาทดสอบ UAT']) assert.ok(html.includes(copy));
+  assert.ok(!html.includes('ข้อความเก่าที่ห้ามแสดงซ้ำ'));
   assert.deepEqual(fetches, []);
-  const production = await renderPage('about', { review: false, edits: { about: { 'about.father.heading': 'หัวข้อทดสอบ UAT' } } });
-  assert.ok(!production.includes('หัวข้อทดสอบ UAT'));
+  const production = await renderPage('about', { review: false, edits: { about: { 'about.storyV2.c1.heading': 'หัวข้อทดสอบ UAT' } } });
+  assert.ok(!production.includes('หัวข้อทดสอบ UAT'), 'New biography is UAT-only');
 });
 test('injected ToolsHub page/Home/site drafts retain all existing URLs and no published fetches', async () => {
   const fetches = [];
@@ -134,7 +172,8 @@ test('new copy editor groups cover every field once in actual page order', () =>
   }
   assert.equal(locations.about.entries['about.father.photoAlt'].visible, false);
   assert.equal(locations.toolsHub.entries['toolsHub.breadcrumb.label'].visible, false);
-  assert.equal(Object.keys(defaults('about')).length, 15);
+  assert.equal(Object.keys(defaults('about')).length, 55);
+  assert.equal(Object.keys(defaults('about')).filter(key => key.startsWith('about.storyV2.')).length, 40);
   assert.equal(Object.keys(defaults('toolsHub')).length, 9);
 });
 
@@ -150,7 +189,6 @@ test('new CMS binding admission preserves all old pins and refuses missing guard
     }
   }
 });
-
 test('private ToolsHub text preview shows all four fund-card draft fields with the real Admin flag false', async () => {
   const edits = { 'toolsHub.investment.title': 'ชื่อกองทุนทดสอบ', 'toolsHub.investment.body': 'คำอธิบายกองทุนทดสอบ', 'toolsHub.aia.title': 'ชื่อเอไอเอทดสอบ', 'toolsHub.aia.body': 'คำอธิบายเอไอเอทดสอบ' };
   const fetches = [];
@@ -161,26 +199,72 @@ test('private ToolsHub text preview shows all four fund-card draft fields with t
   for (const value of Object.values(edits)) assert.ok(!publicPage.includes(value), 'public flag remains authoritative');
 });
 
-test('Actual About keeps all three terms intact and admits only its complete paragraph wrapper and image hint', async () => {
-  const html = await renderPage('about', { review: true, investment: true });
+// Native parity admission accepts the complete two-file patch only, never a partial or unknown variant.
+test('About and Tools layout inverses preserve the complete prior CSS and reject unknown or partial edits', () => {
+  for (const [file, pin] of Object.entries(aboutToolsLayoutPins)) {
+    const currentSource = readFileSync(file, 'utf8');
+    let source = ownerStoryV2SourcePredecessor(file, currentSource);
+    if (file === 'features/about/page.tsx') {
+      assert.equal(ownerStoryV2SourcePredecessor(file, currentSource + ' '), currentSource + ' ', 'Unknown About source is rejected');
+    }
+    if (file === 'features/about/About.module.css') {
+      const marker = '\n/* Owner-approved four-chapter story: FigCraft Responsive v2';
+      assert.equal(currentSource.split(marker).length, 2);
+      assert.equal(digest(currentSource), 'dd4c912f5ca4f0f22c1b983f70f1f3e60cd550447c498c3073712db83951ce58', 'exact reviewed new CSS');
+      source = currentSource.slice(0, currentSource.indexOf(marker));
+      assert.equal(digest(source), pin.after, 'Old CSS restored byte-for-byte');
+      assert.notEqual(digest(currentSource + ' '), digest(currentSource));
+    }
+    assert.equal(digest(source), pin.after, file);
+    const prior = aboutToolsLayoutPredecessor(file, source);
+    assert.equal(digest(prior), pin.before, file);
+    assert.equal(aboutToolsLayoutPredecessor(file, prior), prior);
+    for (const [current, old] of pin.edits) {
+      for (const mutation of [source + ' ', source.replace(/\S/, 'X'), source.replace(current, old), source.replace(current, current + current)]) {
+        assert.notEqual(mutation, source);
+        assert.equal(aboutToolsLayoutPredecessor(file, mutation), mutation, 'Unknown, partial or duplicate layout bytes are not admitted');
+      }
+    }
+  }
+  assert.equal(aboutToolsLayoutPredecessor('unowned.css', 'body'), 'body');
+});
+
+test('Owner Story V2: exact approved text, assets, UAT isolation and preserved historical copy', async () => {
+  const source = readFileSync('lib/content/about-copy-defaults.ts', 'utf8');
+  const begin = source.indexOf('// Owner-approved Story V2');
+  const end = source.indexOf('  "about.breadcrumb.home":');
+  assert.ok(begin > 0 && end > begin);
+  assert.equal(digest(source.slice(0, begin) + source.slice(end)),
+    '833e3e8a6ab5f214caa3bbf9429560006ba7456b3ddb5da1675c1a1b85e7e47f', 'Original About defaults unchanged');
+  const chapterLengths = [9, 11, 7, 7];
+  const expected = chapterLengths.flatMap((count, i) => [
+    defaults('about')[`about.storyV2.c${i + 1}.heading`],
+    ...Array.from({ length: count }, (_, p) => defaults('about')[`about.storyV2.c${i + 1}.p${p + 1}`]),
+  ]);
+  assert.equal(expected.length, 38);
+  assert.equal(digest(expected.join('\n\n')),
+    '5a1cf1314423b9bde42143c6b7614b843b59f80f4ec2d833fcade74d4fa34b5f', 'All approved owner biography characters preserved');
+  const locations = JSON.parse(readFileSync('lib/content/public-copy-locations.json', 'utf8'));
+  assert.equal(Object.keys(locations.about.entries).length, 55);
+  for (const key of Object.keys(defaults('about'))) assert.ok(locations.about.entries[key], key);
+  const html = await renderPage('about', { review: true });
   const { JSDOM } = require('jsdom');
   const document = new JSDOM(html).window.document;
-  const story = document.querySelector('[data-uat-trial="about-father-story"]');
-  const phrase = story.querySelector('.fatherPhrase');
-  const motto = 'บริหารเวลา บริหารเงิน บริหารชีวิต';
-  assert.equal(phrase.textContent, motto);
-  assert.deepEqual([...phrase.children].map(n => n.textContent), motto.split(' '));
-  assert.ok([...phrase.children].every(n => n.className === 'keep'));
-  assert.equal(story.querySelectorAll('.keep').length, 4);
-  assert.equal(story.querySelector('img').getAttribute('sizes'), '(max-width: 1279px) min(420px, calc(100vw - 40px)), (max-width: 1439px) calc(37.5vw - 84px), 456px');
-  assert.equal(story.querySelector('figcaption .keep').textContent, motto, 'caption retains whole-phrase markup');
-  const prior = ownerReviewHtmlPredecessor(html, 'about:true:true');
-  assert.notEqual(prior, html);
-  assert.equal(digest(prior), ORIGINAL_847['about:true:true']);
-  for (const mutation of [html + ' ', html.replace('sizes="(max-width: 1279px) min(420px, calc(100vw - 40px)), (max-width: 1439px) calc(37.5vw - 84px), 456px"', 'sizes="(max-width: 899px) calc(100vw - 40px), 280px"'), html.replace('imageSizes="(max-width: 1279px) min(420px, calc(100vw - 40px)), (max-width: 1439px) calc(37.5vw - 84px), 456px"', 'imageSizes="(max-width: 899px) calc(100vw - 40px), 280px"'), html.replace(phrase.outerHTML, phrase.outerHTML + phrase.outerHTML), html.replace('<span class="keep">บริหารเวลา</span>', 'บริหารเวลา'), html.replace(/\S/, 'X')]) {
-    assert.notEqual(mutation, html);
-    assert.equal(ownerReviewHtmlPredecessor(mutation, 'about:true:true'), mutation, 'Unknown/partial/duplicate markup is not normalized');
+  const story = document.querySelector('article[data-owner-story-v2="approved-20261029"]');
+  assert.ok(story, 'Native 4-chapter layout is UAT-visible');
+  assert.equal(story.querySelectorAll('section').length, 4);
+  const headings = [...story.querySelectorAll('h2')].map(node => node.textContent);
+  assert.deepEqual(headings, [0, 1, 2, 3].map(i => expected[[0, 10, 22, 30][i]]));
+  const paragraphs = [...story.querySelectorAll('.ownerStoryCopy p, .ownerStoryMotto')].map(node => node.textContent);
+  assert.equal(paragraphs.length, 34);
+  assert.deepEqual(paragraphs, expected.filter((_, i) => ![0, 10, 22, 30].includes(i)));
+  assert.equal(story.querySelectorAll('img').length, 4, 'Three approved career photos plus original Father photo');
+  for (const name of ['owner-scbs-u-invest.webp', 'owner-phillip-seminar.webp', 'owner-bitkub.webp', 'ccpun-father-v5-colour.webp']) {
+    assert.ok(story.querySelector(`img[src*="${name}"]`), name);
   }
-  assert.equal(ownerReviewHtmlPredecessor(html, 'about:true:unknown'), html);
-  assert.equal(ownerReviewHtmlPredecessor(prior, 'about:true:true'), prior);
+  assert.ok(!story.textContent.includes('คุณพ่อสอนผมมาตั้งแต่เด็ก'), 'Superseded Father Story absent from visible page');
+  assert.equal(document.querySelectorAll('[data-uat-trial="about-father-story"]').length, 0);
+  const production = await renderPage('about', { review: false });
+  assert.ok(!production.includes('data-owner-story-v2'), 'New story is never visible on Production');
+  assert.equal(digest(ownerReviewHtmlPredecessor(production, 'about:false:false')), ORIGINAL_847['about:false:false']);
 });

@@ -313,6 +313,46 @@ const prefixSection = key => {
 const PAGE_ENTRY_LOCATIONS = {
   about: [
     ["about.breadcrumb.home", "ส่วนหัวและเส้นทาง", "ลิงก์", true],
+    ["about.storyV2.heroIntro", "ส่วนหัวและเส้นทาง", "ย่อหน้าแนะนำตัว", true],
+    ["about.storyV2.c1.heading", "ทำไมผมถึงมาทำงานวางแผนการเงิน", "หัวข้อส่วน", true],
+    ["about.storyV2.c1.p1", "ทำไมผมถึงมาทำงานวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c1.p2", "ทำไมผมถึงมาทำงานวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c1.p3", "ทำไมผมถึงมาทำงานวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c1.p4", "ทำไมผมถึงมาทำงานวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c1.p5", "ทำไมผมถึงมาทำงานวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c1.p6", "ทำไมผมถึงมาทำงานวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c1.p7", "ทำไมผมถึงมาทำงานวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c1.p8", "ทำไมผมถึงมาทำงานวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c1.p9", "ทำไมผมถึงมาทำงานวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c2.heading", "จุดเปลี่ยนที่ทำให้ผมกลับมามองเรื่องการเงินอีกครั้ง", "หัวข้อส่วน", true],
+    ["about.storyV2.c2.p1", "จุดเปลี่ยนที่ทำให้ผมกลับมามองเรื่องการเงินอีกครั้ง", "ย่อหน้า", true],
+    ["about.storyV2.c2.p2", "จุดเปลี่ยนที่ทำให้ผมกลับมามองเรื่องการเงินอีกครั้ง", "ย่อหน้า", true],
+    ["about.storyV2.c2.p3", "จุดเปลี่ยนที่ทำให้ผมกลับมามองเรื่องการเงินอีกครั้ง", "ย่อหน้า", true],
+    ["about.storyV2.c2.p4", "จุดเปลี่ยนที่ทำให้ผมกลับมามองเรื่องการเงินอีกครั้ง", "ย่อหน้า", true],
+    ["about.storyV2.c2.p5", "จุดเปลี่ยนที่ทำให้ผมกลับมามองเรื่องการเงินอีกครั้ง", "ย่อหน้า", true],
+    ["about.storyV2.c2.p6", "จุดเปลี่ยนที่ทำให้ผมกลับมามองเรื่องการเงินอีกครั้ง", "ย่อหน้า", true],
+    ["about.storyV2.c2.p7", "จุดเปลี่ยนที่ทำให้ผมกลับมามองเรื่องการเงินอีกครั้ง", "ย่อหน้า", true],
+    ["about.storyV2.c2.p8", "จุดเปลี่ยนที่ทำให้ผมกลับมามองเรื่องการเงินอีกครั้ง", "ย่อหน้า", true],
+    ["about.storyV2.c2.p9", "จุดเปลี่ยนที่ทำให้ผมกลับมามองเรื่องการเงินอีกครั้ง", "ย่อหน้า", true],
+    ["about.storyV2.c2.p10", "จุดเปลี่ยนที่ทำให้ผมกลับมามองเรื่องการเงินอีกครั้ง", "ย่อหน้า", true],
+    ["about.storyV2.c2.p11", "จุดเปลี่ยนที่ทำให้ผมกลับมามองเรื่องการเงินอีกครั้ง", "ย่อหน้า", true],
+    ["about.storyV2.c3.heading", "จากสายลงทุน สู่การวางแผนการเงิน", "หัวข้อส่วน", true],
+    ["about.storyV2.c3.p1", "จากสายลงทุน สู่การวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c3.p2", "จากสายลงทุน สู่การวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c3.p3", "จากสายลงทุน สู่การวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c3.p4", "จากสายลงทุน สู่การวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c3.p5", "จากสายลงทุน สู่การวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c3.p6", "จากสายลงทุน สู่การวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c3.p7", "จากสายลงทุน สู่การวางแผนการเงิน", "ย่อหน้า", true],
+    ["about.storyV2.c4.heading", "วันนี้ผมมองการวางแผนการเงินอย่างไร", "หัวข้อส่วน", true],
+    ["about.storyV2.c4.p1", "วันนี้ผมมองการวางแผนการเงินอย่างไร", "ย่อหน้า", true],
+    ["about.storyV2.c4.p2", "วันนี้ผมมองการวางแผนการเงินอย่างไร", "ย่อหน้า", true],
+    ["about.storyV2.c4.p3", "วันนี้ผมมองการวางแผนการเงินอย่างไร", "ย่อหน้า", true],
+    ["about.storyV2.c4.p4", "วันนี้ผมมองการวางแผนการเงินอย่างไร", "ย่อหน้า", true],
+    ["about.storyV2.c4.p5", "วันนี้ผมมองการวางแผนการเงินอย่างไร", "ย่อหน้า", true],
+    ["about.storyV2.c4.p6", "วันนี้ผมมองการวางแผนการเงินอย่างไร", "ย่อหน้า", true],
+    ["about.storyV2.c4.p7", "วันนี้ผมมองการวางแผนการเงินอย่างไร", "ย่อหน้า", true],
+    ["about.storyV2.ctaLabel", "วันนี้ผมมองการวางแผนการเงินอย่างไร", "ลิงก์ติดต่อ", true],
     ["about.father.heading", "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "หัวข้อย่อย", true],
     ["about.father.paragraph1", "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "ย่อหน้า", true],
     ["about.father.photoAlt", "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "คำอธิบายรูป", false],
@@ -349,6 +389,32 @@ for (const [scope, config] of Object.entries(PUBLIC_COPY_SCOPES)) {
   for (const entry of entries) if (!sectionOrder.includes(entry.section)) sectionOrder.push(entry.section);
   result[scope] = { sections: sectionOrder, entries: Object.fromEntries(entries.map((entry, index) => [entry.key, { section: entry.section, kind: entry.kind, visible: entry.visible, order: index }])) };
 }
+
+// Preserve the six already-reviewed UAT Home editor positions while adding
+// only Story V2 fields to About. The scanner traversal can reorder these six
+// without a UI change; refuse unknown positions rather than resealing a pin.
+const originalHomeOrder = new Map([
+  ["home.website43Hometitle2", 75], ["home.blockquote", 76], ["home.cite", 77],
+  ["home.p6", 78], ["home.p5", 79], ["home.moneyStory.description", 80],
+]);
+const currentHomeOrder = new Map([
+  ["home.website43Hometitle2", 78], ["home.blockquote", 79], ["home.cite", 80],
+  ["home.p6", 75], ["home.p5", 76], ["home.moneyStory.description", 77],
+]);
+for (const [key, expected] of currentHomeOrder) {
+  if (result.home.entries[key]?.order !== expected) {
+    throw new Error(`UNREVIEWED_HOME_COPY_ORDER: ${key}`);
+  }
+}
+result.home.entries = Object.fromEntries(Object.entries(result.home.entries)
+  .sort((a, b) => (originalHomeOrder.get(a[0]) ?? a[1].order) - (originalHomeOrder.get(b[0]) ?? b[1].order))
+  .map(([key, entry], index) => [key, { ...entry, order: index }]));
+const approvedHomeSectionOrder = ["เพราะปัญหาทางการเงินมัน", "ส่วนอื่นของหน้า", "คู่มือหลัก", "บทความล่าสุด", "โจทย์ที่พบบ่อย", "เสียงจากการพูดคุยจริง", "HOW IT WORKS", "ไม่รู้จะเริ่มอย่างไร เริ่มจากบทความและเครื่องม…", "คำถามที่พบบ่อย", "รู้จักที่ปรึกษาทางการเงิน CCPun", "จากคนที่โฟกัสแต่เรื่องการลงทุน สู่ที่ปรึกษาทาง…", "พาร์ทเนอร์ทั้งหมดที่ร่วมงาน", "รีวิวจากลูกค้าที่ได้รับคำแนะนำจริง", "หน้าอ่านบทความ", "ข้อความที่ระบบเลือกแสดงตามสถานการณ์"];
+const observedHomeSections = ["เพราะปัญหาทางการเงินมัน", "ส่วนอื่นของหน้า", "คู่มือหลัก", "บทความล่าสุด", "โจทย์ที่พบบ่อย", "เสียงจากการพูดคุยจริง", "HOW IT WORKS", "ไม่รู้จะเริ่มอย่างไร เริ่มจากบทความและเครื่องม…", "คำถามที่พบบ่อย", "รู้จักที่ปรึกษาทางการเงิน CCPun", "จากคนที่โฟกัสแต่เรื่องการลงทุน สู่ที่ปรึกษาทาง…", "พาร์ทเนอร์ทั้งหมดที่ร่วมงาน", "หน้าอ่านบทความ", "รีวิวจากลูกค้าที่ได้รับคำแนะนำจริง", "ข้อความที่ระบบเลือกแสดงตามสถานการณ์"];
+if (JSON.stringify(result.home.sections) !== JSON.stringify(observedHomeSections)) {
+  throw new Error("UNREVIEWED_HOME_SECTION_DRIFT");
+}
+result.home.sections = approvedHomeSectionOrder;
 
 const serialized = `${JSON.stringify(result)}\n`;
 if (process.argv.includes("--check")) {

@@ -34,6 +34,7 @@ async function render(review: boolean) {
     if (id === "next/image") return { __esModule: true, default: (props: Record<string, unknown>) => React.createElement("img", props) };
     if (id === "next/link") return { __esModule: true, default: (props: Record<string, unknown>) => React.createElement("a", props) };
     if (id === "./father-story-copy") return copy;
+    if (id === "./OwnerStoryV2") return { __esModule: true, default: ({ text }: { text: (key: string) => string }) => React.createElement("article", { "data-owner-story-v2": "approved-20261029", "data-first-heading": text("about.storyV2.c1.heading") }) };
     if (id === "@/lib/deployment-environment") return { IS_REVIEW_ENVIRONMENT: actualReview };
     if (id === "@/lib/content/public-copy") return { getPublicCopy: async () => ({}) };
     if (id === "@/lib/content/public-copy-registry") return { publicCopyText: () => text };
@@ -53,34 +54,23 @@ async function render(review: boolean) {
   return { document: new JSDOM(renderToStaticMarkup(await pageModule.exports.renderAboutPage())).window.document, metadata: pageModule.exports.metadata };
 }
 
-test("C13: actual About UAT SSR renders exact paragraphs, questions, caption and semantic order", async () => {
+test("C13: actual About UAT selects new Story V2 without duplicating superseded Father trial", async () => {
   const { document, metadata } = await render(true);
   assert.deepEqual(metadata.robots, { index: false, follow: false });
-  const story = document.querySelector('[data-uat-trial="about-father-story"]')!;
-  assert.ok(story);
-  assert.deepEqual(Array.from(story.children, (node) => node.tagName), ["H3", "P", "FIGURE", "DIV"]);
-  assert.equal(story.querySelector("h3")!.textContent, copy.FATHER_STORY_HEADING);
-  assert.deepEqual(Array.from(story.querySelectorAll("p"), (node) => node.textContent), [...copy.FATHER_STORY_PARAGRAPHS]);
-  assert.deepEqual(Array.from(story.querySelectorAll("ul > li"), (node) => node.textContent), [...copy.FATHER_STORY_QUESTIONS]);
-  assert.deepEqual(Array.from(story.querySelector(".fatherStoryBody")!.children, (node) => node.tagName), ["P", "P", "P", "P", "P", "UL", "P"]);
-  const caption = story.querySelector("figcaption")!;
-  assert.equal(caption.innerHTML.replace(/<br\s*\/?\s*>/g, "\n").replace(/<[^>]+>/g, ""), copy.FATHER_PHOTO_CAPTION);
-  assert.equal(caption.querySelectorAll("br").length, 1);
-  const phrase = story.querySelector(".fatherPhrase")!;
-  assert.equal(phrase.textContent, copy.FATHER_STORY_KEEP, "the complete quote and original spaces remain exact");
-  assert.deepEqual(Array.from(phrase.children, node => node.textContent), copy.FATHER_STORY_KEEP.split(" "), "breaks can occur only between the three existing terms");
-  for (const term of Array.from(phrase.children)) assert.equal(term.className, "keep", "each term uses the existing no-mid-word-cut class");
-  assert.equal(story.querySelectorAll(".keep").length, 4);
-  assert.equal(caption.querySelector(".keep")!.textContent, copy.FATHER_STORY_KEEP, "caption keeps its whole phrase unchanged");
-  assert.equal(story.querySelector("img")!.getAttribute("src"), "/assets/ccpun-father-v5-colour.webp");
-  assert.equal(story.querySelector("img")!.getAttribute("sizes"), "(max-width: 1279px) min(420px, calc(100vw - 40px)), (max-width: 1439px) calc(37.5vw - 84px), 456px");
-  assert.ok(story.closest("section")!.querySelector("h2"), "h3 stays below the existing h2");
+  const story = document.querySelector('[data-owner-story-v2="approved-20261029"]');
+  assert.ok(story, 'UAT selects owner-approved Story V2');
+  assert.equal(story.getAttribute('data-first-heading'), 'ทำไมผมถึงมาทำงานวางแผนการเงิน');
+  assert.equal(document.querySelector('[data-uat-trial="about-father-story"]'), null);
+  assert.equal(document.querySelector('[data-uat-placeholder="about-father-photo"]'), null);
+  // Exact full text, ordering and photos are checked by the real v5-public-copy-pages renderer test.
+  assert.equal(copy.FATHER_STORY_HEADING, 'บทเรียนที่คุณพ่อสอน', 'historic copy remains for rollback');
 });
 
 test("C13: actual About Production-simulated SSR excludes the entire story, father photo and caption", async () => {
   const { document, metadata } = await render(false);
   assert.deepEqual(metadata.robots, { index: true, follow: true });
   assert.equal(document.querySelector('[data-uat-trial="about-father-story"]'), null);
+  assert.equal(document.querySelector('[data-owner-story-v2]'), null, "new biography cannot render in Production");
   assert.equal(document.querySelector('[data-uat-placeholder="about-father-photo"]'), null);
   assert.equal(document.querySelector('img[src*="ccpun-father"]'), null);
   for (const value of [copy.FATHER_STORY_HEADING, ...copy.FATHER_STORY_PARAGRAPHS, ...copy.FATHER_STORY_QUESTIONS, ...copy.FATHER_PHOTO_CAPTION.split("\n")]) assert.ok(!document.body.textContent!.includes(value), value);

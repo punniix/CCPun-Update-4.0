@@ -629,7 +629,9 @@ test("SEO: /about/ is the approved new owner: self canonical, core sitemap, Prof
   assert.match(page, /"@type": "BreadcrumbList"/);
   // Owner-copy slots render only on UAT/preview, never in a Production build.
   assert.match(page, /function OwnerCopySlot[\s\S]*?if \(!IS_REVIEW_ENVIRONMENT\) return null;/);
-  for (const slot of ["about-hero-sentence", "about-start-years"]) assert.ok(page.includes(`slot="${slot}"`), slot);
+  assert.ok(page.includes('slot="about-start-years"'), "Historical About slot remains in the unchanged Production renderer");
+  assert.match(page, /IS_REVIEW_ENVIRONMENT \? \(\s*<section[^>]+aria-label="ประวัติและแนวทางการวางแผนการเงิน"/, "UAT-only Story V2 section");
+  assert.match(page, /<OwnerStoryV2 text=\{text\} qualification=\{qualification\} licenceCards=\{licenceCards\} \/>/, "UAT renders reviewed story component");
   assert.match(page, /function FatherStory[\s\S]*?if \(!IS_REVIEW_ENVIRONMENT\) return null;/);
   assert.match(page, /<FatherStory text=\{text\} \/>/);
   assert.doesNotMatch(page, /ฟรี|รับประกัน|ที่สุด|…|\.\.\./, "About content rules: no free, guarantees, superlatives or ellipsis");
