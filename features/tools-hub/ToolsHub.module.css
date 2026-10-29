@@ -14,5 +14,8 @@
 
 /* Shorten the transparent expanded hit area beside LINE without changing the tool card. */
 @media (max-width:1023px) { .card h2 a::after { right:calc(80px - var(--v5-gutter)); } }
-@media (max-width:479px) { .card:has(h2 a[href="/tools/financial-health-check/"]) > p { padding-right:40px; } }
+@media (max-width:479px) {
+  .card:has(h2 a[href="/tools/financial-health-check/"]) > p,
+  .card:has(h2 a[href="/tools/aia-fund-allocation/"]) > p { padding-right:40px; }
+}
 @media (min-width:1024px) { .card h2 a::after { right:calc(248px - var(--v5-gutter)); } }

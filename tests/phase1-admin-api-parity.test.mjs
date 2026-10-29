@@ -1,3 +1,5 @@
+import { adminConnectionPredecessor } from '../qa/admin-phase1-quick-wins-proof.mjs';
+import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -25,7 +27,8 @@ function request(trace, method, body, badJson = false) {
   return input;
 }
 function loader(file, old, mocks, trace, env = {}) {
-  return loadFixtureModule(file, { sources: old ? originals : new Map(), mocks, globals: { process: { env: { AUTH_URL: 'https://admin.example', ...env } }, console: { warn: (...args) => trace.push(['warn', ...args]) } } });
+  const sources = old ? originals : file === canonicalUb ? new Map([[file, adminConnectionPredecessor(file, readFileSync(file, 'utf8'))]]) : new Map();
+  return loadFixtureModule(file, { sources, mocks, globals: { process: { env: { AUTH_URL: 'https://admin.example', ...env } }, console: { warn: (...args) => trace.push(['warn', ...args]) } } });
 }
 async function observeUb(file, old, c) {
   const trace = []; let uuid = 0; let release;
@@ -143,4 +146,20 @@ test('auth keeps direct legacy handler identities, canonical receivers, response
   for (const file of [rootAuth, canonicalAuth]) for (const method of ['GET', 'POST']) for (const c of [{}, { callback: true }, { status: 401 }, { status: 302, redirect: true }, { fail: true }]) assert.deepEqual(await observeAuth(file, false, { ...c, method }), await observeAuth(file, true, { ...c, method }), file + ':' + JSON.stringify({ ...c, method }));
   const canonical = await observeAuth(canonicalAuth, false, { callback: true });
   assert.equal(canonical.trace[0][2], true, 'observed handlers retain their original receiver');
+});
+
+// This admission is restricted to historical parity; actual current handler tests do not import it.
+test('canonical AISV legacy source inverse retains old bytes and rejects unknown or partial source', () => {
+  const sha = text => createHash('sha256').update(text).digest('hex');
+  const source = readFileSync(canonicalUb, 'utf8');
+  assert.equal(sha(source), '019ae4b216e94e4968c307aca743bf0e3c3fb2ea307cc2f55d47c31af129774f');
+  const prior = adminConnectionPredecessor(canonicalUb, source);
+  assert.equal(sha(prior), 'c617f08feca0f38d6330405f6bb880e945c8dcf1ecdf13766258d5df8a425b73');
+  assert.equal(adminConnectionPredecessor(canonicalUb, prior), prior);
+  for (const mutation of [source + ' ', source.replace(/\S/, 'X'), source.replace('isConfiguredAdminOrigin(request.url, process.env.AUTH_URL)', 'true'), source.replace('const maxBodyBytes = 1_048_576;', 'const maxBodyBytes = 1_048_576;\nconst maxBodyBytes = 1_048_576;')]) {
+    assert.notEqual(mutation, source);
+    assert.equal(adminConnectionPredecessor(canonicalUb, mutation), mutation, 'No unknown/partial/duplicate source is admitted');
+  }
+  assert.equal(adminConnectionPredecessor(rootUb, source), source, 'No root route exemption');
+  assert.doesNotMatch(readFileSync('tests/admin/admin-connection-handlers.test.ts', 'utf8'), /adminConnectionPredecessor|admin-phase1-quick-wins-proof/, 'Current handler tests keep executing raw source');
 });

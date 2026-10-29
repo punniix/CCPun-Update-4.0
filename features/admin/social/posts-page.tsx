@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdminPermission } from "@/lib/admin/require-permission";
 import { getSocialOperationsRuntimeStatus } from "@/lib/admin/social/operations";
+import { getSocialMarketingDashboardRuntimeStatus } from "@/lib/admin/social/marketing-dashboard";
 import { isSocialPublicationApprovalEnabled } from "@/lib/admin/social/publishing";
 import SocialMediaMetadataPanel from "@/features/admin/social/SocialMediaMetadataPanel";
 import SocialPostsWorkspace from "@/features/admin/social/SocialPostsWorkspace";
@@ -39,7 +40,7 @@ export default async function SocialPostsPage() {
       <SocialMediaMetadataPanel />
 
       <nav aria-label="ลิงก์โซเชียลเพิ่มเติม" className="mt-8 flex flex-wrap gap-2 border-t border-white/10 pt-5">
-        <Link href="/analytics/social/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ผลลัพธ์โซเชียล</Link>
+        {getSocialMarketingDashboardRuntimeStatus().enabled ? <Link href="/analytics/social/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">ผลลัพธ์โซเชียล</Link> : null}
         {showDeferredConnections ? <Link href="/analytics/social/post-live/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">สถิติย้อนหลังหลังไลฟ์</Link> : null}
         <Link href="/social/accounts/meta/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">การเชื่อมต่อ Meta</Link>
         {showDeferredConnections ? <Link href="/social/accounts/youtube/" className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5">การเชื่อมต่อ YouTube</Link> : null}

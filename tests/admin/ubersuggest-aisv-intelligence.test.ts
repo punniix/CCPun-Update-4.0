@@ -119,7 +119,7 @@ test("AISV intent-owner matching is exact and never infers a broad-topic owner",
 });
 
 test("AISV reviewed import is human-only same-origin UAT-only and separate from provider OAuth", () => {
-  const route = readFileSync("app/api/admin/providers/ubersuggest/sync/route.ts", "utf8");
+  const route = readFileSync("apps/admin/app/api/admin/providers/ubersuggest/sync/route.ts", "utf8");
   const page = readFileSync("features/admin/research/page.tsx", "utf8");
   const provider = readFileSync("lib/admin/ubersuggest.ts", "utf8");
 

@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { adminOps20261025DomPredecessor, adminOps20261025PredecessorDigest } from './admin-ops-20261025-proof.mjs';
 
@@ -31,7 +32,63 @@ export const adminPhase1QuickWinSources = Object.freeze({
 // Returns the digest the frozen proofs should compare: the reviewed predecessor
 // for an exact reviewed successor, otherwise the file's own digest (so any other
 // edit still fails the original assertion).
+// Exact reviewed canonical AISV successor, used ONLY by historical source/API parity proofs.
+// Current handler security/body/import tests execute the raw current route independently.
+const adminConnectionLegacyPin = Object.freeze({
+  "file": "apps/admin/app/api/admin/providers/ubersuggest/sync/route.ts",
+  "after": "019ae4b216e94e4968c307aca743bf0e3c3fb2ea307cc2f55d47c31af129774f",
+  "before": "c617f08feca0f38d6330405f6bb880e945c8dcf1ecdf13766258d5df8a425b73",
+  "edits": [
+    [
+      86,
+      "import { z } from \"zod\";\nimport { isConfiguredAdminOrigin, isSameOriginAdminMutation } from \"@/lib/admin/auth-config\";\n",
+      ""
+    ],
+    [
+      438,
+      "import { aisvSnapshotImportSchema } from \"@/lib/admin/seo-intelligence/aisv\";\n",
+      ""
+    ],
+    [
+      635,
+      "import { persistUbersuggestDashboardSync } from \"@/lib/admin/ubersuggest-dashboard\";\n",
+      "\n"
+    ],
+    [
+      786,
+      "const requestSchema = z.discriminatedUnion(\"mode\", [\n  z.object({ mode: z.literal(\"provider-sync\") }).strict(),\n  z.object({ mode: z.literal(\"reviewed-import\"), snapshot: aisvSnapshotImportSchema }).strict(),\n]);\n\nfunction isReviewedImportEnvironment() {\n  const environment = getAdminEnvironment();\n  return environment === \"admin-uat\" || environment === \"local-uat\";\n}\n\nexport async function POST(request: Request) {\n",
+      "export async function POST() {\n"
+    ],
+    [
+      1337,
+      "  if (\n    !isConfiguredAdminOrigin(request.url, process.env.AUTH_URL) ||\n    !isSameOriginAdminMutation(request.url, request.headers.get(\"origin\"))\n  ) return NextResponse.json({ error: \"forbidden-origin\" }, { status: 403 });\n\n",
+      ""
+    ],
+    [
+      1941,
+      "  const maxBodyBytes = 1_048_576;\n  if (Number(request.headers.get(\"content-length\")) > maxBodyBytes) {\n    return NextResponse.json({ error: \"payload-too-large\" }, { status: 413 });\n  }\n  const reader = request.body?.getReader();\n  const chunks: Uint8Array[] = [];\n  let bodyBytes = 0;\n  try {\n    if (reader) for (;;) {\n      const { done, value } = await reader.read();\n      if (done) break;\n      bodyBytes += value.byteLength;\n      if (bodyBytes > maxBodyBytes) {\n        await reader.cancel().catch(() => undefined);\n        return NextResponse.json({ error: \"payload-too-large\" }, { status: 413 });\n      }\n      chunks.push(value);\n    }\n  } catch {\n    return NextResponse.json({ error: \"invalid-input\" }, { status: 400 });\n  } finally { reader?.releaseLock(); }\n  const rawText = Buffer.concat(chunks).toString(\"utf8\");\n  let raw: unknown = { mode: \"provider-sync\" };\n  if (rawText.trim()) {\n    try {\n      raw = JSON.parse(rawText) as unknown;\n    } catch {\n      return NextResponse.json({ error: \"invalid-input\" }, { status: 400 });\n    }\n  }\n  const parsed = requestSchema.safeParse(raw);\n  if (!parsed.success) return NextResponse.json({ error: \"invalid-input\" }, { status: 400 });\n\n",
+      ""
+    ],
+    [
+      3176,
+      "\n  if (parsed.data.mode === \"reviewed-import\") {\n    if (!isReviewedImportEnvironment()) return NextResponse.json({ error: \"uat-import-only\", requestId }, { status: 403 });\n    try {\n      const saved = await persistUbersuggestDashboardSync(parsed.data.snapshot, {\n        actor: identity.actor,\n        actorType: \"human\",\n        requestId,\n      });\n      return NextResponse.json({ ...saved, reused: false, imported: true, requestId }, { status: 201 });\n    } catch (error) {\n      const code = error instanceof Error ? error.message : \"\";\n      if ([\"SANITY_WRITE_NOT_CONFIGURED\", \"ADMIN_DATABASE_NOT_CONFIGURED\"].includes(code)) {\n        return NextResponse.json({ error: \"research-write-not-configured\", requestId }, { status: 503 });\n      }\n      return NextResponse.json({ error: \"provider-import-failed\", requestId }, { status: 502 });\n    }\n  }\n\n",
+      ""
+    ]
+  ]
+});
+export function adminConnectionPredecessor(file, source) {
+  const pin = adminConnectionLegacyPin;
+  if (file !== pin.file || typeof source !== 'string' || sha(source) !== pin.after) return source;
+  for (const [offset, current, prior] of [...pin.edits].reverse()) {
+    assert.equal(source.slice(offset, offset + current.length), current, 'exact reviewed canonical AISV bytes');
+    source = source.slice(0, offset) + prior + source.slice(offset + current.length);
+  }
+  assert.equal(sha(source), pin.before, 'every original canonical Admin568 byte retained');
+  return source;
+}
+
 export function adminPhase1PredecessorDigest(file, source) {
+  source = adminConnectionPredecessor(file, source);
   // Later reviewed successors (qa/admin-ops-20261025-proof.mjs) chain back first.
   const digest = adminOps20261025PredecessorDigest(file, sha(source));
   const entry = Object.hasOwn(adminPhase1QuickWinSources, file) ? adminPhase1QuickWinSources[file] : null;
