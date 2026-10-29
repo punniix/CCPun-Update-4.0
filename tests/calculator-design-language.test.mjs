@@ -124,7 +124,7 @@ test('CI gap and its income or expense breakdown share one card, separate from R
 test('CI result actions and FAQ spacing stay aligned without changing shared FHC styles', () => {
   assert.match(ciResult, /ccpun-calculator-result-cta ccpun-ci-result-cta/);
   assert.match(ciResult, /<h3>อยากทบทวนตัวเลขต่อ\?<\/h3>[\s\S]*ccpun-ci-result-cta-copy[\s\S]*<ResultImageDownloadButton[\s\S]*ccpun-ci-result-cta-line/);
-  assert.match(ciImageActions, /canShareFile \? 'grid gap-3 sm:grid-cols-2' : 'grid gap-3'/);
+  assert.match(ciImageActions, /canShareFile \? 'grid gap-3 sm:grid-cols-3' : 'grid gap-3 sm:grid-cols-2'/, 'Preview and download align with the optional native share action');
   assert.match(ciImageActions, /empty:sr-only/);
   assert.doesNotMatch(ciImageActions, /min-h-5/);
   assert.match(website43Css, /\.calculatorStage :global\(\.ccpun-ci-result-cta-inner\) \{ width: min\(560px,100%\); margin-inline: auto; \}/);

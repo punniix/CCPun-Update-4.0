@@ -1,3 +1,4 @@
+import './ci-result-preview.test.mjs';
 import { CI_COPY_DEFAULTS } from '../lib/content/tool-copy-defaults';
 import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
 import { fileURLToPath } from 'node:url';

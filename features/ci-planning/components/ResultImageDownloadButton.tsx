@@ -5,11 +5,12 @@ import { usePublicCopy } from '@/components/ui/PublicCopyProvider';
 import { CI_COPY_DEFAULTS } from '@/lib/content/tool-copy-defaults';
 
 
-import { useEffect, useState } from 'react';
-import { Download, Share2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Download, Eye, Share2 } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
 import { CI_ASSESSMENT_VERSION } from '@/features/ci-planning/calculator/constants';
 import type { CIEstimationMethod, CIResult } from '@/features/ci-planning/calculator/types';
+import styles from './ResultImageDownloadButton.module.css';
 
 interface ResultImageDownloadButtonProps {
   result: CIResult;
@@ -33,8 +34,16 @@ export default function ResultImageDownloadButton({
   const imageText = usePublicCopy();
 
   const [state, setState] = useState<ActionState>('idle');
-  const [prepared, setPrepared] = useState<{ result: CIResult; method: CIEstimationMethod; file: File } | null>(null);
+  const [prepared, setPrepared] = useState<{ result: CIResult; method: CIEstimationMethod; file: File | null } | null>(null);
+  const [preview, setPreview] = useState<{ file: File; url: string } | null>(null);
+  const previewDialog = useRef<HTMLDialogElement>(null);
+  const previewUrl = useRef<string | null>(null);
+  const releasePreviewUrl = useCallback(() => {
+    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+    previewUrl.current = null;
+  }, []);
   const imageFile = prepared?.result === result && prepared.method === selectedMethod ? prepared.file : null;
+  const preparationFailed = prepared?.result === result && prepared.method === selectedMethod && !prepared.file;
   const canShareFile = imageFile && typeof navigator !== 'undefined'
     && typeof navigator.share === 'function'
     && typeof navigator.canShare === 'function'
@@ -44,9 +53,29 @@ export default function ResultImageDownloadButton({
     let current = true;
     void createResultFile(result, selectedMethod, t, imageText)
       .then((file) => { if (current) setPrepared({ result, method: selectedMethod, file }); })
-      .catch(() => { if (current) setPrepared(null); });
+      .catch(() => { if (current) setPrepared({ result, method: selectedMethod, file: null }); });
     return () => { current = false; };
   }, [result, selectedMethod, t, imageText]);
+
+  useEffect(() => releasePreviewUrl, [releasePreviewUrl]);
+  useEffect(() => {
+    if (preview && preview.file !== imageFile) previewDialog.current?.close();
+  }, [imageFile, preview]);
+
+  function handlePreview(): void {
+    const dialog = previewDialog.current;
+    if (!imageFile || !dialog || dialog.open) return;
+    const url = URL.createObjectURL(imageFile);
+    previewUrl.current = url;
+    try {
+      dialog.showModal();
+      setPreview({ file: imageFile, url });
+      setState('idle');
+    } catch {
+      releasePreviewUrl();
+      setState('error');
+    }
+  }
 
   async function handleDownload(): Promise<void> {
     if (state === 'downloading' || state === 'sharing') return;
@@ -89,7 +118,9 @@ export default function ResultImageDownloadButton({
     }
   }
 
-  const statusMessage = state === 'downloading'
+  const statusMessage = !imageFile && state === 'idle'
+    ? t(preparationFailed ? "ci.download.statusMessage5" : "ci.download.statusMessage")
+    : state === 'downloading'
     ? t("ci.download.statusMessage")
     : state === 'sharing'
       ? t("ci.download.statusMessage2")
@@ -103,7 +134,19 @@ export default function ResultImageDownloadButton({
 
   return (
     <div className="ccpun-ci-result-image-actions">
-      <div className={canShareFile ? 'grid gap-3 sm:grid-cols-2' : 'grid gap-3'}>
+      <div className={canShareFile ? 'grid gap-3 sm:grid-cols-3' : 'grid gap-3 sm:grid-cols-2'}>
+        <button
+          type="button"
+          onClick={handlePreview}
+          disabled={!imageFile || state === 'downloading' || state === 'sharing'}
+          aria-busy={!imageFile && !preparationFailed}
+          aria-haspopup="dialog"
+          aria-describedby="ci-result-image-privacy ci-result-image-status"
+          className="glass-button inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3"
+        >
+          <Eye className="h-5 w-5" aria-hidden="true" />
+          {t.node("ci.download.preview")}
+        </button>
         <button
           type="button"
           onClick={handleDownload}
@@ -127,6 +170,17 @@ export default function ResultImageDownloadButton({
           {state === 'sharing' ? t("ci.download.label3") : t("ci.download.label4")}
         </button> : null}
       </div>
+      <dialog ref={previewDialog} className={styles.dialog} aria-labelledby="ci-result-image-preview-title" aria-describedby="ci-result-image-privacy" onClose={() => { releasePreviewUrl(); setPreview(null); }}>
+        <div className={styles.header}>
+          <h2 id="ci-result-image-preview-title">{t.node("ci.download.preview")}</h2>
+          <button type="button" className="glass-button min-h-11 px-4 py-2" onClick={() => previewDialog.current?.close()}>{t.node("ci.download.closePreview")}</button>
+        </div>
+        {preview && preview.file === imageFile ? (
+          // The prepared local PNG is the download/share file, not a network image to optimize.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className={styles.image} src={preview.url} alt={t("ci.download.preview")} />
+        ) : null}
+      </dialog>
       <p id="ci-result-image-privacy" className="text-xs leading-relaxed text-muted-foreground">
         {t.node("ci.download.resultImagePrivacy.description")}</p>
       <p id="ci-result-image-status" className="text-xs text-muted-foreground empty:sr-only" aria-live="polite" aria-atomic="true">
