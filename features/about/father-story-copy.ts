@@ -1,18 +1,21 @@
 // UAT trial, pending owner final approval 2026-10-26
-export const FATHER_STORY_HEADING = "บทเรียนที่คุณพ่อสอน";
+// Compatibility exports retain the original values; editable defaults have one owner.
+import { ABOUT_COPY_DEFAULTS } from "@/lib/content/about-copy-defaults";
+export const FATHER_STORY_HEADING = ABOUT_COPY_DEFAULTS["about.father.heading"];
+// Layout-only phrase grouping, not a second editable copy field.
 export const FATHER_STORY_KEEP = "บริหารเวลา บริหารเงิน บริหารชีวิต";
 export const FATHER_STORY_PARAGRAPHS = [
-  "คุณพ่อสอนผมมาตั้งแต่เด็กว่า \"บริหารเวลา บริหารเงิน บริหารชีวิต\" ท่านสอนด้วยการลงมือทำให้ดู และเปิดโอกาสให้ผมลองผิดลองถูก โดยไม่เคยโกรธสักครั้ง",
-  "แต่มีบทเรียนหนึ่งที่ผมเพิ่งเข้าใจจริงๆ หลังจากที่คุณพ่อจากไป",
-  "ช่วงที่ครอบครัวจัดการเรื่องมรดก ผมได้เห็นว่าเงินในบัญชีและทรัพย์สินของผู้ที่จากไป มักยังนำมาใช้ไม่ได้ทันที ต้องผ่านขั้นตอนทางกฎหมาย เตรียมเอกสาร และรอเวลา ในขณะที่ค่าใช้จ่ายของครอบครัวยังเดินต่อทุกเดือน การมีทรัพย์สินกับการมีเงินพร้อมใช้จึงเป็นคนละเรื่องกัน",
-  "ครอบครัวผมโชคดีที่ทุกคนยังมีรายได้ของตัวเอง แต่ผมอดคิดไม่ได้ถึงครอบครัวที่พึ่งรายได้หลักจากคนคนเดียว และยังมีค่าเรียนลูก ค่าผ่อนบ้าน หรือค่ารถที่ต้องจ่ายต่อ",
-  "ก่อนหน้านั้นผมให้ความสำคัญกับการลงทุนเป็นหลัก ทั้งหุ้น กองทุน และสินทรัพย์อื่น แต่มองข้ามการจัดการความเสี่ยง วันนั้นทำให้ผมเข้าใจว่า ประกันชีวิตไม่ได้มีไว้เพื่อคนที่จากไป แต่มีไว้เพื่อคนที่ยังต้องใช้ชีวิตต่อ",
-  "ทุกวันนี้ เวลาวางแผนกับลูกค้า ผมจึงเริ่มจาก 3 คำถามนี้ ก่อนจะคุยเรื่องผลตอบแทน",
-  "สำหรับผม แผนการเงินที่ดีจึงไม่ได้วัดแค่เงินที่งอกเงย แต่วัดว่าคนที่เรารักยังใช้ชีวิตต่อได้ไหม ในวันที่เราอยู่ดูแลเขาไม่ได้",
+  ABOUT_COPY_DEFAULTS["about.father.paragraph1"],
+  ABOUT_COPY_DEFAULTS["about.father.paragraph2"],
+  ABOUT_COPY_DEFAULTS["about.father.paragraph3"],
+  ABOUT_COPY_DEFAULTS["about.father.paragraph4"],
+  ABOUT_COPY_DEFAULTS["about.father.paragraph5"],
+  ABOUT_COPY_DEFAULTS["about.father.paragraph6"],
+  ABOUT_COPY_DEFAULTS["about.father.paragraph7"],
 ] as const;
 export const FATHER_STORY_QUESTIONS = [
-  "ถ้ารายได้หลักหายไป ครอบครัวมีเงินพร้อมใช้พอสำหรับช่วงที่ต้องรอจัดการทรัพย์สินไหม",
-  "ภาระที่ยังเหลือ เช่น หนี้บ้าน หรือค่าเรียนลูก ต้องใช้เงินเท่าไร และตอนนี้มีอะไรรองรับแล้วบ้าง",
-  "ทรัพย์สินที่สะสมไว้ จะส่งต่อถึงคนที่เรารักได้ราบรื่นแค่ไหน",
+  ABOUT_COPY_DEFAULTS["about.father.question1"],
+  ABOUT_COPY_DEFAULTS["about.father.question2"],
+  ABOUT_COPY_DEFAULTS["about.father.question3"],
 ] as const;
-export const FATHER_PHOTO_CAPTION = "คุณพ่อสอนผมว่า \"บริหารเวลา บริหารเงิน บริหารชีวิต\"\nหลังจากท่านจากไป ผมเข้าใจว่าแผนการเงินที่ดีต้องดูแลคนที่ยังอยู่ ไม่ใช่แค่ทำให้เงินงอกเงย";
+export const FATHER_PHOTO_CAPTION = ABOUT_COPY_DEFAULTS["about.father.caption"];

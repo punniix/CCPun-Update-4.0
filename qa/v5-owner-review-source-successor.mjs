@@ -1,3 +1,4 @@
+import { cmsCopyScopePredecessor, cmsCopyLocationsPredecessor } from "./v5-cms-copy-scope-successor.mjs";
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 const sha = value => createHash('sha256').update(value).digest('hex');
@@ -173,6 +174,7 @@ export const ownerReviewSourcePins = Object.freeze({
 });
 
 export function ownerReviewSourcePredecessor(file, source) {
+  source = cmsCopyScopePredecessor(file, source);
   source = fullCountdownSourcePredecessor(file, source);
   const pin = Object.hasOwn(ownerReviewSourcePins, file) ? ownerReviewSourcePins[file] : null;
   if (!pin || sha(source) !== pin.after) return source;
@@ -196,6 +198,7 @@ export function ownerReviewHtmlPredecessor(html, key) {
 
 // Exact generated metadata successor: move the five reviewed entries back; never copy a whole map.
 export function ownerReviewLocationsPredecessor(source) {
+  source = cmsCopyLocationsPredecessor(source);
   if (sha(source) !== 'f1f110371ce02eb8dfb9e20360b71795d2c55e105c1603c5d95d1f637f6a6e79') return source;
   const locations = JSON.parse(source);
   const site = locations.site, blog = locations.blog;

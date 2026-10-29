@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import type { ArticleAuthorProfile } from "@/lib/content/types";
 import Image from "next/image";
 import Link from "next/link";
 import { getPublicCopy } from "@/lib/content/public-copy";
-import { publicCopyText } from "@/lib/content/public-copy-registry";
+import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
 import { getPrimaryAuthorProfile } from "@/lib/content/sanity";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import { CCPUN_PERSON_ID } from "@/lib/seo/structured-data/entity-ids";
@@ -15,7 +17,7 @@ import V5CredentialCards from "@/components/layout/v5/V5CredentialCards";
 import { V5_TOOLS_HUB } from "@/components/layout/v5/constants";
 import styles from "./About.module.css";
 import flipStyles from "@/components/layout/v5/V5LicenceFlip.module.css";
-import { FATHER_STORY_HEADING, FATHER_STORY_KEEP, FATHER_STORY_PARAGRAPHS, FATHER_STORY_QUESTIONS, FATHER_PHOTO_CAPTION } from "./father-story-copy";
+import { FATHER_STORY_KEEP } from "./father-story-copy";
 
 /*
   Owner-approved new indexable URL (2026-10-25): /about/. No historical About URL exists in the
@@ -29,8 +31,8 @@ const TITLE = `รู้จักที่ปรึกษาทางการ�
 const DESCRIPTION = personSchema.description;
 const PORTRAIT_DARK = "/assets/ccpun-portrait-v5-about-dark.webp";
 const PORTRAIT_LIGHT = "/assets/ccpun-portrait-v5-about-light.webp";
-// UAT-only alt text for the father photo (new string, pending owner approval).
-const FATHER_PHOTO_ALT = "ปั้นกับคุณพ่อในวันรับปริญญา";
+// The existing father-trial strings remain UAT-only and keep their original approval status.
+type AboutText = ReturnType<typeof publicCopyText>;
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -52,43 +54,49 @@ function OwnerCopySlot({ slot, note }: { slot: string; note: string }) {
  * The owner-chosen father photo (treatment a, colour, 2026-10-25) accompanies the UAT story trial.
  * The story and caption await final owner approval; Production builds never render this photo.
  */
-function FatherPhotoSlot() {
+function FatherPhotoSlot({ text }: { text: AboutText }) {
   if (!IS_REVIEW_ENVIRONMENT) return null;
+  const caption = text.node("about.father.caption");
   return (
     <figure className={styles.fatherPhoto} data-uat-placeholder="about-father-photo">
-      <Image src="/assets/ccpun-father-v5-colour.webp" alt={FATHER_PHOTO_ALT} width={1086} height={1448} sizes="(max-width: 899px) calc(100vw - 40px), 280px" />
-      <figcaption>{FATHER_PHOTO_CAPTION.split("\n").map((line, index) => <span key={line}>{index > 0 ? <br /> : null}{keepFatherPhrase(line)}</span>)}</figcaption>
+      <Image src="/assets/ccpun-father-v5-colour.webp" alt={text("about.father.photoAlt")} width={1086} height={1448} sizes="(max-width: 899px) calc(100vw - 40px), 280px" />
+      <figcaption>{typeof caption === "string" ? caption.split("\n").map((line, index) => <span key={line}>{index > 0 ? <br /> : null}{keepFatherPhrase(line)}</span>) : caption}</figcaption>
     </figure>
   );
 }
 
 /** Match the existing licence-card `keep` mechanism without changing the plain text. */
-function keepFatherPhrase(value: string) {
+function keepFatherPhrase(value: ReactNode) {
+  if (typeof value !== "string") return value;
   const at = value.indexOf(FATHER_STORY_KEEP);
   if (at < 0) return value;
   return <>{value.slice(0, at)}<span className={flipStyles.keep}>{FATHER_STORY_KEEP}</span>{value.slice(at + FATHER_STORY_KEEP.length)}</>;
 }
 
-function FatherStory() {
+function FatherStory({ text }: { text: AboutText }) {
   if (!IS_REVIEW_ENVIRONMENT) return null;
   return (
     <div className={styles.fatherStory} data-uat-trial="about-father-story">
-      <h3>{FATHER_STORY_HEADING}</h3>
-      <p>{keepFatherPhrase(FATHER_STORY_PARAGRAPHS[0])}</p>
-      <FatherPhotoSlot />
+      <h3>{text.node("about.father.heading")}</h3>
+      <p>{keepFatherPhrase(text.node("about.father.paragraph1"))}</p>
+      <FatherPhotoSlot text={text} />
       <div className={styles.fatherStoryBody}>
-        {FATHER_STORY_PARAGRAPHS.slice(1, 6).map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
-        <ul>{FATHER_STORY_QUESTIONS.map((question) => <li key={question}>{question}</li>)}</ul>
-        <p>{FATHER_STORY_PARAGRAPHS[6]}</p>
+        {([2, 3, 4, 5, 6] as const).map(index => <p key={index}>{text.node(`about.father.paragraph${index}`)}</p>)}
+        <ul>{([1, 2, 3] as const).map(index => <li key={index}>{text.node(`about.father.question${index}`)}</li>)}</ul>
+        <p>{text.node("about.father.paragraph7")}</p>
       </div>
     </div>
   );
 }
 
-export async function renderAboutPage() {
-  const [authorProfile, homeCopy, siteCopy] = await Promise.all([getPrimaryAuthorProfile().catch(() => null), getPublicCopy("home"), getPublicCopy("site")]);
-  const home = publicCopyText(homeCopy);
-  const site = publicCopyText(siteCopy);
+export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: PublicCopyValues, homeCopy?: PublicCopyValues, authorOverride?: ArticleAuthorProfile | null) {
+  const [authorProfile, homeValues, siteValues, pageValues] = await Promise.all([
+    authorOverride === undefined ? getPrimaryAuthorProfile().catch(() => null) : authorOverride,
+    homeCopy ?? getPublicCopy("home"), siteCopy ?? getPublicCopy("site"), copy ?? getPublicCopy("about"),
+  ]);
+  const text = publicCopyText(pageValues);
+  const home = publicCopyText(homeValues);
+  const site = publicCopyText(siteValues);
   const { displayName, role, qualification, licenceCards } = v5AdvisorProfile(authorProfile, home);
   const partners = v5Partners(home);
   const aboutLabel = site("site.footer.about");
@@ -115,7 +123,7 @@ export async function renderAboutPage() {
         "@type": "BreadcrumbList",
         "@id": `${URL}#breadcrumb`,
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "หน้าแรก", item: "https://ccpun.com/" },
+          { "@type": "ListItem", position: 1, name: text("about.breadcrumb.home"), item: "https://ccpun.com/" },
           { "@type": "ListItem", position: 2, name: aboutLabel, item: URL },
         ],
       },
@@ -123,11 +131,11 @@ export async function renderAboutPage() {
   };
 
   return (
-    <V5Page current="/about/" siteCopy={siteCopy}>
+    <V5Page current="/about/" siteCopy={siteValues}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />
       <section className={styles.hero} aria-labelledby="about-title">
         <div className={shell.inner}>
-          <V5Breadcrumbs label={site("site.nav.mainLabel")} items={[{ href: "/", label: "หน้าแรก" }, { label: aboutLabel }]} />
+          <V5Breadcrumbs label={site("site.nav.mainLabel")} items={[{ href: "/", label: text("about.breadcrumb.home") }, { label: aboutLabel }]} />
           <div className={styles.heroGrid}>
             <div>
               <h1 id="about-title" className={shell.h1}>{home.node("home.eyebrow2")}</h1>
@@ -151,7 +159,7 @@ export async function renderAboutPage() {
           <div className={styles.story}>
             <OwnerCopySlot slot="about-start-years" note="ปีที่เริ่มงานการเงินและการลงทุน และปีที่เริ่มเป็นที่ปรึกษา (รอข้อมูลจากเจ้าของ)" />
             <p>{home.node("home.p")}</p>
-            <FatherStory />
+            <FatherStory text={text} />
             <p>{home.node("home.p2")}</p>
             <p>{home.node("home.p3")}</p>
           </div>
@@ -181,7 +189,7 @@ export async function renderAboutPage() {
           </div>
           <div className={styles.next}>
             <Link className={shell.textLink} href="/blog/">{v5Label(home("home.toolCtaAction"))}</Link>
-            <Link className={shell.textLink} href={V5_TOOLS_HUB.href}>{V5_TOOLS_HUB.label}</Link>
+            <Link className={shell.textLink} href={V5_TOOLS_HUB.href}>{text.node("about.next.tools")}</Link>
           </div>
         </div>
       </section>

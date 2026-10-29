@@ -167,7 +167,7 @@ const cases = [
   ['privacy',{}],['cookies',{}],['moneyStory',{}],
 ];
 test('eight original scopes retain exact b871 public HTML, current design and six-card archive',async()=>{
-  assert.deepEqual(Object.keys(registry.PUBLIC_COPY_SCOPES),['investment','site','home','ci','fhc','blog','privacy','cookies','moneyStory']);
+  assert.deepEqual(Object.keys(registry.PUBLIC_COPY_SCOPES),['about','toolsHub','investment','site','home','ci','fhc','blog','privacy','cookies','moneyStory']);
   for (const [index,[scope,props]] of cases.entries()) {
     // Website v5 Phase A: /blog/ now renders the v5 index, so its b871 HTML golden (cases 5-7)
     // is retired deliberately and replaced by the v5 archive assertions below. The unchanged

@@ -252,6 +252,9 @@ test("Phase B: legal pages keep their copy scope, anchors and trailing-slash lin
 });
 
 test("Phase B + D9: Investment Allocation stays gated and noindex; the v5 nav lists it only where its flag is on", () => {
+  const hub = read("features/tools-hub/page.tsx");
+  assert.match(hub, /showInvestmentCards = INVESTMENT_ALLOCATION_ENABLED\) \{/);
+  assert.match(hub, /export default function ToolsHubPage\(\) \{\n  return renderToolsHubPage\(\);/);
   const page = read("features/investment-allocation/page.tsx");
   assert.match(page, /if \(!INVESTMENT_ALLOCATION_ENABLED\) notFound\(\);/);
   assert.match(page, /robots: !INVESTMENT_ALLOCATION_ENABLED \|\| IS_REVIEW_ENVIRONMENT \? \{ index: false, follow: false \}/);
@@ -260,7 +263,7 @@ test("Phase B + D9: Investment Allocation stays gated and noindex; the v5 nav li
   const header = read("components/layout/v5/V5Header.tsx");
   assert.match(header, /if \(INVESTMENT_ALLOCATION_ENABLED\) tools\.push\(\{ href: V5_INVESTMENT_TOOL\.href/);
   assert.match(read("components/layout/v5/V5Footer.tsx"), /\{INVESTMENT_ALLOCATION_ENABLED \? <li><Link href=\{V5_INVESTMENT_TOOL\.href\}>/);
-  assert.match(read("features/tools-hub/page.tsx"), /\.\.\.\(INVESTMENT_ALLOCATION_ENABLED \? \[\{/);
+  assert.match(read("features/tools-hub/page.tsx"), /\.\.\.\(showInvestmentCards \? \[\{/);
   for (const file of ["features/home/v5/V5Home.tsx", "apps/web/app/sitemaps/tools.xml/route.ts"]) {
     assert.doesNotMatch(read(file), /investment-allocation/, `${file}: never linked or listed unconditionally`);
   }
@@ -298,7 +301,7 @@ test("AIA fund tool (2026-10-26): same gate, robots, sitemap status and engine a
   assert.ok(aia.includes('meta={text("investment.aia.text269")}'));
   assert.match(aia, /href=\{V5_INVESTMENT_TOOL\.href\}/);
   const hub = read("features/tools-hub/page.tsx");
-  assert.match(hub, /\.\.\.\(INVESTMENT_ALLOCATION_ENABLED \? \[\{[\s\S]*href: V5_INVESTMENT_TOOL\.href,[\s\S]*href: V5_AIA_FUND_TOOL\.href,[\s\S]*\}\] : \[\]\),/);
+  assert.match(hub, /\.\.\.\(showInvestmentCards \? \[\{[\s\S]*href: V5_INVESTMENT_TOOL\.href,[\s\S]*href: V5_AIA_FUND_TOOL\.href,[\s\S]*\}\] : \[\]\),/);
   // Sitemap membership matches the main tool: neither is listed in any sitemap; neither is in the header menu.
   for (const file of ["apps/web/app/sitemap.xml/route.ts", "apps/web/app/sitemaps/core.xml/route.ts", "apps/web/app/sitemaps/tools.xml/route.ts", "apps/web/app/sitemaps/blog.xml/route.ts", "apps/web/app/sitemaps/ai-search.xml/route.ts"]) {
     const sitemap = read(file);
@@ -628,7 +631,7 @@ test("SEO: /about/ is the approved new owner: self canonical, core sitemap, Prof
   assert.match(page, /function OwnerCopySlot[\s\S]*?if \(!IS_REVIEW_ENVIRONMENT\) return null;/);
   for (const slot of ["about-hero-sentence", "about-start-years"]) assert.ok(page.includes(`slot="${slot}"`), slot);
   assert.match(page, /function FatherStory[\s\S]*?if \(!IS_REVIEW_ENVIRONMENT\) return null;/);
-  assert.match(page, /<FatherStory \/>/);
+  assert.match(page, /<FatherStory text=\{text\} \/>/);
   assert.doesNotMatch(page, /ฟรี|รับประกัน|ที่สุด|…|\.\.\./, "About content rules: no free, guarantees, superlatives or ellipsis");
   assert.doesNotMatch(page, /lin\.ee|line\.me/, "the page's LINE path is the shared chat button only");
   const core = await import("../apps/web/app/sitemaps/core.xml/route");
@@ -746,7 +749,7 @@ test("Owner photos (v5b set, 2026-10-25): About hero is photo 4 per theme, JSON-
   assert.match(page, /"@type": "Person", "@id": CCPUN_PERSON_ID, name: personSchema\.name, image: `https:\/\/ccpun\.com\$\{PORTRAIT_DARK\}`/);
   assert.doesNotMatch(page, /\/assets\/ccpun\.webp/);
   assert.doesNotMatch(page, /\bpreload\b|loading="eager"/, "two theme portraits stay lazy so only the visible one loads");
-  assert.match(page, /function FatherPhotoSlot\(\) \{\n  if \(!IS_REVIEW_ENVIRONMENT\) return null;/);
+  assert.match(page, /function FatherPhotoSlot\(\{ text \}: \{ text: AboutText \}\) \{\n  if \(!IS_REVIEW_ENVIRONMENT\) return null;/);
   assert.doesNotMatch(page, /afpt-certificate/i, "no AFPT certificate image on the site (owner decision)");
   const css = read("features/about/About.module.css");
   assert.match(css, /:global\(html\[data-theme="light"\]\) \.portraitDark \{ display: none; \}/);

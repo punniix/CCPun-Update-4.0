@@ -15,6 +15,8 @@ const OUTPUT = path.join(ROOT, "lib/content/public-copy-locations.json");
 // Source files in the order a visitor meets them on each page. Files not listed
 // still contribute; they sort after the listed ones.
 const PAGE_FILES = {
+  about: ["features/about/page.tsx", "features/about/father-story-copy.ts"],
+  toolsHub: ["features/tools-hub/page.tsx"],
   investment: [
     "features/investment-allocation/page.tsx",
     "features/investment-allocation/aia-page.tsx",
@@ -306,9 +308,38 @@ const prefixSection = key => {
   return "ข้อความที่ระบบเลือกแสดงตามสถานการณ์";
 };
 
+// These two small compositions use shared copy and runtime key arrays. Keep their
+// new editable fields in the actual page reading order, without changing existing maps.
+const PAGE_ENTRY_LOCATIONS = {
+  about: [
+    ["about.breadcrumb.home", "ส่วนหัวและเส้นทาง", "ลิงก์", true],
+    ["about.father.heading", "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "หัวข้อย่อย", true],
+    ["about.father.paragraph1", "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "ย่อหน้า", true],
+    ["about.father.photoAlt", "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "คำอธิบายรูป", false],
+    ["about.father.caption", "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "คำบรรยายภาพ", true],
+    ...[2, 3, 4, 5, 6].map(index => [`about.father.paragraph${index}`, "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "ย่อหน้า", true]),
+    ...[1, 2, 3].map(index => [`about.father.question${index}`, "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "รายการคำถาม", true]),
+    ["about.father.paragraph7", "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "ย่อหน้าปิด", true],
+    ["about.next.tools", "อ่านและใช้เครื่องมือต่อ", "ลิงก์", true],
+  ],
+  toolsHub: [
+    ["toolsHub.breadcrumb.label", "ส่วนหัวและเส้นทาง", "ข้อความสำหรับโปรแกรมอ่านหน้าจอ", false],
+    ["toolsHub.breadcrumb.home", "ส่วนหัวและเส้นทาง", "ลิงก์", true],
+    ["toolsHub.label", "ส่วนหัวและเส้นทาง", "ชื่อหน้า", true],
+    ["toolsHub.hero.title", "ส่วนหัวและเส้นทาง", "หัวข้อใหญ่สุดของหน้า", true],
+    ["toolsHub.hero.lead", "ส่วนหัวและเส้นทาง", "คำอธิบายหน้า", true],
+    ["toolsHub.investment.title", "การ์ดวางแผนกองทุน", "ชื่อเครื่องมือ", true],
+    ["toolsHub.investment.body", "การ์ดวางแผนกองทุน", "คำอธิบายเครื่องมือ", true],
+    ["toolsHub.aia.title", "การ์ดกองทุน บลจ. เอไอเอ", "ชื่อเครื่องมือ", true],
+    ["toolsHub.aia.body", "การ์ดกองทุน บลจ. เอไอเอ", "คำอธิบายเครื่องมือ", true],
+  ],
+};
+
 const result = {};
 for (const [scope, config] of Object.entries(PUBLIC_COPY_SCOPES)) {
-  const entries = Object.keys(config.defaults).map((key, registryIndex) => {
+  const explicit = PAGE_ENTRY_LOCATIONS[scope];
+  if (explicit && (explicit.length !== Object.keys(config.defaults).length || new Set(explicit.map(([key]) => key)).size !== explicit.length || explicit.some(([key]) => !Object.hasOwn(config.defaults, key)))) throw new Error(`Page copy location coverage mismatch: ${scope}`);
+  const entries = explicit ? explicit.map(([key, section, kind, visible], order) => ({ key, section, kind, visible, order })) : Object.keys(config.defaults).map((key, registryIndex) => {
     const location = found.get(key);
     return location
       ? { key, ...location }

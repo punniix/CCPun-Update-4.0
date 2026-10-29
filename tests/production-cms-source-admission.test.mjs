@@ -30,7 +30,7 @@ test('published-only reader hardening retains the frozen predecessor proof and d
   assert.equal(productionCmsOwners[file].after,'fe2f34b82b8e02b87b6d71502d089951d14e8bd1789a458a4d4c0bbfa3b77d9c');
   assert.ok(!source.includes('draftMode'));assert.ok(!source.includes('IS_DRAFT_PREVIEW_ALLOWED'));
   assertProductionCmsOwner(file,source);
-  let predecessor=source;
+  let predecessor=ownerReviewSourcePredecessor(file, source);
   for(const[current,old]of [
     // Sized copy (size fields and value encoding) is the newest reviewed reader step.
     [

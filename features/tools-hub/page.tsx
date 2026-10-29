@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getPublicCopy } from "@/lib/content/public-copy";
-import { publicCopyText } from "@/lib/content/public-copy-registry";
+import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
 import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import V5Page from "@/components/layout/v5/V5Page";
@@ -27,25 +27,29 @@ export const metadata: Metadata = {
   twitter: { card: "summary", title: TITLE, description: DESCRIPTION },
 };
 
-export async function renderToolsHubPage() {
-  const [homeCopy, siteCopy] = await Promise.all([getPublicCopy("home"), getPublicCopy("site")]);
-  const home = publicCopyText(homeCopy);
-  const site = publicCopyText(siteCopy);
+// The final argument changes copy-preview presentation only; public pages keep the existing feature flag.
+export async function renderToolsHubPage(copy?: PublicCopyValues, siteCopy?: PublicCopyValues, homeCopy?: PublicCopyValues, showInvestmentCards = INVESTMENT_ALLOCATION_ENABLED) {
+  const [pageValues, homeValues, siteValues] = await Promise.all([
+    copy ?? getPublicCopy("toolsHub"), homeCopy ?? getPublicCopy("home"), siteCopy ?? getPublicCopy("site"),
+  ]);
+  const text = publicCopyText(pageValues);
+  const home = publicCopyText(homeValues);
+  const site = publicCopyText(siteValues);
   // Names and descriptions reuse the approved Home copy keys so CMS edits stay in one place.
   const tools = [
-    { href: "/ci-planning/", title: home("home.h33"), body: home("home.p6"), action: v5Label(home("home.toolCtaAction2")) },
-    { href: "/tools/financial-health-check/", title: home("home.h32"), body: home("home.p5"), action: v5Label(home("home.toolCtaAction2")) },
-    { href: "/play/money-story/", title: site("site.tools.moneyStory"), body: home("home.moneyStory.description"), action: v5Label(home("home.toolCtaAction2")) },
-    ...(INVESTMENT_ALLOCATION_ENABLED ? [{
+    { href: "/ci-planning/", title: home("home.h33"), titleNode: home.node("home.h33"), body: home.node("home.p6"), action: v5Label(home("home.toolCtaAction2")) },
+    { href: "/tools/financial-health-check/", title: home("home.h32"), titleNode: home.node("home.h32"), body: home.node("home.p5"), action: v5Label(home("home.toolCtaAction2")) },
+    { href: "/play/money-story/", title: site("site.tools.moneyStory"), titleNode: site.node("site.tools.moneyStory"), body: home.node("home.moneyStory.description"), action: v5Label(home("home.toolCtaAction2")) },
+    ...(showInvestmentCards ? [{
       href: V5_INVESTMENT_TOOL.href,
-      title: "วางแผนกองทุน",
-      body: "เลือกกองทุนเอง แล้วดูว่าเงินอยู่ในอะไร ความเสี่ยงระดับไหน และขายคืนได้แบบไหน จากข้อมูล ก.ล.ต.",
+      title: text("toolsHub.investment.title"), titleNode: text.node("toolsHub.investment.title"),
+      body: text.node("toolsHub.investment.body"),
       action: v5Label(home("home.toolCtaAction2")),
     }, {
       // บลจ. เอไอเอ fund tool (owner request 2026-10-26): same flag as the main tool, same card style.
       href: V5_AIA_FUND_TOOL.href,
-      title: V5_AIA_FUND_TOOL.label,
-      body: "เลือกกองทุนรวมของ บลจ. เอไอเอ เอง แล้วดูว่าเงินอยู่ในอะไร ความเสี่ยงระดับไหน และขายคืนได้แบบไหน จากข้อมูล ก.ล.ต.",
+      title: text("toolsHub.aia.title"), titleNode: text.node("toolsHub.aia.title"),
+      body: text.node("toolsHub.aia.body"),
       action: v5Label(home("home.toolCtaAction2")),
     }] : []),
   ];
@@ -55,8 +59,8 @@ export async function renderToolsHubPage() {
       {
         "@type": "BreadcrumbList",
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "หน้าแรก", item: "https://ccpun.com/" },
-          { "@type": "ListItem", position: 2, name: V5_TOOLS_HUB.label, item: URL },
+          { "@type": "ListItem", position: 1, name: text("toolsHub.breadcrumb.home"), item: "https://ccpun.com/" },
+          { "@type": "ListItem", position: 2, name: text("toolsHub.label"), item: URL },
         ],
       },
       {
@@ -68,20 +72,20 @@ export async function renderToolsHubPage() {
   };
 
   return (
-    <V5Page current={V5_TOOLS_HUB.href} siteCopy={siteCopy}>
+    <V5Page current={V5_TOOLS_HUB.href} siteCopy={siteValues}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />
       <V5ToolHero
         id="tools-hub-title"
-        breadcrumbs={<V5Breadcrumbs label="เส้นทางของหน้า" items={[{ href: "/", label: "หน้าแรก" }, { label: V5_TOOLS_HUB.label }]} />}
-        title="ลองคิดเองก่อน แล้วค่อยคุยกัน"
-        lead="แต่ละเครื่องมือใช้ตัวเลขที่คุณใส่เอง ช่วยให้เห็นภาพก่อนตัดสินใจ ถ้าอยากให้ช่วยดูผลต่อ ทักมาทาง LINE ได้"
+        breadcrumbs={<V5Breadcrumbs label={text("toolsHub.breadcrumb.label")} items={[{ href: "/", label: text("toolsHub.breadcrumb.home") }, { label: text("toolsHub.label") }]} />}
+        title={text.node("toolsHub.hero.title")}
+        lead={text("toolsHub.hero.lead")}
       />
-      <section className={shell.section} aria-label={V5_TOOLS_HUB.label}>
+      <section className={shell.section} aria-label={text("toolsHub.label")}>
         <div className={shell.inner}>
           <div className={styles.grid}>
             {tools.map((tool) => (
               <article className={styles.card} key={tool.href}>
-                <h2><Link href={tool.href}>{tool.title}</Link></h2>
+                <h2><Link href={tool.href}>{tool.titleNode}</Link></h2>
                 <p>{tool.body}</p>
                 <span className={styles.action} aria-hidden="true">{tool.action}</span>
               </article>

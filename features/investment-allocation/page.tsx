@@ -49,6 +49,11 @@ export default async function InvestmentAllocationPage() {
 
 export function renderInvestmentAllocationPage(copy: PublicCopyValues, siteCopy?: PublicCopyValues) {
   if (!INVESTMENT_ALLOCATION_ENABLED) notFound();
+  return renderInvestmentAllocationContent(copy, siteCopy);
+}
+
+/** Same page content for the authenticated UAT text preview; its caller owns access/lane checks. */
+export function renderInvestmentAllocationContent(copy: PublicCopyValues, siteCopy?: PublicCopyValues) {
   const text = publicCopyText(copy);
   return (
     <PublicCopyProvider values={{ ...siteCopy, ...copy }}><V5Page current="/tools/investment-allocation/" siteCopy={siteCopy}>

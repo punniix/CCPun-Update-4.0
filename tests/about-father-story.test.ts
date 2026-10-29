@@ -8,6 +8,7 @@ import { transformSync } from "esbuild";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import * as copy from "../features/about/father-story-copy";
+import { publicCopyText } from "../lib/content/public-copy-registry";
 
 const require = createRequire(import.meta.url);
 const { JSDOM } = require("jsdom") as { JSDOM: new (html: string) => { window: { document: Document } } };
@@ -26,7 +27,7 @@ async function render(review: boolean) {
   const actualReview = JSON.parse(flag.stdout) as boolean;
   assert.equal(actualReview, review, "actual deployment-environment flag");
   const pageModule = { exports: {} as { renderAboutPage: () => Promise<React.ReactNode>; metadata: { robots: unknown } } };
-  const text = Object.assign(() => "existing approved copy", { node: () => "existing approved copy" });
+  const text = publicCopyText({});
   const css = new Proxy({}, { get: (_, key) => String(key) });
   const mockedRequire = (id: string): unknown => {
     if (id.endsWith(".css")) return { __esModule: true, default: css };
