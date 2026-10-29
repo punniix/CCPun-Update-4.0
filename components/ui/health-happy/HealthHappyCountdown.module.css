@@ -63,7 +63,7 @@
 /* The v5 opt-in uses static split tiles; the shared clock, actions and legacy presentation stay unchanged. */
 .splitDigits .frame { min-height: 0; align-items: center; padding-block: 24px; overflow: visible; }
 .splitDigits .info { overflow-wrap: anywhere; }
-.splitDigits .timer { padding: 12px 0; gap: 12px; border: 0; background: transparent; }
+.splitDigits .timer { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 12px 0; gap: 12px; border: 0; background: transparent; }
 .splitDigits .timePart:first-child { flex: 1 1 0; }
 .splitDigits .numeral { color: #faf6f0; }
 .digits { display: flex; justify-content: center; gap: 4px; }
@@ -73,5 +73,5 @@
 @media (max-width: 650px) {
   .splitDigits .frame { padding: 16px; gap: 16px; }
   .splitDigits .brandLine { gap: 8px; }
-  .splitDigits .timer { gap: 8px; padding: 0; }
+  .splitDigits .timer { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0; }
 }

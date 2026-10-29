@@ -173,6 +173,7 @@ export const ownerReviewSourcePins = Object.freeze({
 });
 
 export function ownerReviewSourcePredecessor(file, source) {
+  source = fullCountdownSourcePredecessor(file, source);
   const pin = Object.hasOwn(ownerReviewSourcePins, file) ? ownerReviewSourcePins[file] : null;
   if (!pin || sha(source) !== pin.after) return source;
   for (const [current, prior] of pin.edits) {
@@ -215,5 +216,26 @@ export function ownerReviewLocationsPredecessor(source) {
   }
   const prior = JSON.stringify(locations) + '\n';
   assert.equal(sha(prior), '41ac751407cc2c2d5556db517d40ba7243363b81d02ac56eed73ae345ab96bc0', 'Every original generated map byte reconstructed');
+  return prior;
+}
+
+// Owner 2026-10-29: show every existing countdown action; retain all older source admissions.
+export function fullCountdownSourcePredecessor(file, source) {
+  if (file === 'components/ui/health-happy/HealthHappyCountdown.module.css' && sha(source) === 'bdf0ab886e7c3076913299ab605db68f9e11abd9838482ce26ea5149c9983fda') {
+    assert.equal(source.split(".splitDigits .timer { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 12px 0; gap: 12px; border: 0; background: transparent; }").length, 2);
+    source = source.replace(".splitDigits .timer { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 12px 0; gap: 12px; border: 0; background: transparent; }", ".splitDigits .timer { padding: 12px 0; gap: 12px; border: 0; background: transparent; }");
+    assert.equal(source.split("  .splitDigits .timer { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0; }").length, 2);
+    source = source.replace("  .splitDigits .timer { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0; }", "  .splitDigits .timer { gap: 8px; padding: 0; }");
+    assert.equal(sha(source), ownerReviewSourcePins[file].after, 'Only the responsive full-size timer grid is restored');
+    return source;
+  }
+  if (file !== 'components/layout/v5/V5.module.css' || sha(source) !== '3cbe59379e46a41539d41622e270d466a5fc651d612c7f48f39f19c06bc317fd') return source;
+  const clearance = "/* Full campaign actions in Blog/Article keep the existing fixed LINE corner clear; Home owns its frame. */\n.countdownSlot:has(:global([data-campaign-placement=\"blog\"])), .countdownSlot:has(:global([data-campaign-placement=\"article\"])) { padding-inline-end: max(0px, calc(80px - var(--v5-gutter))); }\n@media (min-width: 1024px) { .countdownSlot:has(:global([data-campaign-placement=\"blog\"])), .countdownSlot:has(:global([data-campaign-placement=\"article\"])) { padding-inline-end: max(0px, calc(248px - var(--v5-gutter))); } }\n";
+  assert.equal(source.split(clearance).length, 2);
+  source = source.replace(clearance, '');
+  const anchor = ':global(html[data-v5-countdown-ended]) .countdownSlot { display: none; }\n';
+  assert.equal(source.split(anchor).length, 2);
+  const prior = source.replace(anchor, anchor + "/* One LINE OA button per page (owner decision 2026-10-25): the dock is it, so the countdown's own\n   LINE action is not rendered in v5; its \"read details\" action and its analytics stay unchanged. */\n.countdownSlot :global([data-campaign-action=\"line\"]) { display: none; }\n");
+  assert.equal(sha(prior), 'f5ac130e4627c2f141128fd6fc8517e69f81d650913e22e7141e39a34848d703', 'Only the old campaign LINE hide block is restored for historic proofs');
   return prior;
 }

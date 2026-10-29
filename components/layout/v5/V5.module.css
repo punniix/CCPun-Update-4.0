@@ -325,9 +325,9 @@
 /* Health Happy countdown slot: removed entirely (no reserved space) once the deadline has passed. */
 .countdownSlot { display: block; }
 :global(html[data-v5-countdown-ended]) .countdownSlot { display: none; }
-/* One LINE OA button per page (owner decision 2026-10-25): the dock is it, so the countdown's own
-   LINE action is not rendered in v5; its "read details" action and its analytics stay unchanged. */
-.countdownSlot :global([data-campaign-action="line"]) { display: none; }
+/* Full campaign actions in Blog/Article keep the existing fixed LINE corner clear; Home owns its frame. */
+.countdownSlot:has(:global([data-campaign-placement="blog"])), .countdownSlot:has(:global([data-campaign-placement="article"])) { padding-inline-end: max(0px, calc(80px - var(--v5-gutter))); }
+@media (min-width: 1024px) { .countdownSlot:has(:global([data-campaign-placement="blog"])), .countdownSlot:has(:global([data-campaign-placement="article"])) { padding-inline-end: max(0px, calc(248px - var(--v5-gutter))); } }
 
 /*
   Bridge for reused Website 4.3 widgets (Health Happy countdown, share/engagement

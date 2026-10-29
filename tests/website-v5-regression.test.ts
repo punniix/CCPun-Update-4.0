@@ -685,7 +685,7 @@ test("One LINE dock per page, with the owner-approved category closing CTA excep
   }
   assert.doesNotMatch(read("components/layout/v5/V5.module.css"), /\.band \{|--v5-band/, "the gold band styles are gone");
   // The shared countdown keeps its LINE action for other surfaces; v5 does not render it.
-  assert.match(read("components/layout/v5/V5.module.css"), /\.countdownSlot :global\(\[data-campaign-action="line"\]\) \{ display: none; \}/);
+  assert.doesNotMatch(read("components/layout/v5/V5.module.css"), /\.countdownSlot :global\(\[data-campaign-action="line"\]\) \{ display: none; \}/, "Owner 2026-10-29: every existing countdown action stays visible");
 });
 
 test("Article LINE CTAs open the dock's chat panel; no-JS falls back to the page's LINE link; panel_trigger is tracked", async () => {
