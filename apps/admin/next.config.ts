@@ -91,6 +91,8 @@ const nextConfig: NextConfig = {
     ],
   },
   images: {
+    // Private Admin images load with the browser session; the optimizer does not forward its headers.
+    unoptimized: true,
     formats: ["image/avif", "image/webp"],
     qualities: [75, 90],
     deviceSizes: [640, 768, 1080, 1280, 1920],

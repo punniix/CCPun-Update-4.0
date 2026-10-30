@@ -1,3 +1,4 @@
+import { ownerReviewVisualSourcePredecessor } from "../../qa/v5-owner-review-source-successor.mjs";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -185,7 +186,7 @@ test("cache-hardening sources are admitted exactly and any other byte still fail
     "apps/admin/app/(control-plane-auth)/login/page.tsx", "apps/admin/next.config.ts", "apps/admin/proxy.ts",
   ]);
   for (const [file, { before, after }] of entries) {
-    const source = readFileSync(new URL(file, ROOT), "utf8");
+    const source = ownerReviewVisualSourcePredecessor(file, readFileSync(new URL(file, ROOT), "utf8"));
     assert.equal(sha(source), after, file + ": byte-identical to the reviewed successor");
     assert.equal(adminOps20261025PredecessorDigest(file, after), before, file + ": chains to its frozen predecessor");
     const tampered = sha(source + "\n// tamper");

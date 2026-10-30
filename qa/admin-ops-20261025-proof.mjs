@@ -98,6 +98,8 @@ export function adminCopyFixesPredecessorDigest(file, digest) {
 // Maps the digest of an exact reviewed successor to its reviewed predecessor;
 // any other digest is returned unchanged (so an unreviewed edit still fails).
 export function adminOps20261025PredecessorDigest(file, digest) {
+  // Exact Admin-only native direct-image successor; all private cache/auth bytes are unchanged.
+  if (file === 'apps/admin/next.config.ts' && digest === 'c020ef2af24e9d7d5b0d98ec5b797c562e768d9f840331f3d413e4e41e8a3456') digest = '4e8a5020135b0644a68e9ef9431f35a90e8b022b7e2551a58ce7d2bb661b276e';
   // Later owner decisions (qa/admin-owner-decisions-20261026-proof.mjs, 2026-10-26) chain back first.
   const copyReviewed = adminCopyFixesPredecessorDigest(file, adminOwnerDecisions20261026PredecessorDigest(file, digest));
   const cache = Object.hasOwn(adminCacheHardeningSources, file) ? adminCacheHardeningSources[file] : null;

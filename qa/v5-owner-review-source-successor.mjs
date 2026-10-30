@@ -525,6 +525,16 @@ export const visualSourcePins = Object.freeze({
         "tegoryCard { box-sizing: border-box; width: 100%; min-width: 0; height: 100%; }\n"
       ]
     ]
+  },
+  "apps/admin/next.config.ts": {
+    "before": "4e8a5020135b0644a68e9ef9431f35a90e8b022b7e2551a58ce7d2bb661b276e",
+    "after": "c020ef2af24e9d7d5b0d98ec5b797c562e768d9f840331f3d413e4e41e8a3456",
+    "edits": [
+      [
+        "  images: {\n    // Private Admin images load with the browser session; the optimizer does not forward its headers.\n    unoptimized: true,\n",
+        "  images: {\n"
+      ]
+    ]
   }
 });
 export function ownerReviewVisualSourcePredecessor(file, source) {

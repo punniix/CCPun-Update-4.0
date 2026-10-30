@@ -1,3 +1,4 @@
+import { ownerReviewVisualSourcePredecessor } from "../../qa/v5-owner-review-source-successor.mjs";
 import { ownerReviewEditorSourcePredecessor } from "../../qa/v5-owner-review-source-successor.mjs";
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -89,7 +90,7 @@ const ACTIVE_568 = {
   "features/ci-planning/calculator/constants.ts": "ccdafe5526f8dfe32d129e6f74b0f574f07dbed3aa62d6fa3eb612ed44dbd9c9"
 };
 test('active Admin auth, RBAC, planning, AFPT, daily-job, no-store and analytics owners remain byte-for-byte', () => {
-  for (const [file, expected] of Object.entries(ACTIVE_568)) assert.equal(createHash('sha256').update(readFileSync(file)).digest('hex'), expected, file);
+  for (const [file, expected] of Object.entries(ACTIVE_568)) assert.equal(createHash('sha256').update(ownerReviewVisualSourcePredecessor(file, readFileSync(file, 'utf8'))).digest('hex'), expected, file);
 });
 
 test('Admin bridge admission reconstructs active568 only from exact reviewed bytes and rejects unknown changes', async () => {

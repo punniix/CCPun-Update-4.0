@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
@@ -197,6 +198,27 @@ test("Hostinger prebundles the real config TS graph for plain Node and retains l
     assert.equal(actual.output, "standalone"); assert.equal(actual.trace, f.root);
     assert.equal(actual.env.NEXT_PUBLIC_CCPUN_APP_ENV, "admin-uat");
     assert.ok(actual.images.remotePatterns.some((pattern: { pathname: string }) => pattern.pathname === "/images/ccb9lnw5/uat/**"));
+    // Exercise the installed Next image renderer with the actual compiled Admin config.
+    // Its internal optimizer request omits authentication headers; the browser loads raw public assets.
+    assert.equal(actual.images.unoptimized, true);
+    const nextRequire = createRequire(import.meta.url);
+    const { getImgProps } = nextRequire('next/dist/shared/lib/get-img-props');
+    const { prepareImageConfig } = nextRequire('next/dist/shared/lib/image-config');
+    const defaultLoader = nextRequire('next/dist/shared/lib/image-loader').default;
+    const image = { src: '/assets/website-v5/about-light-white-outline-d013c999.png', alt: 'Owner portrait', width: 1248, height: 1872, loading: 'lazy', fetchPriority: 'high' };
+    const render = (unoptimized: boolean) => getImgProps(image, { defaultLoader, imgConf: prepareImageConfig({ ...actual.images, unoptimized }) }).props;
+    const direct = render(actual.images.unoptimized);
+    assert.equal(direct.src, image.src);
+    assert.equal(direct.srcSet, undefined);
+    assert.equal(direct.sizes, undefined);
+    assert.equal(direct.width, image.width);
+    assert.equal(direct.height, image.height);
+    assert.equal(direct.loading, image.loading);
+    assert.equal(direct.fetchPriority, image.fetchPriority);
+    const optimized = new URL(render(false).src, 'https://admin-test.ccpun.com');
+    assert.equal(optimized.pathname, actual.images.path, 'Control uses the actual configured optimizer path');
+    assert.equal(optimized.searchParams.get('url'), image.src);
+
     assert.ok(actual.headers.some((rule: { headers: { key: string; value: string }[] }) => rule.headers.some((h) => h.key === "X-Robots-Tag" && h.value === "noindex, nofollow, noarchive")));
     assert.match(JSON.stringify(actual.headers), /https:\/\/accounts\.google\.com/);
     assert.ok(actual.rewrites.beforeFiles.some((rule: { source: string }) => rule.source === "/assets/:path*"));
