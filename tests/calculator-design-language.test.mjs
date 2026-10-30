@@ -15,20 +15,23 @@ const fhcWizard = read('features/financial-health-check/components/LifeCoverageW
 const ciResult = read('features/ci-planning/components/result/CIResult.tsx');
 const ciImageActions = read('features/ci-planning/components/ResultImageDownloadButton.tsx');
 const website43Css = read('components/layout/website-43/Website43.module.css');
+const nativeFhc = read('features/financial-health-check/v5/V5Fhc.tsx');
+const nativeCi = read('features/ci-planning/v5/V5CiPlanning.tsx');
+const nativeCss = read('components/layout/v5/V5Tool.module.css');
+const nativeShellCss = read('components/layout/v5/V5.module.css');
+const copyDefaults = read('lib/content/tool-copy-defaults.ts');
 
-test('FHC and CI use the Production Website 4.3 shell and approved Figma tool hero language', () => {
-  for (const source of [fhcShell, ciShell]) {
-    assert.match(source, /Website43ToolHero/);
-    assert.match(source, /Website43Footer/);
-    assert.match(source, /className=\{styles\.root\}/);
-    assert.doesNotMatch(source, /components\/layout\/ToolHero/);
-    assert.doesNotMatch(source, /components\/layout\/Navbar/);
-    assert.doesNotMatch(source, /components\/layout\/Footer/);
+test('active FHC and CI use the native v5 shell and text-first tool hero', () => {
+  for (const source of [nativeFhc, nativeCi]) {
+    assert.match(source, /<V5Page current=/);
+    assert.match(source, /<V5ToolHero/);
+    assert.match(source, /styles\.calcScope/);
+    assert.doesNotMatch(source, /Website43ToolHero|Website43Footer|components\/layout\/ToolHero|components\/layout\/Navbar|components\/layout\/Footer/);
+    assert.doesNotMatch(source, /<Image/,'native tool H1 remains the LCP content');
   }
-  assert.match(fhcShell, /\/assets\/website-43\/fhc-hero\.png/);
-  assert.match(ciShell, /\/assets\/website-43\/ci-hero\.png/);
+  assert.match(read('features/financial-health-check/page.tsx'), /return <V5Fhc copy=\{copyOverride/);
+  assert.match(ciShell, /return <V5CiPlanning copy=\{copyOverride/);
 });
-
 test('latest calculator content is retained while confusing duplicate framing is removed', () => {
   assert.match(fhcIntro, /ประเมินความต้องการทุนประกันชีวิต/);
   assert.match(fhcIntro, /3 เรื่องที่ควรทบทวนให้เชื่อมกัน/);
@@ -38,11 +41,14 @@ test('latest calculator content is retained while confusing duplicate framing is
   assert.match(ciIntro, /รายได้ที่หายไป/);
   assert.match(ciIntro, /ทุนประกันโรคร้ายแรงที่มีอยู่ และสินทรัพย์/);
   assert.doesNotMatch(ciIntro, /border-l/);
-  assert.match(ciShell, /ทุนสำรองช่วงพักฟื้น · ข้อพิจารณาเพิ่มเติม/);
-  assert.match(ciShell, /Recovery Reserve/);
+  assert.match(copyDefaults, /ทุนสำรองช่วงพักฟื้น · ข้อพิจารณาเพิ่มเติม/);
+  assert.match(nativeCi, /t\.node\('ci\.landing\.heading3'\)/);
+  assert.match(copyDefaults, /"ci\.landing\.heading3": "[^"]*Recovery Reserve/);
   assert.match(ciRecoverySection, /ที่มา|RecoverySourceLink/);
-  assert.match(ciShell, /ผลลัพธ์มี 2 มุม เลือกอ่านแยกกัน/);
-  assert.match(ciShell, /ระบบแสดงแยกกันและไม่นำมาบวกกัน/);
+  assert.match(copyDefaults, /ผลลัพธ์มี 2 มุม เลือกอ่านแยกกัน/);
+  assert.match(nativeCi, /t\.node\('ci\.landing\.readingTitle\.heading'\)/);
+  assert.match(copyDefaults, /ระบบแสดงแยกกันและไม่นำมาบวกกัน/);
+  assert.match(nativeCi, /question: t\('ci\.landing\.question2'\), answer: t\('ci\.landing\.answer2'\)/);
 });
 
 test('calculator surfaces follow Production flat-by-default styling instead of the old generic glass shell', () => {
@@ -55,17 +61,14 @@ test('calculator surfaces follow Production flat-by-default styling instead of t
   assert.match(website43Css, /\.toolMethodGrid/);
 });
 
-test('desktop spacing follows the Production 1280px shell and avoids centered dead space', () => {
-  assert.match(fhcIntro, /className=\{styles\.inner\}/);
-  assert.match(ciIntro, /className=\{styles\.inner\}/);
-  assert.match(ciShell, /className=\{styles\.inner\}/);
-  assert.match(fhcShell, /toolFaqStandalone/);
-  assert.match(card, /max-w-\[48rem\]/);
-  assert.match(website43Css, /@media \(min-width: 1200px\)/);
-  assert.match(website43Css, /grid-template-columns: minmax\(300px, 360px\) minmax\(0, 768px\)/);
-  assert.match(website43Css, /\.toolFaqStandalone \{ margin-top: 0; \}/);
+test('native desktop calculators keep the 1280px shell and usable split without centered dead space', () => {
+  for(const source of [nativeFhc,nativeCi])assert.match(source,/className=\{shell\.inner\}/);
+  assert.match(nativeShellCss,/--v5-max: 1280px/);
+  assert.match(nativeCss,/@media \(min-width: 1024px\) \{ \.calcGrid \{ grid-template-columns: minmax\(0, 7fr\) minmax\(0, 5fr\); gap: 32px/);
+  assert.match(nativeCss,/\.calcScope \[data-ui="human-centered-calculator-card"\] \{ max-width: none/);
+  assert.match(nativeCss,/\.faq details p \{ padding: 0 20px 20px/);
+  assert.match(card,/max-w-\[48rem\]/,'shared standalone calculator bound remains intact');
 });
-
 test('FHC and CI result states keep the same Production Website 4.3 visual language', () => {
   assert.match(fhcWizard, /ccpun-calculator-result/);
   assert.match(fhcWizard, /ccpun-calculator-result-lead/);
@@ -79,13 +82,15 @@ test('FHC and CI result states keep the same Production Website 4.3 visual langu
   assert.match(website43Css, /ccpun-calculator-result-lead/);
 });
 
-test('FHC and CI use the new Website 4.3 tool hero without rewriting the legacy ToolHero surface', () => {
-  for (const source of [fhcShell, ciShell]) {
-    assert.match(source, /components\/layout\/website-43\/Website43ToolHero/);
-    assert.doesNotMatch(source, /components\/layout\/ToolHero/);
+test('native tool heroes share one current owner while the retained legacy ToolHero stays separate', () => {
+  for(const source of [nativeFhc,nativeCi]){
+    assert.match(source,/components\/layout\/v5\/V5ToolParts/);
+    assert.doesNotMatch(source,/components\/layout\/ToolHero/);
   }
+  const hero=read('components/layout/v5/V5ToolParts.tsx');
+  assert.match(hero,/<h1 id=\{id\}/);
+  assert.match(hero,/cta\.href/);
 });
-
 test('FHC reaches the calculator before the deeper planning context and keeps the mobile hero readable', () => {
   const introIndex = fhcShell.indexOf('<FHCLandingIntro />');
   const calculatorIndex = fhcShell.indexOf('id="fhc-calculator"');

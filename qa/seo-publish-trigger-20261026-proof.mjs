@@ -23,6 +23,8 @@ export const seoPublishTriggerSources = Object.freeze({
   }
 });
 export function seoPublishTriggerPredecessorDigest(file,digest) {
+ // Preserve the reviewed Admin preview asset hotfix: signed assets bypass the public optimizer.
+ if(file==='apps/admin/next.config.ts'&&digest==='e240e22fce8c3af163d21514672574ae6f09b3001bb64dee7ab0e4167738ef41')return '4e8a5020135b0644a68e9ef9431f35a90e8b022b7e2551a58ce7d2bb661b276e';
  const entry=Object.hasOwn(seoPublishTriggerSources,file)?seoPublishTriggerSources[file]:null;
  return entry&&digest===entry.after?entry.before:digest;
 }

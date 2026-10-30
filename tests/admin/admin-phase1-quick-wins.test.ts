@@ -169,6 +169,13 @@ test("Admin v1 frozen-proof admissions are exact and reject any further edit", (
     assert.notEqual(before, after);
   }
   assert.equal(adminPhase1PredecessorDigest("unknown.tsx", "x"), adminPhase1PredecessorDigest("other.tsx", "x"));
+  const policy = read("cms/sanity/policy/studio-policy.ts");
+  const oldPolicy = adminPhase1QuickWinSources["cms/sanity/policy/studio-policy.ts"].before;
+  const partialPolicy = policy.replace("PRODUCTION_PUBLIC_COPY_SCOPES.some(scope => publicCopyDocumentId(scope) === id)", "Object.keys(PUBLIC_COPY_SCOPES).some(scope => publicCopyDocumentId(scope as PublicCopyScope) === id)");
+  assert.notEqual(partialPolicy, policy, "the partial migration fixture is distinct");
+  assert.notEqual(adminPhase1PredecessorDigest("cms/sanity/policy/studio-policy.ts", partialPolicy), oldPolicy, "partial allowlist migrations are not admitted");
+  assert.notEqual(adminPhase1PredecessorDigest("unknown.tsx", policy), oldPolicy, "a known successor cannot authorize an unknown owner");
+
   // The DOM inverse only rebuilds the approved changes; unrelated markup is untouched.
   const unrelated = '<a href="/seo/" class="x">กลับหน้าตรวจ SEO</a><a href="https://example.invalid/" class="y">ลิงก์</a>';
   assert.equal(adminPhase1DomPredecessor(unrelated), unrelated);

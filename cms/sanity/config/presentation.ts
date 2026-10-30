@@ -1,4 +1,5 @@
-import { getPageSeoPage } from "../../../lib/content/page-seo-registry";
+import { categorySeoPreviewId } from "../../../lib/content/category-registry";
+import { getPageSeoPage, getPageSeoPreviewPage, pageSeoPreviewScope } from "../../../lib/content/page-seo-registry";
 import { PUBLIC_COPY_SCOPES, publicCopyDocumentId, type PublicCopyScope } from "../../../lib/content/public-copy-registry";
 import { defineLocations, presentationTool } from "sanity/presentation";
 
@@ -16,12 +17,15 @@ export function createStudioPresentationPlugin() {
         route: "/content/website-preview/:scope",
         resolve: ({ params }) => {
           if (params.scope === "author-home") return { filter: '_type == "author" && _id in ["ccpun-author-ccpun-profile", "ccpun-prod-mirror-author-ccpun"]' };
-          const seo = params.scope.startsWith("seo-");
-          const scope = (seo ? params.scope.slice(4) : params.scope) as PublicCopyScope;
+          if (params.scope.startsWith("seo-")) {
+            const categoryId = categorySeoPreviewId(params.scope.slice(4));
+            if (categoryId) return { filter: "_id == $id && _type == $type", params: { id: categoryId, type: "category" } };
+            const page = getPageSeoPreviewPage(params.scope.slice(4));
+            return page ? { filter: "_id == $id && _type == $type", params: { id: page.documentId, type: "pageSeo" } } : undefined;
+          }
+          const scope = params.scope as PublicCopyScope;
           if (!Object.hasOwn(PUBLIC_COPY_SCOPES, scope)) return undefined;
-          const page = getPageSeoPage(PUBLIC_COPY_SCOPES[scope].pathname);
-          if (seo && !page) return undefined;
-          return { filter: "_id == $id && _type == $type", params: { id: seo ? page!.documentId : publicCopyDocumentId(scope), type: seo ? "pageSeo" : "publicPageCopy" } };
+          return { filter: "_id == $id && _type == $type", params: { id: publicCopyDocumentId(scope), type: "publicPageCopy" } };
         },
       }],
       locations: {
@@ -44,8 +48,15 @@ export function createStudioPresentationPlugin() {
           resolve: document => {
             const page = getPageSeoPage(String(document?.pathname ?? ""));
             if (!page || String(document?.id ?? "").replace(/^drafts\./, "") !== page.documentId) return { locations: [] };
-            const scope = Object.entries(PUBLIC_COPY_SCOPES).find(([scope, config]) => scope !== "site" && config.pathname === document?.pathname)?.[0];
+            const scope = pageSeoPreviewScope(page);
             return { locations: scope ? [{ title: "ดูฉบับร่างหน้าเว็บไซต์และ SEO", href: `/content/website-preview/seo-${encodeURIComponent(scope)}/` }] : [] };
+          },
+        }),
+        category: defineLocations({
+          select: { id: "_id" },
+          resolve: document => {
+            const id = String(document?.id ?? "").replace(/^drafts\./, "");
+            return { locations: categorySeoPreviewId(`category-doc-${id}`) ? [{ title: "ดูชื่อและคำอธิบายหมวดบน Google", href: `/content/website-preview/seo-category-doc-${encodeURIComponent(id)}/` }] : [] };
           },
         }),
         article: defineLocations({

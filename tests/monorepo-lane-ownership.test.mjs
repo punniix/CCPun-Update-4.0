@@ -71,10 +71,12 @@ test('Web legal and not-found routes have one canonical implementation with expl
     assert.doesNotMatch(source, /export const metadata:/, 'The route must not export both static and generated metadata');
   }
   const route = 'not-found.tsx';
-  assert.equal(readFileSync(new URL('../app/' + route, import.meta.url), 'utf8'), 'export { default, metadata } from "@/apps/web/app/not-found";\n');
+  assert.equal(readFileSync(new URL('../app/' + route, import.meta.url), 'utf8'), 'export { default, generateMetadata } from "@/apps/web/app/not-found";\n');
   assert.equal(existsSync(new URL('../features/public-pages/NotFoundPage.tsx', import.meta.url)), false, 'No second not-found implementation owner');
   const source = readFileSync(new URL('../apps/web/app/' + route, import.meta.url), 'utf8');
-  assert.match(source, /export const metadata:/);
+  assert.match(source, /const metadata: Metadata/);
+  assert.match(source, /export function generateMetadata[\s\S]*resolvePageSeoMetadata\("__not_found__", metadata, parent\)/);
+  assert.doesNotMatch(source, /export const metadata:/);
   assert.match(source, /^export default async function NotFound\(/m);
   const seoOwners = [
     ['apps/web/app/page.tsx', '/'], ['apps/web/app/blog/page.tsx', '/blog/'],

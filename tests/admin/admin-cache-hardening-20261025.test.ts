@@ -188,6 +188,13 @@ test("cache-hardening sources are admitted exactly and any other byte still fail
   for (const [file, { before, after }] of entries) {
     const source = readFileSync(new URL(file, ROOT), "utf8");
     assert.equal(seoPublishTriggerPredecessorDigest(file,sha(source)), after, file + ": byte-identical to the reviewed successor");
+    assert.equal(seoPublishTriggerPredecessorDigest(file,sha(source + "\n// unreviewed")), sha(source + "\n// unreviewed"), file + ": additional bytes cannot enter a successor chain");
+    if (file === "apps/admin/next.config.ts") {
+      const partial = source.replace("    unoptimized: true,\n", "");
+      assert.notEqual(partial, source);
+      assert.notEqual(seoPublishTriggerPredecessorDigest(file,sha(partial)), after, "partial signed-asset hotfix is denied");
+      assert.equal(seoPublishTriggerPredecessorDigest("unknown.ts",sha(source)), sha(source), "known bytes cannot authorize an unknown owner");
+    }
     assert.equal(adminOps20261025PredecessorDigest(file, after), before, file + ": chains to its frozen predecessor");
     const tampered = sha(source + "\n// tamper");
     assert.equal(adminOps20261025PredecessorDigest(file, tampered), tampered, file + ": unreviewed bytes are not admitted");

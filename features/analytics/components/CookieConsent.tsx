@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { getConsentData, saveConsent } from '@/lib/cookie-consent';
 
 import { CategoryRow } from './CookieConsentPreferences';
+import styles from './CookieConsent.module.css';
 
 // ─── Main Component ───────────────────────────────────────────────
 export default function CookieConsent() {
@@ -19,8 +20,8 @@ export default function CookieConsent() {
 
   useEffect(() => {
     if (getConsentData() === null) {
-      const timer = setTimeout(() => setVisible(true), 800);
-      return () => clearTimeout(timer);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- C9 synchronizes banner visibility immediately after hydration without a timer.
+      setVisible(true);
     }
   }, []);
 
@@ -126,60 +127,43 @@ export default function CookieConsent() {
       aria-labelledby={showPanel ? "cookie-settings-title" : "cookie-title"}
       aria-describedby={showPanel ? undefined : "cookie-desc"}
       aria-modal="true"
-      className="fixed bottom-0 left-0 right-0 z-[70] px-4 pb-4 sm:px-6 sm:pb-6"
+      // The original utility strings stay so the frozen Tailwind output is unchanged; the unlayered module rules win.
+      className={`fixed bottom-0 left-0 right-0 z-[70] px-4 pb-4 sm:px-6 sm:pb-6 ${styles.dialog}`}
     >
-      <div
-        className="max-w-3xl mx-auto"
-        style={{
-          background:
-            'linear-gradient(135deg, rgba(74,58,58,0.98) 0%, rgba(37,24,24,0.98) 100%)',
-          border: '1px solid rgba(220,190,130,0.25)',
-          borderRadius: '1rem',
-          boxShadow: '0 -4px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06)',
-          overflow: 'hidden',
-          maxHeight: 'calc(100dvh - 2rem)',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
+      <div className={styles.card}>
         {/* ─── Banner หลัก (ซ่อนเมื่อเปิด Panel) ─── */}
         {!showPanel && (
-          <div className="px-5 py-4 sm:px-6 sm:py-5">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className={`px-5 py-4 sm:px-6 sm:py-5 ${styles.banner}`}>
+            <div className={styles.bannerRow}>
               {/* ข้อความ */}
-              <div className="flex-1 min-w-0">
+              <div className={styles.copy}>
                 <p
                   id="cookie-title"
-                  className="text-sm font-semibold text-foreground mb-1"
+                  className={styles.title}
                 >{text.node("site.cookie.title")}</p>
                 <p
                   id="cookie-desc"
-                  className="text-xs text-muted-foreground leading-relaxed"
+                  className={styles.description}
                 >{text.node("site.cookie.description")}{' '}
                   <Link
                     href="/cookie-policy"
-                    className="text-primary hover:underline underline-offset-2"
+                    className={styles.link}
                   >{text.node("site.cookie.policy")}</Link>
                 </p>
               </div>
 
               {/* ปุ่ม */}
-              <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+              <div className={styles.actions}>
                 <button
                   type="button"
                   onClick={() => setShowPanel(true)}
-                  className="min-h-11 text-sm font-medium px-4 py-2 rounded-full border transition-colors"
-                  style={{
-                    borderColor: 'rgba(220,190,130,0.4)',
-                    color: 'hsl(45,70%,65%)',
-                    background: 'transparent',
-                  }}
+                  className={styles.buttonOutline}
                   aria-label={text("site.cookie.settings")}
                 >{text.node("site.cookie.settings")}</button>
                 <button
                   type="button"
                   onClick={handleAcceptAll}
-                  className="gold-button min-h-11 text-sm font-semibold px-5 py-2"
+                  className={styles.button}
                   aria-label={text("site.cookieConsentarialabel")}
                 >{text.node("site.cookie.accept")}</button>
               </div>
@@ -191,51 +175,19 @@ export default function CookieConsent() {
         {showPanel && (
           <div
             id="cookie-preference-panel"
-            style={{
-              padding: '1.25rem 1.5rem 1.5rem',
-              overflowY: 'auto',
-              overscrollBehavior: 'contain',
-            }}
+            className={styles.panel}
           >
             {/* Header */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '1rem',
-              }}
-            >
+            <div className={styles.panelHead}>
               <h2
                 id="cookie-settings-title"
-                style={{
-                  fontSize: '1rem',
-                  fontWeight: 700,
-                  color: 'hsl(0 10% 98%)',
-                  margin: 0,
-                }}
+                className={styles.panelTitle}
               >{text.node("site.cookie.preferencesTitle")}</h2>
               <button
                 type="button"
                 onClick={() => setShowPanel(false)}
                 aria-label={text("site.cookieConsentarialabel2")}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: '50%',
-                  width: '2.75rem',
-                  height: '2.75rem',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  color: 'hsl(0 10% 70%)',
-                  fontSize: '1rem',
-                  lineHeight: 1,
-                  flexShrink: 0,
-                  transition: 'border-color 0.2s, color 0.2s',
-                  padding: 0,
-                }}
+                className={styles.close}
               >
                 ×
               </button>
@@ -273,11 +225,11 @@ export default function CookieConsent() {
             />
 
             {/* ปุ่มตกลง */}
-            <div style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'flex-end' }}>
+            <div className={styles.panelActions}>
               <button
                 type="button"
                 onClick={handleSavePreferences}
-                className="gold-button min-h-11 text-sm font-semibold px-5 py-2"
+                className={styles.button}
                 aria-label={text("site.cookieConsentarialabel3")}
               >{text.node("site.cookie.save")}</button>
             </div>

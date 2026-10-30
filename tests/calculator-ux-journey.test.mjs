@@ -14,6 +14,15 @@ window.requestAnimationFrame = (fn) => window.setTimeout(fn, 0);
 Element.prototype.scrollIntoView = function () {};
 const { createRoot } = await import('react-dom/client');
 const require = createRequire(import.meta.url);
+// Node executes the real calculator components; only their new native CSS boundary is synthetic.
+const nativeToolCss = require.resolve('../components/layout/v5/V5Tool.module.css');
+const previousCssLoader = require.extensions['.css'];
+require.extensions['.css'] = (module, filename) => {
+  assert.equal(filename,nativeToolCss,'unexpected stylesheet must not be silently ignored');
+  module.exports = {__esModule:true,default:new Proxy({},{get:(_,key)=>String(key)})};
+};
+test.after(()=>{ if(previousCssLoader)require.extensions['.css']=previousCssLoader;else delete require.extensions['.css']; });
+
 const FHC = require('../features/financial-health-check/components/LifeCoverageWizard.tsx').default;
 const CI = require('../features/ci-planning/components/CIWizard.tsx').default;
 const setValue = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;

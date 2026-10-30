@@ -20,6 +20,8 @@ const categoryRegistryQuery = groq`{
     "slug": slug.current,
     status,
     description,
+    seoTitle,
+    seoDescription,
     "featuredArticleIds": featuredArticles[]._ref,
     "redirectToId": redirectTo._ref,
     "redirectToSlug": redirectTo->slug.current

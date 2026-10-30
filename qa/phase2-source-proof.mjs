@@ -7,6 +7,27 @@ import ts from 'typescript';
 
 const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
 const sha = source => createHash('sha256').update(source).digest('hex');
+// Explicit v5 successors: the existing consent/event layer and one reviewed game stylesheet.
+// Historical manifests stay unchanged; a partial or unrelated source cannot enter this bridge.
+const reviewedV5Successors = {
+  'lib/content/category-registry-sanity.ts': ['6e16064dd7c82072f843bb9c3c92b363054769e4e2fe376d1253916cc0d5bba4', 'f8950cb210499b59698237c4af1272c429813864199d24a2b209c0b121a96577'],
+  'lib/content/category-registry.ts': ['7c6925e218f4e419948255580f5cbff3d058e136a819b53f1db90c6125ce1f14', 'fecdaf000ddb456a8c2f886d9fbb8873945bc25019cb0d3baa35ee0c9c1353de'],
+  'lib/analytics.ts': ['4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f', 'e1d290d31c5d7d8af1f038ef3796795e7df3cf8f479e1018c4699fbdcc30eb38'],
+  'features/analytics/components/GoogleAnalytics.tsx': ['6379bb9a48584a748980f1163458150776410ce32d71c782bfd3529fdb295b6a', 'ed528cd554a3a9be818ea399e65fd23ee2642e6ffe5008186e02ff01892a6a6e'],
+  'features/money-story/MoneyStory.module.css': ['40b39bf243365a0888163b8a3b7dfc2d53f8a37fb92e5802f8fc12e167917a61', 'c6ab64a3b945c443623214ba42fc949af830842b23ae28026f1424f3c011890a'],
+  'features/blog/pages/ArticlePage.tsx': ['c951fa95c6b892baf46e25d3e73f50ad296177ae3aaa99497a7a0ad019192303', 'e161a9247a0bd02b6864cc2b259f71b4324d0493fbcb77f10cbebda5bed29db1'],
+  'components/ui/health-happy/HealthHappyCountdown.module.css': ['73e39a9e3f17af98b25e9a12b706d0a9729260aced6bd47425e79dd9ec6e9766', '05b5e5726c6227036dbf0a18b63cc8a05420a51ec32464be4e0b713c9647e14c'],
+  'tests/money-story-presentation-parity.test.mjs': ['2fab8aac076c4fe2f2dbe4a1acfbfe1dc0c19beab4f714495b55324bb5644b5b', '48e7ac281b11c5cf2a16f2538bcb1a3527c5d9641e33411bdff3fc99f12a063a'],
+};
+export const hasReviewedV5Successor = file => Object.hasOwn(reviewedV5Successors, file);
+export function reviewedV5PredecessorDigest(file, source, previous) {
+  assert.ok(hasReviewedV5Successor(file), 'only named reviewed v5 successors');
+  const [before, after] = reviewedV5Successors[file];
+  assert.equal(previous, before, file + ': historical owner pin retained');
+  assert.equal(sha(source), after, file + ': exact reviewed v5 source, no partial/unrelated changes');
+  return before;
+}
+
 const controllerPath = 'features/money-story/components/MoneyStoryGame.tsx';
 const ownerPath = 'features/money-story/components/MoneyStoryStatusSidebar.tsx';
 const parse = (path, source) => ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -155,6 +176,7 @@ export function assertReviewedUxOwners(proof, allowed, readCurrent = read) {
     assert.equal(admission.baselineSha256, (proof.protected[file] ?? proof.canonical?.[file]), file + ': original protected digest retained');
     assert.match(admission.candidateSha256, /^[0-9a-f]{64}$/);
     if(hasProductionCmsOwner(file)) { assertProductionCmsOwner(file,readCurrent(file)); continue; }
+    if (hasReviewedV5Successor(file)) { reviewedV5PredecessorDigest(file, readCurrent(file), admission.candidateSha256); continue; }
     let source = reviewedThaiWrapProjection(file, reviewedArticleCardProjection(file, readCurrent(file)));
     if (file === 'features/blog/website-43/Website43Article.tsx') source = articleOverviewSourceProjection(source);
     let expected = admission.candidateSha256;
@@ -226,7 +248,7 @@ export function assertPhase2MoneyComposition(file, expectedBaselineDigest, readC
     assert.equal(sha(original),expectedBaselineDigest,'frozen original Money controller');
     assert.equal(expectedBaselineDigest,composition.baselineSha256);
     assert.equal(composition.test,'tests/money-story-presentation-parity.test.mjs');
-    assert.equal(sha(readCurrent(composition.test)),'2fab8aac076c4fe2f2dbe4a1acfbfe1dc0c19beab4f714495b55324bb5644b5b','unchanged six-output/action fixture with only default CMS context');
+    assert.equal(reviewedV5PredecessorDigest(composition.test, readCurrent(composition.test), '2fab8aac076c4fe2f2dbe4a1acfbfe1dc0c19beab4f714495b55324bb5644b5b'),'2fab8aac076c4fe2f2dbe4a1acfbfe1dc0c19beab4f714495b55324bb5644b5b','historical output/action fixture plus exact approved caption inverse');
     return true;
   }
   assert.equal(sha(current), composition.controllerSha256, 'Unreviewed controller composition');

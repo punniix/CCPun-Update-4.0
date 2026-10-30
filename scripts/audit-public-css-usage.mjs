@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import {
   entryFiles,
   reachable,
@@ -125,8 +126,41 @@ function hasModuleUsage(className) {
   return globalModuleClasses.has(className) && hasLiteralReachableUsage(className);
 }
 
+// Website v5 Phase B (UAT prototype): the shared article widgets (reading time, share
+// controls, table access) moved to their own v5 stylesheet so v5 pages stop loading the
+// 68 KB 4.3 module. Only these exact classes are admitted, and only while the v5 owner
+// defines each one and a reachable widget source still references it.
+const websiteV5MovedWidgetOwner = 'features/blog/v5/ArticleWidgets.module.css';
+const websiteV5MovedWidgetClasses = Object.freeze([
+  'articleReadingEstimate', 'articleReadingTime', 'articleShareButton', 'articleShareButtons', 'articleShareControls',
+  'articleShareLabel', 'articleShareStatus', 'articleTableTrack', 'articleTableViewport', 'articleTableWrap', 'tableHint',
+]);
+const movedWidgetCss = readFileSync(websiteV5MovedWidgetOwner, 'utf8');
+const movedWidgetClasses = new Set(extractClasses(movedWidgetCss));
+function hasMovedWidgetUsage(className) {
+  if (!websiteV5MovedWidgetClasses.includes(className) || !movedWidgetClasses.has(className)) return false;
+  return [...reachableSources].some(([, source]) => source.includes('ArticleWidgets.module.css') && new RegExp(`styles\\.${escapeRegExp(className)}\\b`).test(source));
+}
+
+// One retained historical selector was deliberately replaced by the native completion cue.
+// It is not a moved class: admit only its exact old rule while its real replacement is reachable.
+function hasRetainedResultEyebrow(className) {
+  if (className !== 'ccpun-calculator-result-eyebrow') return false;
+  const selector = '.calculatorStage :global(.ccpun-calculator-result-eyebrow)';
+  const rules = moduleCss.split('\n').filter(line => line.startsWith(selector));
+  if (rules.length !== 1 || moduleCss.split('.ccpun-calculator-result-eyebrow').length !== 2) return false;
+  if (createHash('sha256').update(rules[0]).digest('hex') !== 'cc04a849ebfb31b85e1b91a1cd3512f7118b477b1cfc3b78b1bfea8cca962cd4') return false;
+  const sources = new Map(reachableSources);
+  const result = sources.get('features/ci-planning/components/result/CIResult.tsx') ?? '';
+  const tick = sources.get('components/layout/v5/V5ResultTick.tsx') ?? '';
+  return result.includes("import V5ResultTick from '@/components/layout/v5/V5ResultTick';")
+    && result.split('<V5ResultTick />').length === 2
+    && !result.includes('ccpun-calculator-result-eyebrow')
+    && tick.includes('className={styles.resultTick} aria-hidden="true" data-v5-result-tick=""');
+}
+
 const moduleUnused = dynamicModuleAccess.length === 0
-  ? moduleClasses.filter((className) => !hasModuleUsage(className))
+  ? moduleClasses.filter((className) => !hasModuleUsage(className) && !hasMovedWidgetUsage(className) && !hasRetainedResultEyebrow(className))
   : [];
 
 const styleOwnerFiles = trackedFiles
@@ -185,6 +219,9 @@ if (!trackedFileSet.has(canonicalResponsiveOwner) || unexpectedStyleOwners.lengt
 for (const retiredOwner of retiredResponsiveOwners) {
   if (trackedFileSet.has(retiredOwner)) throw new Error(`Retired responsive patch owner must stay removed: ${retiredOwner}`);
 }
-if (!layoutSource.includes('Website43ResponsiveStyles') || retiredResponsiveOwners.some((file) => layoutSource.includes(file.split('/').at(-1).replace('.tsx', '')))) {
-  throw new Error('apps/web/app/layout.tsx must mount only Website43ResponsiveStyles for Website 4.3 responsive runtime CSS.');
+// Website v5 Phase B: every public route renders the v5 shell, so the root layout no longer mounts
+// the 4.3 responsive owner (it shipped the whole 68 KB 4.3 module to every page). The owner stays
+// canonical for the retained 4.3 presentation; no retired owner may come back either.
+if (layoutSource.includes('Website43ResponsiveStyles') || retiredResponsiveOwners.some((file) => layoutSource.includes(file.split('/').at(-1).replace('.tsx', '')))) {
+  throw new Error('apps/web/app/layout.tsx must not mount Website 4.3 responsive runtime CSS in the v5 shell.');
 }

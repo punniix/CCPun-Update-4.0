@@ -1,0 +1,87 @@
+/*
+ * The flip styles below remain only for non-review Production compatibility. Review/UAT credentials are static per COO, 30-Oct-2026.
+ * Both faces share one grid cell, so the card is as tall as its taller face from the server render on:
+ * flipping never changes layout. Only the inner transform animates. Reduced motion swaps faces instantly.
+ */
+.card {
+  display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: none; color: inherit;
+  font: inherit; text-align: left; cursor: pointer; perspective: 800px; border-radius: var(--v5-radius);
+}
+.inner { display: grid; height: 100%; transform-style: preserve-3d; transition: transform var(--v5-motion-slow) var(--v5-ease-standard); }
+.card[aria-pressed="true"] .inner { transform: rotateY(180deg); }
+.face {
+  grid-area: 1 / 1; display: flex; flex-direction: column; gap: 4px; padding: 12px 16px;
+  border: 1px solid var(--v5-border); border-radius: var(--v5-radius); background: var(--v5-card);
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+}
+.back { transform: rotateY(180deg); border-color: var(--v5-gold-text); }
+/*
+ * The face turned away is also fully transparent (it stays in the accessibility tree), so the stacked back text is
+ * never painted under the front. Motion smoothing (2026-10-26): the face coming into view turns opaque at once and
+ * the face going away only after the whole turn (backface-visibility hides it meanwhile). A fixed mid-turn swap
+ * missed the edge-on moment with an easing curve and on a second tap mid-turn, leaving 4 to 9 blank frames;
+ * now the face toward the viewer is always opaque, whenever the card is tapped. Reduced motion swaps at once.
+ */
+.front, .back { transition: opacity 0s linear 0s; }
+.back { opacity: 0; transition-delay: var(--v5-motion-slow); }
+.card[aria-pressed="true"] .back { opacity: 1; transition-delay: 0s; }
+.card[aria-pressed="true"] .front { opacity: 0; transition-delay: var(--v5-motion-slow); }
+.term { font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; line-height: 1.45; }
+.number, .label, .verify { color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.55; overflow-wrap: anywhere; }
+/* Label and value share a line where they fit (v5 polish, UAT): the back face, which sets the card height, stays short. */
+.line { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
+.backValue { font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
+/* A phrase that must not split mid-phrase (the TFPA name); the phone layout gives each card the full row so it fits. */
+.keep { white-space: nowrap; }
+.hint { display: inline-flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 8px; color: var(--v5-gold-text); font-size: var(--v5-text-meta); font-weight: 500; }
+.hint svg { flex: none; width: 14px; height: 14px; }
+
+/* Phones (one card per row): the turn hint sits at the right of the front face instead of under it. */
+@media (max-width: 479px) {
+  .front { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: center; column-gap: 12px; row-gap: 4px; }
+  .front > .term, .front > .number { grid-column: 1; }
+  .front > .hint { grid-column: 2; grid-row: 1 / span 2; align-self: center; margin-top: 0; padding-top: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inner { transition: none; }
+  .front, .back { transition: none; }
+}
+/* No 3D support: swap the faces with opacity instead of turning them. */
+@supports not ((backface-visibility: hidden) or (-webkit-backface-visibility: hidden)) {
+  .card[aria-pressed="true"] .inner { transform: none; }
+  .back { transform: none; opacity: 0; }
+  .card[aria-pressed="true"] .front { opacity: 0; }
+  .card[aria-pressed="true"] .back { opacity: 1; }
+}
+
+/* Retained legacy verification styling; Review Home/About use static cards below. */
+.verifiedCard { position: relative; min-width: 0; height: 100%; }
+.verifiedCard > .card { min-height: 160px; height: 100%; }
+.verifiedCard .front { display: flex; flex-direction: column; align-items: flex-start; }
+.verifiedCard .front > .hint { align-self: flex-start; margin-top: auto; padding-top: 8px; }
+.verifiedCard .back { position: relative; padding-bottom: 108px; }
+.verifyLink { position: absolute; inset-inline: 16px; bottom: 44px; display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px; border-radius: var(--v5-radius-button); background: var(--v5-gold); color: var(--v5-on-gold); font-size: var(--v5-text-meta); text-align: center; text-decoration: none; }
+.verifyLink[hidden] { display: none; }
+.verifyLink:focus-visible { outline: 3px solid var(--v5-text); outline-offset: 3px; }
+.verifyReturn { position: absolute; inset-inline: 16px; bottom: 12px; color: var(--v5-gold-text); font-size: var(--v5-text-meta); line-height: 1.5; }
+.verifyHelp { margin: 0; color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.6; }
+
+/* Owner-selected static UAT credentials; no state, back face or whole-card button. */
+.staticCard { display: flex; flex-direction: column; height: 100%; gap: 8px; min-width: 0; min-height: 151px; padding: 16px; border: 1px solid var(--v5-border); border-radius: var(--v5-radius); background: var(--v5-card); }
+.fullCredential { min-height: 238px; }
+.staticCard > strong { font-family: var(--v5-font-display); font-size: 22px; font-weight: 600; line-height: 1.35; color: var(--v5-gold-text); }
+.staticCard p { margin: 0; }
+.credentialNumber { color: var(--v5-muted); font-size: 16px; line-height: 1.7; }
+.credentialDetail { color: var(--v5-text); font-size: 14px; line-height: 1.5; }
+.credentialFacts { margin: 0; display: grid; gap: 4px; }
+.staticCard .credentialFacts > div { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
+.staticCard .credentialFacts dt, .staticCard .credentialFacts dd { margin: 0; font-size: 14px; font-weight: 400; line-height: 1.5; color: var(--v5-text); overflow-wrap: normal; }
+.staticCard .credentialFacts dd { min-width: 0; }
+.staticRegistryLink { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px; margin-top: auto; border-radius: var(--v5-radius-button); background: var(--v5-gold); color: var(--v5-on-gold); font-size: var(--v5-text-meta); font-weight: 500; line-height: 1.5; text-align: center; text-decoration: none; }
+.staticRegistryLink:focus-visible, .compactCard:focus-visible { outline: 3px solid var(--v5-focus); outline-offset: 3px; }
+.staticCard .keep, .compactCard .keep { white-space: nowrap; }
+.compactCard { display: grid; align-content: center; gap: 0; min-width: 172px; width: max-content; min-height: 73px; padding: 10px 14px; border: 1px solid var(--v5-border); border-radius: var(--v5-radius-sm); background: var(--v5-card); color: var(--v5-text); text-decoration: none; }
+.compactCard > strong { display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 500; line-height: 1.5; }
+.compactCard svg { width: 14px; height: 14px; flex: none; color: var(--v5-gold-text); }
+.compactCard > span { color: var(--v5-muted); font-size: 16px; line-height: 1.7; }
+@media (min-width: 1024px) { .compactCard { min-width: 0; width: 100%; min-height: 58px; gap: 4px; padding: 0; border: 0; background: none; } .compactCard > strong { font-weight: 600; line-height: 1.7; } }

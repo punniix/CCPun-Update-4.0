@@ -89,7 +89,7 @@ const article = {
 async function serverTree(node) {
   if(Array.isArray(node))return Promise.all(node.map(serverTree));
   if(!React.isValidElement(node))return node;
-  if(typeof node.type==='function'&&(node.type.constructor.name==='AsyncFunction'||['Website43Article','Website43ArticleToc','Website43Footer','Website43Blog','renderWebsite43Blog'].includes(node.type.name)))return serverTree(await node.type(node.props));
+  if(typeof node.type==='function'&&(node.type.constructor.name==='AsyncFunction'||['V5Article','V5Category','V5BlogIndex','Website43Article','Website43ArticleToc','Website43Footer','Website43Blog','renderWebsite43Blog'].includes(node.type.name)))return serverTree(await node.type(node.props));
   const children=await serverTree(node.props.children);
   return React.cloneElement(node,{},...(Array.isArray(children)?children:[children]));
 }
@@ -221,12 +221,32 @@ mock('../lib/content/provider.ts', { getContentProvider: () => ({
 mock('next/headers', { draftMode: async () => ({ isEnabled: true }) });
 mock('next/navigation', { ...nextNavigation, useRouter: () => ({ replace: () => {} }) });
 mock('../lib/deployment-environment.ts', { IS_DRAFT_PREVIEW_ALLOWED: false });
-const overview = require('../features/blog/pages/BlogArchivePage.tsx').default;
-const category = require('../features/blog/pages/BlogCategoryPage.tsx');
-const articleRoute = require('../features/blog/pages/ArticlePage.tsx');
+// Run the actual native route owners with synthetic readers and shell chrome only.
+// Body, category/card filtering, metadata, redirects and stale-cookie gates remain real.
+const routeMocks=new Map([
+  ['@/lib/content/public-copy',require('../lib/content/public-copy.ts')],
+  ['@/lib/content/provider',require('../lib/content/provider.ts')],
+  ['@/lib/content/category-registry',require('../lib/content/category-registry.ts')],
+  ['@/lib/content/category-registry-sanity',require('../lib/content/category-registry-sanity.ts')],
+  ['@/lib/content/blog-featured-sanity',require('../lib/content/blog-featured-sanity.ts')],
+  ['@/lib/content/sanity',{getPrimaryAuthorProfile:async()=>null}],
+  ['@/components/layout/v5/shell-data',{
+    getPublishedArticles:async()=>require('../lib/content/provider.ts').getContentProvider().listArticles({includeDrafts:false}),
+    getPublishedCategoryRegistry:async()=>categoryRegistryFixture,
+  }],
+  ['@/components/layout/v5/V5Page',{__esModule:true,default:({children})=>React.createElement('main',null,children)}],
+  ['@/components/layout/v5/V5ChatDockServer',{getV5ChatFallbackHref:async()=> 'https://lin.ee/tqLCs4f'}],
+  ['@/lib/seo/page-seo',{resolvePageSeoMetadata:async(_path,defaults)=>defaults}],
+  ['@/lib/deployment-environment',{IS_DRAFT_PREVIEW_ALLOWED:false,IS_REVIEW_ENVIRONMENT:false}],
+  ['next/headers',require('next/headers')],['next/navigation',require('next/navigation')],
+  ...['@/components/layout/v5/V5.module.css','./V5.module.css','./V5Blog.module.css','./ArticleWidgets.module.css'].map(id=>[id,styles]),
+]);
+const overview = loadFixtureModule('features/blog/pages/BlogArchivePage.tsx',{mocks:routeMocks}).default;
+const category = loadFixtureModule('features/blog/pages/BlogCategoryPage.tsx',{mocks:routeMocks});
+const articleRoute = loadFixtureModule('features/blog/pages/ArticlePage.tsx',{mocks:routeMocks});
 for (const [slug, label, expected] of [['health-insurance', 'ประกันสุขภาพ', 'บทความสุขภาพ'], ['investment', 'การลงทุน', null]]) {
   const markup = await doc(await category.default({ params: Promise.resolve({ category: slug }) }));
-  assert.equal(markup.querySelector('.categoryMenuButton').textContent.trim().startsWith(label), true);
+  assert.equal(markup.querySelector('.chip[aria-current="page"]').textContent.trim().startsWith(label), true);
   assert.equal(markup.querySelectorAll('h1').length, 1);
   assert.equal(markup.querySelector('h1').textContent, label);
   if (expected) assert.ok(markup.body.textContent.includes(expected));
@@ -254,7 +274,9 @@ const shared = readFileSync(new URL('../components/layout/website-43/Website43Sh
 const layout = readFileSync(new URL('../app/layout.tsx', import.meta.url), 'utf8');
 const articleStyles = readFileSync(new URL('../components/layout/website-43/Website43.module.css', import.meta.url), 'utf8');
 assert.ok(!shared.includes('Website43ResponsiveStyles'), 'static responsive CSS must not hydrate with the shared navbar');
-assert.ok(layout.includes('<Website43ResponsiveStyles />'), 'canonical responsive CSS must remain server-rendered in the public shell');
+assert.ok(layout.includes('<Website43ResponsiveStyles />'), 'legacy root retains its historical server-rendered responsive owner');
+const webLayout=readFileSync(new URL('../apps/web/app/layout.tsx',import.meta.url),'utf8');
+assert.ok(!webLayout.includes('Website43ResponsiveStyles'),'actual Web v5 layout does not mount the retained43 stylesheet');
 assert.ok(!layout.includes('Website43TransitionStyles') && !layout.includes('Website43FinalPolishStyles'), 'retired responsive patch owners must stay out of the public shell');
 assert.match(articleStyles, /\.prose ol\s*\{[^}]*list-style-type:\s*decimal;/s, 'ordered article lists must restore decimal markers after Tailwind Preflight');
 assert.match(articleStyles, /\.prose ul\s*\{[^}]*list-style-type:\s*disc;/s, 'unordered article lists must restore bullet markers after Tailwind Preflight');

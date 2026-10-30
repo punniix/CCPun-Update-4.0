@@ -5,7 +5,7 @@ import { BLOG_COPY_DEFAULTS } from "@/lib/content/blog-copy-defaults";
 import { useState } from 'react';
 import { Link as LinkIcon, Check as CheckIcon } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
-import styles from '@/components/layout/website-43/Website43.module.css';
+import styles from '@/features/blog/v5/ArticleWidgets.module.css';
 import { useArticleEngagement } from './ArticleEngagement';
 
 // Genuine Simple Icons SVG paths (CC0) for LINE, Facebook and X, preserved as provided.

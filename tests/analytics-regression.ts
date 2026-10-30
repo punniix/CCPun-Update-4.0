@@ -55,12 +55,25 @@ assert.deepEqual(buildSemanticDataLayerEvent('ci_calculator_start', safe, { anal
   campaign_id: null,
   campaign_placement: null,
   campaign_action: null,
+  chat_topic_id: null,
+  page_group: null,
+  campaign_code: null,
+  panel_trigger: null,
+  topic: null,
+  page_type: null,
+  coming_soon_path: null,
 }, 'semantic event layer must be consent-labelled and contain only safe metadata');
 assert.equal(buildSemanticDataLayerEvent('ci_calculator_start', safe, { analytics: false, social: false }), null, 'semantic event layer must fail closed without consent');
 const semanticModel: Record<string, string | number | null> = {};
 const applySemanticEvent = (eventName: string, params: Parameters<typeof buildSemanticDataLayerEvent>[1]) => {
   Object.assign(semanticModel, buildSemanticDataLayerEvent(eventName, params, { analytics: true, social: false }));
 };
+const chatContext=sanitizeEventParams({chat_topic_id:'money-plan',page_group:'tool_money_story',campaign_code:'qa_context',panel_trigger:'dock',topic:'money-plan',page_type:'tool_money_story',coming_soon_path:'/tools/tax-deduction/'});
+applySemanticEvent('line_oa_click',chatContext);
+for(const [key,value]of Object.entries(chatContext))assert.equal(semanticModel[key],value,'allowlisted synthetic context '+key);
+applySemanticEvent('share',sanitizeEventParams({method:'copy',content_type:'article'}));
+for(const key of ['chat_topic_id','page_group','campaign_code','panel_trigger','topic','page_type','coming_soon_path'])assert.equal(semanticModel[key],null,'next event clears native context '+key);
+assert.deepEqual(sanitizeEventParams({chat_topic_id:'ชื่อ ลูกค้า',page_group:'unknown',panel_trigger:'unknown',topic:'ข้อความลูกค้า',page_type:'unknown',coming_soon_path:'https://foreign.invalid/private'}),{},'native context cannot carry free text or an external path');
 applySemanticEvent('health_happy_countdown_click', sanitizeEventParams({ campaign_id: 'aia_health_happy_2026', campaign_placement: 'article', campaign_action: 'line' }));
 assert.equal(semanticModel.campaign_id, 'aia_health_happy_2026', 'campaign event keeps its own approved attribution');
 applySemanticEvent('line_oa_click', sanitizeEventParams({ contact_channel: 'line', cta_location: 'navbar' }));

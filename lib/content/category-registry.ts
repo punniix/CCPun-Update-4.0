@@ -12,6 +12,8 @@ export type CategoryRegistryEntry = {
   slug: string;
   status: CategoryStatus;
   description?: string;
+  seoTitle?: string;
+  seoDescription?: string;
   redirectToId?: string;
   redirectToSlug?: string;
   featuredArticleIds?: string[];
@@ -57,6 +59,8 @@ export type RawCategoryRegistryRow = {
   slug?: unknown;
   status?: unknown;
   description?: unknown;
+  seoTitle?: unknown;
+  seoDescription?: unknown;
   redirectToId?: unknown;
   redirectToSlug?: unknown;
   featuredArticleIds?: unknown;
@@ -84,10 +88,19 @@ const rawCategorySchema = z.object({
   slug: z.string().trim().min(1).regex(CATEGORY_SLUG_PATTERN),
   status: z.enum(CATEGORY_STATUS_VALUES),
   description: z.string().trim().nullish(),
+  seoTitle: z.unknown().optional(),
+  seoDescription: z.unknown().optional(),
   redirectToId: z.string().trim().min(1).nullish(),
   redirectToSlug: z.string().trim().min(1).nullish(),
   featuredArticleIds: z.array(z.string().trim().min(1)).nullish(),
 });
+
+// Invalid optional SEO copy falls back without changing category route validity.
+function categorySeoText(value: unknown, limit: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const text = value.trim();
+  return text && text.length <= limit && !/[<>\u0000-\u001f\u007f]/.test(text) ? text : undefined;
+}
 
 function normalizeDocumentId(id: string) {
   return id.replace(/^drafts\./, "");
@@ -173,6 +186,8 @@ export function buildCategoryRegistry(
         slug: row.slug.trim().toLowerCase(),
         status: row.status,
         ...(row.description?.trim() ? { description: row.description.trim() } : {}),
+        ...(categorySeoText(row.seoTitle, 120) ? { seoTitle: categorySeoText(row.seoTitle, 120) } : {}),
+        ...(categorySeoText(row.seoDescription, 320) ? { seoDescription: categorySeoText(row.seoDescription, 320) } : {}),
         ...(row.redirectToId ? { redirectToId: normalizeDocumentId(row.redirectToId) } : {}),
         ...(row.redirectToSlug?.trim() ? { redirectToSlug: row.redirectToSlug.trim().toLowerCase() } : {}),
         ...(row.featuredArticleIds?.length
@@ -330,4 +345,10 @@ export function listPhysicalCategorySitemapEntries(
     if (!articles.some((article) => articleBelongsToPhysicalCategory(article, category))) return [];
     return [{ loc: getCategoryCanonical(category.slug) }];
   });
+}
+
+/** Private Studio identity for one existing Category document; never a public URL owner. */
+export function categorySeoPreviewId(scope: string): string | null {
+  const id = scope.startsWith("category-doc-") ? scope.slice("category-doc-".length) : "";
+  return /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(id) && !id.startsWith("drafts.") ? id : null;
 }

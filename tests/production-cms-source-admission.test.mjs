@@ -3,7 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
-import { productionCmsOwners, assertProductionCmsOwner, productionCmsDisplaySource, cmsSha } from '../qa/production-cms-source-proof.mjs';
+import { productionCmsOwners, assertProductionCmsOwner, productionCmsDisplaySource, cmsSha, v5ProductionSourceSuccessors, v5ProductionSourcePredecessor } from '../qa/production-cms-source-proof.mjs';
 const read=file=>readFileSync(file,'utf8');
 
 test('same-word CMS admission rejects every unknown or modified source, including attempted pin reseal elsewhere',()=>{
@@ -30,6 +30,12 @@ test('published-only reader hardening retains the frozen predecessor proof and d
   assert.ok(!source.includes('draftMode'));assert.ok(!source.includes('IS_DRAFT_PREVIEW_ALLOWED'));
   assertProductionCmsOwner(file,source);
   let predecessor=source;
+  // The newly approved scope gate is independently exact; preserve every older reader inverse below.
+  for (const [current, old] of [
+    ['import { resolveContentEnvironment } from "./sanity-lane";\n', ''],
+    ['PUBLIC_COPY_SCOPES, isPublicCopyScopeAvailable, parsePublicCopy', 'PUBLIC_COPY_SCOPES, parsePublicCopy'],
+    ['  // New page-copy scopes are reviewed in UAT only. Never request them from Production.\n  const environment = resolveContentEnvironment();\n  const dataset = ["development", "web-uat", "local-uat", "admin-uat"].includes(environment) ? "uat" : "production";\n  if (!isPublicCopyScopeAvailable(scope, dataset)) return {};\n', ''],
+  ]) { assert.equal(predecessor.split(current).length, 2); predecessor = predecessor.replace(current, old); }
   for(const[current,old]of [
     // Sized copy (size fields and value encoding) is the newest reviewed reader step.
     [
@@ -129,4 +135,16 @@ test('validation text callback preserves original messages, first issue, unknown
   // Duplicate original error messages share one reverse-map alias; they are not independently editable.
   const defaults=loadFixtureModule('lib/content/tool-copy-defaults.ts').CI_COPY_DEFAULTS;
   assert.equal(defaults['ci.validation.educationPlanSchema.int'],'จำนวนปีต้องเป็นจำนวนเต็ม');
+});
+
+test('v5 exact successors reconstruct every complete prior owner and reject partial, extra or misowned bytes',()=>{
+  assert.equal(Object.keys(v5ProductionSourceSuccessors).length,33);
+  for(const [file,entry] of Object.entries(v5ProductionSourceSuccessors)){
+    const current=read(file);
+    assert.equal(cmsSha(v5ProductionSourcePredecessor(file,current)),entry.before);
+    assertProductionCmsOwner(file,current);
+    for(const mutant of [current.slice(0,-1),current+'\n// unreviewed'])assert.throws(()=>v5ProductionSourcePredecessor(file,mutant));
+    assert.equal(v5ProductionSourcePredecessor('unknown-owner.ts',current),current);
+    assert.throws(()=>assertProductionCmsOwner('unknown-owner.ts',current));
+  }
 });

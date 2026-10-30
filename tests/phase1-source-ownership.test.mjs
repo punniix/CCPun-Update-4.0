@@ -147,10 +147,21 @@ test('root and Web keep their original complete metadata and layout/first-paint/
     if (file === 'apps/web/app/layout.tsx') {
       const font = original.trace.find(entry => Array.isArray(entry) && entry[0] === 'font' && entry[1].variable === '--font-kanit');
       assert.deepEqual(font[1].weight, ['300', '400', '600', '700'], 'original noncritical font weights retained');
-      font[1].weight = ['300', '400', '500', '600', '700'];
+      font[1].weight = ['400', '500', '600'];
       const critical = original.trace.find(entry => Array.isArray(entry) && entry[0] === 'font' && entry[1].variable === '--font-kanit-critical');
       assert.deepEqual(critical[1].weight, ['400', '600', '700'], 'original critical Thai weights retained');
-      critical[1].weight = ['400', '500', '600', '700'];
+      critical[1].weight = ['500'];
+      assert.deepEqual(critical[1].subsets,['thai'],'original critical subset remains frozen');
+      critical[1].subsets=['thai','latin'];
+      const responsive='<style data-fixture-responsive="true"></style>';
+      assert.equal(original.html.split(responsive).length,2,'original4.3 responsive owner remains identified');
+      original.html=original.html.replace(responsive,'');
+      if(review){
+        assert.deepEqual(original.metadata.icons,{icon:{url:'/favicon.png',type:'image/png'},apple:'/favicon.png'},'historical review favicon remains recorded');
+        const icon={url:'/assets/ccpun-favicon-v5-7253e60c.png',type:'image/png',sizes:'256x256'};
+        original.metadata.icons={icon:{...icon},apple:{...icon}};
+      }
+
       for (const entry of [font, critical]) {
         assert.equal(entry[1].display, 'optional', 'original display policy retained');
         entry[1].display = 'swap';

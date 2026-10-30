@@ -1,7 +1,9 @@
 import { cache } from "react";
 import { draftMode } from "next/headers";
 import { IS_DRAFT_PREVIEW_ALLOWED } from "@/lib/deployment-environment";
-import Website43Article from "@/features/blog/website-43/Website43Article";
+import V5Article from "@/features/blog/v5/V5Article";
+import { selectRelatedArticles } from "@/features/blog/v5/related";
+import { getPublishedArticles } from "@/components/layout/v5/shell-data";
 import type { Metadata } from "next";
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { serializeJsonLd } from "@/lib/content/structured-data/serialize-json-ld";
@@ -87,8 +89,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ catego
     if (movedTargetArticle?.status === "published") permanentRedirect(movedPath);
   }
 
-  const provider = getContentProvider();
-  const relatedArticlesPromise = provider.listArticles({ includeDrafts: false });
+  // One cached published-list read per request, shared with the v5 nav/footer topics.
+  const relatedArticlesPromise = getPublishedArticles();
   const sourceSlug = getArticleSourceSlugForRoute(slug);
   const article = await getArticleBySlugForRequest(sourceSlug, includeDrafts);
   if (!article || (!includeDrafts && article.status !== "published")) notFound();
@@ -102,9 +104,11 @@ export default async function ArticlePage({ params }: { params: Promise<{ catego
 
   const schema = isArticleCanonicalAligned(article) ? buildArticleSchemaGraph(article) : null;
 
-  let relatedArticles = [] as Awaited<ReturnType<ReturnType<typeof getContentProvider>["listArticles"]>>;
+  let relatedArticles = [] as Awaited<ReturnType<typeof getPublishedArticles>>;
+  let allArticles = [] as Awaited<ReturnType<typeof getPublishedArticles>>;
   try {
-    const candidates = (await relatedArticlesPromise)
+    allArticles = await relatedArticlesPromise;
+    const candidates = allArticles
       .filter((candidate) => candidate.status === "published" && candidate.slug !== article.slug)
       .filter((candidate) => {
         try {
@@ -120,19 +124,14 @@ export default async function ArticlePage({ params }: { params: Promise<{ catego
           return false;
         }
       });
-    relatedArticles = candidates
-      .sort((a, b) => {
-        const aScore = (a.categorySlug === article.categorySlug ? 2 : 0) + (a.semanticTopic && a.semanticTopic === article.semanticTopic ? 3 : 0);
-        const bScore = (b.categorySlug === article.categorySlug ? 2 : 0) + (b.semanticTopic && b.semanticTopic === article.semanticTopic ? 3 : 0);
-        return bScore - aScore;
-      })
-      .slice(0, 2);
+    // Internal-linking plan T07: topic → pillar → bridge → same category; never off-topic filler.
+    relatedArticles = selectRelatedArticles(article, candidates);
   } catch (error) {
     console.error("[blog-related] related articles unavailable", { type: error instanceof Error ? error.name : "unknown" });
   }
 
   return <>
     {schema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />}
-    <Website43Article preview={includeDrafts} article={article} relatedArticles={relatedArticles} />
+    <V5Article preview={includeDrafts} article={article} relatedArticles={relatedArticles} allArticles={allArticles} />
   </>;
 }

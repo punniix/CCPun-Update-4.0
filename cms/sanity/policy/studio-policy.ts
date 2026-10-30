@@ -1,5 +1,5 @@
 import type { DocumentActionComponent } from "sanity";
-import { PUBLIC_COPY_SCOPES, publicCopyDocumentId, type PublicCopyScope } from "../../../lib/content/public-copy-registry";
+import { PRODUCTION_PUBLIC_COPY_SCOPES, publicCopyDocumentId } from "../../../lib/content/public-copy-registry";
 import { PAGE_SEO_PAGES } from "../../../lib/content/page-seo-registry";
 import { isStudioDataPlaneAllowed, type AdminEnvironment } from "../../../lib/admin/environment";
 
@@ -117,7 +117,7 @@ export function filterStudioDocumentActions<T extends { action?: string }>(
     if (productionPageAllowed) {
       const id = documentId?.replace(/^drafts\./, "");
       const registered = schemaType === "publicPageCopy"
-        ? Object.keys(PUBLIC_COPY_SCOPES).some(scope => publicCopyDocumentId(scope as PublicCopyScope) === id)
+        ? PRODUCTION_PUBLIC_COPY_SCOPES.some(scope => publicCopyDocumentId(scope) === id)
         : PAGE_SEO_PAGES.some(page => page.documentId === id);
       return registered ? actions.filter(({ action }) => Boolean(action && ["publish", "discardChanges", "restore"].includes(action))) : [];
     }

@@ -161,7 +161,16 @@ test('unified footer preserves links while removing approved marketing tagline i
   assert.doesNotMatch(after('Website43Shared.tsx'), /styles\.footerCompact/);
   const current = after('Website43Shared.tsx');
   assertProductionCmsOwner(directory + 'Website43Shared.tsx', current);
-  assert.equal(fingerprint(await footerSnapshots(canonicalNavigationPredecessor(directory + 'Website43Shared.tsx', current))),reviewedCurrent.footerDesktopDom);
+  const snapshots=await footerSnapshots(canonicalNavigationPredecessor(directory + 'Website43Shared.tsx', current));
+  assert.equal(fingerprint(snapshots),'4c6e3fe6b13fb6c0e112195b3a1ffeb820bcb436c93ac54d6a79e4d3e93895e2','exact approved About label fallback successor');
+  const restoreAboutLabel=html=>{
+    const current='<a href="/#about-ccpun">รู้จักปั้น</a>';
+    assert.equal(html.split(current).length,2,'one approved About label in its original link slot');
+    return html.replace(current,'<a href="/#about-ccpun">เกี่ยวกับ Pun</a>');
+  };
+  assert.equal(fingerprint(snapshots.map(restoreAboutLabel)),reviewedCurrent.footerDesktopDom);
+  assert.throws(()=>restoreAboutLabel(snapshots[0].replace('href="/#about-ccpun"','href="https://foreign.invalid/"')));
+  assert.throws(()=>restoreAboutLabel(snapshots[0]+snapshots[0]));
   assert.equal(baseline.footerDom,'db903aa6d7c7bdb589a3841c2a5be6cb59459e374cc314cfdaedf6b3855f489b','Original full/compact baseline retained as history; duplicate compact removal is explicit');
 });
 

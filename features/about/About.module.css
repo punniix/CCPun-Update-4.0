@@ -1,0 +1,236 @@
+/* /about/ (owner-approved 2026-10-25). v5 tokens come from the shell root (.root in V5.module.css). */
+.hero { background: var(--v5-bg-alt); padding-block: 32px 56px; }
+@media (min-width: 1024px) { .hero { padding-block: 48px 96px; } }
+.heroGrid { display: grid; gap: 32px; align-items: center; margin-top: 24px; }
+@media (min-width: 900px) { .heroGrid { grid-template-columns: minmax(0, 1fr) minmax(280px, 440px); gap: 64px; } }
+.identity { margin-top: 16px; display: grid; gap: 4px; }
+.identity strong { font-size: 18px; font-weight: 500; font-family: var(--v5-font-display); }
+.identity span { color: var(--v5-muted); font-size: 16px; line-height: 1.6; }
+.credentials { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; margin: 24px 0 0; padding: 20px; border-radius: var(--v5-radius); border: 1px solid var(--v5-border); background: var(--v5-bg); }
+.credentials { list-style: none; }
+.credentials > li { display: grid; min-width: 0; }
+/* Phones: one credential card per row, so the flip-card backs (the TFPA name) never split mid-phrase. */
+@media (max-width: 479px) { .credentials { grid-template-columns: minmax(0, 1fr); } }
+/* The final licence control keeps a mobile right-side gap for the fixed LINE button. */
+@media (max-width: 479px) {
+  .credentials > li:last-child:has(button) { padding-right: 40px; }
+}
+.credentials dt { font-size: 15px; font-weight: 500; font-family: var(--v5-font-display); }
+.credentials dd { margin: 4px 0 0; color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.55; overflow-wrap: anywhere; }
+.portraitFrame { width: 100%; max-width: 440px; justify-self: center; }
+@media (max-width: 899px) { .portraitFrame { max-width: 360px; } }
+.portrait { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; object-position: top; border-radius: var(--v5-radius-lg); background: var(--v5-surface); }
+/* One portrait per theme (lazy, so the hidden one is never fetched). */
+.portraitLight { display: none; }
+:global(html[data-theme="light"]) .portraitDark { display: none; }
+:global(html[data-theme="light"]) .portraitLight { display: block; }
+
+/* UAT trial: connected story and owner-approved photo; absent from Production. */
+.fatherPhoto { margin: 0; min-width: 0; max-width: 420px; }
+/* No reusable plain-photo caption exists; use the existing small/muted tokens. */
+.fatherPhoto figcaption { margin-top: 16px; color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.75; }
+.fatherStory, .fatherStoryBody { display: grid; gap: 16px; min-width: 0; }
+.fatherStory h3 { color: var(--v5-text); font-family: var(--v5-font-display); font-size: 22px; font-weight: 500; line-height: 1.5; }
+.fatherStory ul { list-style: disc; padding-left: 1.4em; display: grid; gap: 12px; }
+.fatherPhrase { white-space: normal; }
+/* Keep the existing LINE corner clear while the story uses the stacked layout. */
+@media (max-width: 1279px) {
+  .fatherStory > p, .fatherStoryBody, .fatherPhoto figcaption { max-width: min(760px, 100%, calc(100vw - var(--v5-gutter) - 80px)); }
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .fatherStory > p, .fatherStoryBody, .fatherPhoto figcaption { max-width: min(760px, 100%, calc(100vw - var(--v5-gutter) - 248px)); }
+}
+@media (min-width: 900px) {
+  /* The approved UAT story uses the full shared width; Production has no father trial. */
+  .split:has(.fatherStory) { grid-template-columns: minmax(0, 1fr); }
+  .split:has(.fatherStory) > .story { max-width: none; }
+  .split:has(.fatherStory) > h2,
+  .split:has(.fatherStory) > .story > :not(.fatherStory) { max-width: 760px; }
+}
+@media (min-width: 1280px) {
+  .fatherStory { grid-template-columns: minmax(0, 5fr) minmax(0, 3fr); gap: 20px 64px; padding-block: 20px; align-items: start; }
+  .fatherStory h3 { grid-column: 1; grid-row: 1; }
+  .fatherStory > p { grid-column: 1; grid-row: 2; }
+  .fatherPhoto { grid-column: 2; grid-row: 1 / 4; max-width: none; }
+  .fatherPhoto figcaption { max-width: min(280px, calc(100% - max(0px, calc(248px - var(--v5-gutter))))); }
+  .fatherStoryBody { grid-column: 1; grid-row: 3; }
+}
+.fatherPhoto img { display: block; width: 100%; height: auto; border-radius: var(--v5-radius); }
+
+.split { display: grid; gap: 24px 64px; }
+@media (min-width: 900px) { .split { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } }
+.story { display: grid; gap: 16px; color: var(--v5-muted); font-size: 17px; line-height: 1.85; max-width: 40em; }
+
+/* UAT-only owner-copy slot: clearly a placeholder, never rendered in Production builds. */
+.slot { padding: 12px 16px; border: 1px dashed var(--v5-field-edge); border-radius: var(--v5-radius-sm); color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.6; margin-top: 16px; }
+.story .slot { margin-top: 0; }
+.slot strong { color: var(--v5-gold-text); font-weight: 500; margin-right: 4px; }
+
+.partners { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--v5-list-gap); margin: var(--v5-head-gap) 0 0; padding: 0; list-style: none; }
+@media (min-width: 640px) { .partners { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .partners { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.partner { display: grid; justify-items: center; gap: 8px; padding: 16px 12px; border-radius: var(--v5-radius-sm); background: #fffdf9; border: 1px solid rgba(91, 72, 72, 0.18); color: #352727; text-align: center; }
+.partner img { width: auto; max-width: 100%; height: 40px; object-fit: contain; }
+.partner strong { font-size: 14px; font-weight: 500; font-family: var(--v5-font-display); }
+.partner span { font-size: var(--v5-text-meta); color: #5f4c4c; line-height: 1.45; }
+
+.quotes { display: grid; gap: 36px; margin-top: var(--v5-head-gap); align-items: start; }
+@media (min-width: 900px) { .quotes { grid-template-columns: 1.4fr 1fr; gap: 56px; } }
+.quote { margin: 0; padding: 4px 0 4px 24px; border-left: 3px solid var(--v5-gold); }
+.quote blockquote { margin: 0; font-size: 18px; line-height: 1.75; font-weight: 500; font-family: var(--v5-font-display); }
+.quote blockquote::before { content: "“"; }
+.quote blockquote::after { content: "”"; }
+.quote figcaption { margin-top: 16px; color: var(--v5-gold-text); font-size: 14px; font-weight: 500; font-family: var(--v5-font-display); }
+.quote figcaption::before { content: "— "; }
+
+.next { display: flex; flex-wrap: wrap; gap: 8px 32px; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--v5-border-soft); }
+
+/* Owner-approved four-chapter story: FigCraft Responsive v2 (UAT-only).
+   The original Production section/layout remains unchanged. */
+.ownerHeroIntro { max-width: 38rem; margin-top: 20px; color: var(--v5-muted); font-size: clamp(18px, 1.45vw, 22px); line-height: 1.65; }
+.ownerStoryV2 { display: grid; gap: 72px; min-width: 0; }
+.ownerStoryChapter { min-width: 0; display: grid; gap: 24px; }
+.ownerStoryChapter h2 { font-family: var(--v5-font-display); color: var(--v5-text); font-size: clamp(26px, 2.5vw, 32px); font-weight: 500; line-height: 1.3; max-width: 760px; text-wrap: balance; }
+.ownerStoryPair { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; align-items: start; min-width: 0; }
+.ownerStoryCopy { display: grid; gap: 16px; min-width: 0; max-width: 760px; }
+.ownerStoryCopy p { margin: 0; color: var(--v5-muted); font-size: 18px; line-height: 1.75; overflow-wrap: break-word; }
+.ownerStoryPhoto { margin: 0; min-width: 0; width: 100%; max-width: 456px; }
+.ownerStoryPhoto img { width: 100%; height: auto; display: block; border-radius: var(--v5-radius); object-fit: contain; }
+.ownerStoryPhoto figcaption { margin-top: 8px; color: var(--v5-muted); font-size: 14px; line-height: 1.6; }
+.ownerStoryCareerPhotos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; max-width: 456px; }
+.ownerStoryMotto { margin: 0; color: var(--v5-text); font-family: var(--v5-font-display); font-size: 22px; font-weight: 500; line-height: 1.5; }
+.ownerStoryChatLink { justify-self: start; display: inline-flex; align-items: center; min-height: 48px; padding: 12px 20px; color: var(--v5-on-gold); background: var(--v5-gold); border-radius: var(--v5-radius-button); font-weight: 500; text-decoration: none; }
+.ownerStoryChatLink:focus-visible { outline: 3px solid var(--v5-text); outline-offset: 3px; }
+@media (min-width: 900px) {
+  .ownerStoryPair { grid-template-columns: minmax(0, 5fr) minmax(0, 3fr); gap: 64px; }
+}
+@media (max-width: 899px) {
+  .ownerStoryV2 { gap: 56px; }
+  .ownerStoryChapter { gap: 20px; }
+  .ownerStoryPhoto { max-width: 350px; }
+  .ownerStoryCareerPhotos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 350px; }
+  .ownerStoryCopy p { font-size: 18px; }
+}
+@media (max-width: 360px) {
+  .ownerStoryCareerPhotos { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* The static story cards own their borders; keep one 20px page gutter on both sides. */
+.ownerStoryV2 .credentials { grid-template-columns: minmax(0, 1fr); align-items: stretch; margin: 0; padding: 0; border: 0; background: none; }
+.ownerStoryV2 .credentials > li { height: 100%; padding: 0; }
+@media (min-width: 640px) { .ownerStoryV2 .credentials { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .ownerStoryV2 .credentials { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; } }
+
+/* Saved native timeline: decorative rails share the actual heading/body grid rows. */
+.ownerStoryV2 { --owner-story-gap: 72px; --owner-chapter-gap: 24px; --owner-timeline-offset: 24px; --owner-timeline-dot: 10px; --owner-timeline-rule: color-mix(in srgb, var(--v5-gold) 35%, transparent); }
+.ownerStoryChapter { position: relative; grid-template-rows: auto auto; }
+.ownerStoryChapter > h2 { position: relative; grid-area: 1 / 1; }
+.ownerStoryChapterBody { grid-area: 2 / 1; display: grid; gap: inherit; min-width: 0; }
+.ownerStoryChapter::before, .ownerStoryChapter::after { content: ""; grid-column: 1; width: 2px; justify-self: start; align-self: stretch; transform: translateX(calc(-1 * var(--owner-timeline-offset) - 1px)); background: var(--owner-timeline-rule); pointer-events: none; }
+.ownerStoryChapter::before { grid-row: 1; }
+.ownerStoryChapter::after { grid-row: 2; margin-top: calc(-1 * var(--owner-chapter-gap)); margin-bottom: calc(-1 * var(--owner-story-gap)); }
+.ownerStoryChapter:first-child::before { background: linear-gradient(to bottom, transparent 50%, var(--owner-timeline-rule) 50%); }
+.ownerStoryChapter:last-child::before { background: linear-gradient(to bottom, var(--owner-timeline-rule) 50%, transparent 50%); }
+.ownerStoryChapter:last-child::after { display: none; }
+.ownerStoryChapter > h2::before { content: ""; position: absolute; left: calc(-1 * var(--owner-timeline-offset)); top: 50%; width: var(--owner-timeline-dot); height: var(--owner-timeline-dot); border-radius: 50%; transform: translate(-50%, -50%); background: var(--v5-gold); pointer-events: none; }
+@media (max-width: 899px) { .ownerStoryV2 { --owner-story-gap: 56px; --owner-chapter-gap: 20px; --owner-timeline-offset: 10px; --owner-timeline-dot: 6px; } }
+
+/* The approved alpha portrait stays inside its existing rounded frame, with the full head visible. */
+.portrait { object-fit: contain; }
+
+
+/* Canonical About full-page layout; legacy Production selectors above remain intact. */
+.nativeBand, .ownerStoryOpeningBand, .ownerStoryTodayBand { padding-block: 56px; background: var(--v5-bg); }
+.nativeAlternate, .ownerStoryCredentialBand { background: var(--v5-bg-alt); }
+.nativeHeroGrid { display: grid; gap: 16px; align-items: center; }
+.nativeHeroCopy { min-width: 0; }
+.nativeHeroCopy h1 { font-size: 34px; line-height: 1.3; }
+.nativeHeroIntro { margin-top: 20px; max-width: 290px; font-size: 20px; line-height: 1.5; font-weight: 500; color: var(--v5-muted); }
+.nativePortraitFrame { max-width: 350px; }
+.nativePortraitFrame .portrait { display: block; height: auto; aspect-ratio: 7 / 8; border-radius: 24px; object-fit: contain; }
+.nativePortraitFrame .portraitLight { display: none; }
+:global(html[data-theme="light"]) .nativePortraitFrame .portraitDark { display: none; }
+:global(html[data-theme="light"]) .nativePortraitFrame .portraitLight { display: block; }
+.nativeHeading { font-size: 26px; line-height: 1.3; }
+.nativeSplit { display: grid; gap: 16px; align-items: start; }
+.nativeLead { margin-top: 12px; color: var(--v5-muted); font-size: 18px; line-height: 1.75; }
+.nativeSteps { list-style: none; margin: 0; padding: 0; display: grid; }
+.nativeSteps > li { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 24px; padding-block: 32px; border-top: 1px solid var(--v5-border); align-items: start; }
+.nativeStepNumber { font-size: 22px; line-height: 1.35; color: var(--v5-gold-text); }
+.nativeSteps h3 { font-size: 22px; line-height: 1.5; }
+.nativeSteps p { margin-top: 8px; font-size: 18px; line-height: 1.75; color: var(--v5-muted); }
+.nativePartners { padding-block: 32px; background: var(--v5-bg); }
+.nativePartners h2, .nativeAlternate h2 { font-size: 26px; line-height: 1.3; }
+.nativePartnerTiles { gap: 8px; margin-top: 24px; }
+.nativePartnerTiles .partner { height: 72px; padding: 12px 20px; border-radius: 16px; display: flex; align-items: center; justify-content: center; }
+.nativePartnerTiles .partner img { max-height: 48px; height: auto; max-width: 100%; width: auto; }
+.accessibleOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.nativeQuotes { grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 24px; align-items: stretch; }
+.nativeQuotes .quote { padding: 20px; border: 1px solid var(--v5-border-soft); border-radius: 24px; background: var(--v5-bg); display: flex; flex-direction: column; gap: 24px; }
+.nativeQuotes .quote blockquote { font-size: 18px; line-height: 1.6; }
+.nativeQuotes .quote figcaption { margin-top: auto; }
+.nativeFaq { display: grid; gap: 12px; min-width: 0; }
+.nativeFaq details { padding: 16px 24px; border: 1px solid var(--v5-border-soft); border-radius: 16px; background: var(--v5-card); }
+.nativeFaq summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; font-size: 18px; font-weight: 500; list-style: none; }
+.nativeFaq summary > span { flex: 1; min-width: 0; }
+.nativeFaq summary::-webkit-details-marker { display: none; }
+.nativeFaq summary::after { content: "+"; flex: 0 0 auto; color: var(--v5-gold-text); }
+.nativeFaq details[open] summary::after { content: "−"; }
+.nativeFaq details p { margin-top: 12px; color: var(--v5-muted); font-size: 18px; line-height: 1.6; }
+.ownerStoryV2 { display: block; isolation: isolate; --owner-story-gap: 48px; }
+.ownerStoryOpening { display: grid; gap: var(--owner-story-gap); }
+.ownerStoryCredentialBand { padding-block: 48px; }
+.ownerStoryChapter { gap: 24px; --owner-chapter-gap: 24px; }
+.ownerStoryChapter::before, .ownerStoryChapter::after { position: relative; z-index: 1; }
+.ownerStoryChapter:first-child::before, .ownerStoryChapter:last-child::before { background: var(--owner-timeline-rule); }
+.ownerStoryChapter:last-child::after { display: block; }
+.ownerStoryChapter[data-story-chapter="1"]::before { background: linear-gradient(to bottom, transparent 50%, var(--owner-timeline-rule) 50%); }
+.ownerStoryChapter[data-story-chapter="2"]::after, .ownerStoryChapter[data-story-chapter="3"]::after { margin-bottom: -104px; }
+.ownerStoryChapter[data-story-chapter="4"]::before { background: linear-gradient(to bottom, var(--owner-timeline-rule) 50%, transparent 50%); }
+.ownerStoryChapter[data-story-chapter="4"]::after { display: none; }
+@media (min-width: 900px) {
+  .nativeBand, .ownerStoryOpeningBand, .ownerStoryTodayBand { padding-block: 96px; }
+  .nativeHeroGrid { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr); gap: 56px; }
+  .nativePortraitFrame { max-width: 544px; }
+  .nativePortraitFrame .portrait { height: 620px; aspect-ratio: auto; }
+  .nativeHeroCopy h1 { font-size: 48px; }
+  .nativeHeroIntro { max-width: none; font-size: 22px; }
+  .nativeHeading, .nativePartners h2, .nativeAlternate h2 { font-size: 32px; }
+  .nativeSplit { grid-template-columns: minmax(0, 0.75fr) minmax(0, 1fr); gap: 56px; }
+  .nativePartners { padding-block: 48px; }
+  .nativePartnerTiles { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+  .nativePartnerTiles .partner { height: 88px; }
+  .nativeQuotes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 40px; }
+  .nativeQuotes .quote { padding: 32px; }
+  .ownerStoryV2 { --owner-story-gap: 72px; }
+  .ownerStoryCredentialBand { padding-block: 64px; }
+  .ownerStoryChapter { gap: 32px; --owner-chapter-gap: 32px; }
+  .ownerStoryChapter[data-story-chapter="2"]::after, .ownerStoryChapter[data-story-chapter="3"]::after { margin-bottom: -160px; }
+  .ownerStoryFatherPair { row-gap: 24px; }
+  .ownerStoryFatherPair > .ownerStoryPhoto { grid-column: 2; grid-row: 1 / 3; }
+  .ownerStoryFatherPair > .ownerStoryCopy { grid-column: 1; }
+}
+
+/* Approved mobile story rhythm and chronological experience beats (FigCraft 0199). */
+.ownerStoryCopy { gap: 20px; }
+.ownerStoryExperience { display: grid; gap: 20px; min-width: 0; }
+.ownerStoryExperienceBeat { display: grid; gap: 20px; min-width: 0; }
+.ownerStoryExperienceBeat .ownerStoryPhoto { aspect-ratio: 1; }
+.ownerStoryExperienceBeat .ownerStoryPhoto img { width: 100%; height: 100%; object-fit: contain; }
+.nativeNote { margin-top: 20px; color: var(--v5-muted); font-size: 16px; line-height: 1.75; }
+@media (max-width: 899px) {
+  .ownerStoryV2 { --owner-story-gap: 56px; }
+  .ownerStoryChapter { gap: 20px; --owner-chapter-gap: 20px; }
+  .ownerStoryExperienceBeat .ownerStoryPhoto { width: 100%; max-width: 350px; }
+}
+@media (min-width: 900px) {
+  .ownerStoryExperience { grid-template-columns: minmax(0, 5fr) minmax(0, 1.5fr) minmax(0, 1.5fr); column-gap: 24px; row-gap: 20px; align-items: start; }
+  .ownerStoryExperienceBeat { display: contents; }
+  .ownerStoryExperienceBeat > .ownerStoryCopy { grid-column: 1; }
+  .ownerStoryExperienceBeat:first-child > .ownerStoryPhoto { grid-column: 2; grid-row: 1 / 4; }
+  .ownerStoryExperienceBeat:nth-child(2) > .ownerStoryPhoto { grid-column: 3; grid-row: 1 / 4; }
+  .ownerStoryExperienceClosing { grid-column: 1; }
+}
+
+/* Alternate the eight approved About section bands at every viewport width. */
+.nativeHero { background: var(--v5-bg-alt); }

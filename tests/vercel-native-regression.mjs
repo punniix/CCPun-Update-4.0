@@ -1,5 +1,6 @@
 import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
 import { readPhase1Source } from '../qa/read-phase1-source.mjs';
+import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 
@@ -168,7 +169,12 @@ const articlePresentation = read('features/blog/website-43/Website43Article.tsx'
 const website43Shell = read('components/layout/website-43/Website43Shared.tsx');
 assert.match(articlePage, /index:\s*false,\s*follow:\s*false/);
 assert.match(articlePage, /isArticleCanonicalAligned\(article\) \? buildArticleSchemaGraph\(article\) : null/);
-assert.match(articlePage, /Website43Article/);
+assert.match(articlePage, /<V5Article preview=\{includeDrafts\} article=\{article\} relatedArticles=\{relatedArticles\} allArticles=\{allArticles\}/);
+const nativeArticle=read('features/blog/v5/V5Article.tsx');
+assert.match(nativeArticle,/article\.author\?\.professionalQualifications/);
+assert.match(nativeArticle,/renderV5ArticleBody\(article\.body, headingIds, copy, chatHref\)/);
+assert.match(articlePage,/title: article\.seoTitle/);
+assert.match(articlePage,/description: article\.seoDescription/);
 assert.match(articlePage, /getArticleCanonical/);
 assert.match(articlePresentation, /href="https:\/\/lin\.ee\/tqLCs4f"/);
 assert.match(articlePresentation, /data-analytics-location="blog_article"/);
@@ -215,7 +221,10 @@ assert.match(categoryRegistry, /CATEGORY_STATUS_VALUES = \["draft", "active"\]/)
 assert.match(categoryRegistry, /resolveCategoryRoute/);
 assert.match(categoryRegistrySanity, /_type == "category"/);
 assert.match(blogArchivePage, /listCategoryRegistry/);
-assert.match(blogArchivePage, /listCategoryMenuEntries/);
+assert.match(blogArchivePage,/listLinkableTopics\(registry, articles\)/);
+assert.match(blogArchivePage,/listFallbackTopics\(articles\)/);
+assert.match(blogArchivePage,/topics=\{topics\}/);
+assert.match(blogArchivePage,/includeDrafts \? listCategoryRegistry\(\{ includeDrafts \}\) : getPublishedCategoryRegistry\(\)/);
 assert.match(blogPresentation, /Website43BlogInteractive/);
 assert.match(blogData, /getArticlePath/);
 assert.match(blogData, /getArticleSemanticTopic/);
@@ -242,8 +251,17 @@ const fhcLanding = read('features/financial-health-check/components/FHCLandingIn
 assert.match(fhcLanding, /3 เรื่องที่ควรทบทวนให้เชื่อมกัน/);
 assert.doesNotMatch(fhcLanding, /7 เรื่องใน 3 กลุ่ม/);
 
-const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx');
-const privacyPolicy = read('apps/web/app/privacy/page.tsx');
+const legalDefaults=loadFixtureModule('lib/content/legal-copy-defaults.ts');
+const legalProjection=(file,defaults)=>read(file).replace(/text(?:\.node)?\((["'])((?:privacy|cookies)\.[^"']+)\1\)/g,(_match,_quote,key)=>{
+  assert.ok(Object.hasOwn(defaults,key),'registered legal wording '+key);
+  return JSON.stringify(defaults[key]);
+});
+const cookieWrapper=read('apps/web/app/cookie-policy/page.tsx');
+const privacyWrapper=read('apps/web/app/privacy/page.tsx');
+assert.match(cookieWrapper,/features\/legal\/v5\/V5CookiePolicy/);
+assert.match(privacyWrapper,/features\/legal\/v5\/V5Privacy/);
+const cookiePolicy=cookieWrapper+'\n'+legalProjection('features/legal/v5/V5CookiePolicy.tsx',legalDefaults.COOKIES_COPY_DEFAULTS);
+const privacyPolicy=privacyWrapper+'\n'+legalProjection('features/legal/v5/V5Privacy.tsx',legalDefaults.PRIVACY_COPY_DEFAULTS);
 const consentUi = [read('features/analytics/components/CookieConsent.tsx'), read('features/analytics/components/CookieConsentPreferences.tsx')].join('\n');
 for (const disclosure of [cookiePolicy, privacyPolicy, consentUi]) {
   assert.match(disclosure, /Google Analytics/);
