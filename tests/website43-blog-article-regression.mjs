@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { JSDOM } from 'jsdom';
+import postcss from 'postcss';
 
 const require = createRequire(import.meta.url);
 require('tsx/cjs');
@@ -357,3 +358,35 @@ browserDom.window.close();
 console.log('PASS: actual Article block/credit/anchor/profile renderer, Bangkok date, public route/filter/metadata/redirect, stale Draft cookie and cached browser query restoration');
 const { execFileSync } = await import('node:child_process');
 execFileSync(process.execPath, ['--test', fileURLToPath(new URL('./health-happy-blog-preload.test.mjs', import.meta.url))], { stdio: 'inherit' });
+
+
+// Native Tablet Blog keeps the actual route data and all original phone/desktop styles.
+{
+ const css=readFileSync('features/blog/v5/V5Blog.module.css','utf8');let tablet;
+ postcss.parse(css).walkAtRules('media',media=>{if(media.nodes.some(n=>n.type==='rule'&&n.selector==='.nativeBlog .featuredGrid'))tablet=media;});
+ assert.ok(tablet);assert.equal(tablet.params,'(min-width: 768px) and (max-width: 1023px)');
+ const rules={};tablet.walkRules(rule=>{rules[rule.selector]=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(d=>[d.prop,d.value]));});
+ assert.equal(rules['.nativeBlog .featuredGrid']['grid-template-columns'],'minmax(0, 1fr)');
+ assert.equal(rules['.nativeBlog .featuredGrid article']['flex-direction'],'row');
+ assert.equal(rules['.nativeBlog .featuredGrid .featuredLead > :is(img, span[aria-hidden])'].width,'280px');
+ assert.equal(rules['.nativeBlog .featuredGrid article > :is(img, span[aria-hidden])'].width,'240px');
+ assert.equal(rules['.nativeBlog .featuredGrid article > div'].padding,'24px 88px 24px 24px');
+ assert.equal(rules['.nativeBlog .chipRow > ul']['flex-wrap'],'wrap');
+ assert.equal(rules['.nativeBlog .groupGrid']['grid-template-columns'],'repeat(2, minmax(0, 1fr))');
+ assert.ok(Object.keys(rules).some(selector=>selector.includes(':last-child:nth-child(odd)')&&rules[selector]['grid-template-columns']==='minmax(0, 1fr)'),'real odd groups use complete rows without invented cards');
+ const counter=postcss.parse(readFileSync('components/ui/health-happy/HealthHappyCountdown.module.css','utf8'));let blog;
+ counter.walkAtRules('media',media=>{if(media.nodes.some(n=>n.type==='rule'&&n.selector==='.splitDigits[data-campaign-placement="blog"] .frame'))blog=media;});assert.ok(blog);
+ const props={};blog.walkRules(rule=>{props[rule.selector]=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(d=>[d.prop,d.value]));});
+ assert.equal(props['.splitDigits[data-campaign-placement="blog"] .timer']['grid-template-columns'],'repeat(4, minmax(0, 1fr))');
+ assert.equal(props['.splitDigits[data-campaign-placement="blog"] .actions']['padding-inline-end'],'64px');
+}
+
+// Category real odd counts and Article collapsed contents share the approved 640px reader.
+{
+ const source=readFileSync('features/blog/v5/V5Blog.module.css','utf8');const groups=[];postcss.parse(source).walkAtRules('media',m=>{if(m.params==='(min-width: 768px) and (max-width: 1023px)')groups.push(m);});
+ const props=selector=>{let value;for(const media of groups)media.walkRules(rule=>{if(rule.selector===selector)value=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(d=>[d.prop,d.value]));});assert.ok(value,selector);return value;};
+ assert.equal(props('.categoryHero .chipRow > ul')['flex-wrap'],'wrap');assert.equal(props('.introCopy')['line-height'],'1.75');assert.equal(props('.categoryCard h3')['font-size'],'22px');assert.equal(props('.categoryCard p')['-webkit-line-clamp'],'unset');
+ assert.equal(props('.tocAside').display,'none');assert.equal(props('.tocMobileSheet').display,'block');assert.equal(props('.tocTrigger')['min-height'],'48px');assert.equal(props('.tocSheet')['max-width'],'640px');assert.equal(props('.metaDates')['flex-basis'],'100%');assert.equal(props('.metaRow > .shareSlot')['flex-basis'],'100%');
+ for(const media of groups)media.walkRules(rule=>assert.doesNotMatch(rule.selector,/dialog\[open\]|dialog:not|dialog\[aria-hidden/,'CSS never forces a closed/inert dialog visible'));
+ const controller=readFileSync('features/blog/v5/V5ArticleMobileToc.tsx','utf8');assert.match(controller,/showModal/);assert.match(controller,/<dialog[^>]+onClose=\{closed\}/);assert.doesNotMatch(controller,/onCancel=.*preventDefault/);
+}

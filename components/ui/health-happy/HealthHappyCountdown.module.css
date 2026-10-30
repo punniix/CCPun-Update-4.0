@@ -76,3 +76,44 @@
   .splitDigits .timer { gap: 4px; padding: 0; }
   .splitDigits .numeral { font-size: clamp(18px, 6vw, 24px); }
 }
+
+/* Home tablet card keeps full-width copy/timer; only the two action hit regions clear LINE. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .splitDigits[data-campaign-placement="home"] .frame { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 24px; }
+  .splitDigits[data-campaign-placement="home"] .timer { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 16px; border: 1px solid var(--v5-border-soft, #5b4848); background: var(--v5-bg, #251818); }
+  .splitDigits[data-campaign-placement="home"] .numeral { font-size: 28px; }
+  .splitDigits[data-campaign-placement="home"] .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-inline-end: 64px; }
+}
+
+/* Approved Blog tablet countdown uses the same full-width four-unit card and local action clearance. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .splitDigits[data-campaign-placement="blog"] .frame { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 24px; }
+  .splitDigits[data-campaign-placement="blog"] .timer { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 16px; border: 1px solid var(--v5-border-soft, #5b4848); background: var(--v5-bg, #251818); }
+  .splitDigits[data-campaign-placement="blog"] .numeral { font-size: 28px; }
+  .splitDigits[data-campaign-placement="blog"] .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-inline-end: 64px; }
+}
+
+/* Approved all-width Home/Blog/Article actions: protect hit regions while the complete card stays balanced. */
+@media (max-width: 767px) {
+  .splitDigits:is([data-campaign-placement="home"], [data-campaign-placement="blog"], [data-campaign-placement="article"]) .actions { padding-inline-end: 64px; }
+}
+@media (min-width: 1024px) {
+  .splitDigits:is([data-campaign-placement="home"], [data-campaign-placement="blog"], [data-campaign-placement="article"]) .frame { grid-template-columns: minmax(0, 1fr) 360px; gap: 16px 24px; padding: 24px; }
+  .splitDigits:is([data-campaign-placement="home"], [data-campaign-placement="blog"], [data-campaign-placement="article"]) .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-column: 1 / -1; gap: 12px; padding-inline-end: max(168px, calc(248px - var(--v5-gutter) - 24px)); }
+}
+
+/* Article shares the same full-shell tablet card without reserving an asymmetric outer strip. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .splitDigits[data-campaign-placement="article"] .frame { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 24px; }
+  .splitDigits[data-campaign-placement="article"] .timer { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 16px; border: 1px solid var(--v5-border-soft, #5b4848); background: var(--v5-bg, #251818); }
+  .splitDigits[data-campaign-placement="article"] .numeral { font-size: 28px; }
+  .splitDigits[data-campaign-placement="article"] .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-inline-end: 64px; }
+}
+
+/* Native 820 Tablet48: all four time units remain in one row, with balanced equal-width CTAs.
+   The centered action area ends before the bottom-right LINE dock at 768/820px. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .splitDigits:is([data-campaign-placement="home"], [data-campaign-placement="blog"], [data-campaign-placement="article"]) .numeral { font-size: 48px; line-height: 1.15; }
+  .splitDigits:is([data-campaign-placement="home"], [data-campaign-placement="blog"], [data-campaign-placement="article"]) .timeLabel { font-size: 18px; line-height: 1.5; }
+  .splitDigits:is([data-campaign-placement="home"], [data-campaign-placement="blog"], [data-campaign-placement="article"]) .actions { width: min(620px, calc(100% - 80px)); max-width: 100%; margin-inline: auto; padding-inline-end: 0; justify-self: center; }
+}

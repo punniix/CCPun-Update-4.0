@@ -274,3 +274,78 @@
 }
 
 @media (prefers-reduced-motion: reduce) { .readingProgress { display: none; } }
+
+/* Approved portrait tablet Blog 83800/84332: full covers, native horizontal rows and real provided records only. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .nativeBlog .hero { padding-block: 32px 40px; }
+  .nativeBlog .heroTop { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .nativeBlog :global(#blog-title) { font-size: 36px; line-height: 1.3; }
+  .nativeBlog .heroLead { font-size: 22px; line-height: 1.7; }
+  .nativeBlog .search input { min-height: 56px; }
+  .nativeBlog .chipRow > ul { flex-wrap: wrap; }
+  .nativeBlog > :global(section) { padding-block: 48px; }
+  .nativeBlog :global(section[data-v5-group]) h2, .nativeBlog .group h2 { font-size: 28px; line-height: 1.4; }
+  .nativeBlog .featuredGrid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .nativeBlog .featuredGrid article { flex-direction: row; align-items: center; --v5-card-meta-top: 0; }
+  .nativeBlog .featuredGrid article > :is(img, span[aria-hidden]) { width: 240px; height: auto; aspect-ratio: 16 / 9; flex: none; object-fit: contain; align-self: center; }
+  .nativeBlog .featuredGrid article > div { min-width: 0; padding: 24px 88px 24px 24px; gap: 12px; }
+  .nativeBlog .featuredGrid h3 { font-family: var(--v5-font); font-size: 22px; font-weight: 600; line-height: 1.4; }
+  .nativeBlog .featuredGrid article > div > span { font-family: var(--v5-font); font-size: 16px; font-weight: 600; line-height: 1.7; }
+  .nativeBlog .featuredGrid article > div p { font-size: 16px; line-height: 1.7; }
+  .nativeBlog .featuredGrid .featuredLead > :is(img, span[aria-hidden]) { width: 280px; }
+  .nativeBlog .featuredGrid .featuredLead > div { padding: 24px; }
+  .nativeBlog .featuredGrid .featuredLead h3 { font-family: var(--v5-font-display); font-size: 26px; font-weight: 500; }
+  .nativeBlog .featuredGrid p, .nativeBlog .groupGrid p { -webkit-line-clamp: unset; overflow: visible; }
+  .nativeBlog .startList { grid-template-columns: minmax(0, 1fr); }
+  .nativeBlog .groupGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 20px; }
+  .nativeBlog .compactCard > div { padding: 24px; }
+  .nativeBlog .compactCard h3 { font-size: 22px; line-height: 1.4; }
+  .nativeBlog .compactCard > div > span, .nativeBlog .compactCard p { font-size: 16px; line-height: 1.7; }
+  /* Odd final pages use complete horizontal rows; the six-card page remains two columns. */
+  .nativeBlog .groupGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) { grid-template-columns: minmax(0, 1fr); }
+  .nativeBlog .groupGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .compactCard { flex-direction: row; align-items: center; }
+  .nativeBlog .groupGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .compactCard > :is(img, span[aria-hidden]) { width: 240px; height: auto; aspect-ratio: 16 / 9; flex: none; object-fit: contain; align-self: center; }
+}
+
+/* Native Category 84868: editorial intro remains complete; actual odd lists use complete horizontal rows. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .categoryHero { padding-block: 32px 40px; }
+  .categoryHero :global(#category-title) { font-size: 36px; line-height: 1.3; }
+  .categoryHero .heroLead { font-size: 22px; line-height: 1.7; }
+  .categoryHero .chipRow > ul { flex-wrap: wrap; }
+  .intro { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .intro > h2 { font-size: 28px; line-height: 1.4; }
+  .introCopy { font-size: 18px; line-height: 1.75; }
+  .categoryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 20px; }
+  .categoryCard > div { min-width: 0; padding: 24px; gap: 12px; }
+  .categoryCard h3 { font-family: var(--v5-font); font-size: 22px; font-weight: 600; line-height: 1.4; }
+  .categoryCard > div > span { font-family: var(--v5-font); font-size: 16px; font-weight: 600; line-height: 1.7; }
+  .categoryCard p { font-size: 16px; line-height: 1.7; -webkit-line-clamp: unset; overflow: visible; }
+  .categoryGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) { grid-template-columns: minmax(0, 1fr); }
+  .categoryGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .categoryCard { flex-direction: row; align-items: center; }
+  .categoryGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .categoryCard > :is(img, span[aria-hidden]) { width: 240px; height: auto; aspect-ratio: 16 / 9; flex: none; object-fit: contain; align-self: center; }
+  .toolsCard { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+}
+
+/* Article tablet keeps the existing collapsed mobile controller; the closed dialog is never unhidden. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .articleHeader, .readingGrid, .readingGrid ~ :global(section) > :global(div) { max-width: calc(640px + var(--v5-gutter) * 2); }
+  .articleTitle { font-size: 36px; line-height: 1.3; }
+  .metaDates { flex-basis: 100%; font-size: 16px; line-height: 1.7; }
+  .metaSummary.metaSummary { order: 0; flex-basis: auto; }
+  .metaRow > .shareSlot { flex-basis: 100%; }
+  .readingGrid { grid-template-columns: minmax(0, 1fr); }
+  .tocAside { display: none; }
+  .tocMobileSheet { display: block; }
+  .tocTrigger { min-height: 48px; padding-block: 10px; font-size: 16px; line-height: 1.5; }
+  .tocSheet { width: min(640px, calc(100% - 64px)); max-width: 640px; }
+  .prose { font-size: 18px; line-height: 1.75; }
+  .prose h2 { font-size: 28px; line-height: 1.4; }
+  .prose h3 { font-size: 22px; }
+  .authorCard { max-width: 640px; margin-inline: auto; }
+  .readingGrid ~ :global(section) :global(div):has(> :global(article)) { grid-template-columns: minmax(0, 1fr); }
+  .readingGrid ~ :global(section) :global(article) { flex-direction: row; align-items: center; }
+  .readingGrid ~ :global(section) :global(article) > :is(img, span[aria-hidden]) { width: 240px; height: auto; aspect-ratio: 16 / 9; object-fit: contain; flex: none; align-self: center; }
+  .readingGrid ~ :global(section) :global(article) > div { min-width: 0; padding: 24px; }
+  .readingGrid ~ :global(section) :global(article) h3 { font-family: var(--v5-font); font-size: 22px; font-weight: 600; line-height: 1.4; }
+}

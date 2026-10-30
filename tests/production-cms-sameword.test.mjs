@@ -107,6 +107,16 @@ const baseline = {
 const v5RenderedSuccessors = {"0":"a8feb94069e1184d2ea0a4c04f200751b6f692bb339afc41b2673fdbe61b5125","1":"ef77f79390fec88209062c5a76337699eef4578aad2e0621c982a19151beda2f","2":"aca68559a8a5cf2af643725e2cdf7873a33966cf4150875187d24e0b42f8b533","3":"eae0842602adf95b953a905c33ddfa1a878ddf14598ecb8cd342fe17bb2eb1e2","4":"644e9fba525a75b33502408017c99cac47492a4e083e1671d8fc4569b241981c","5":"399d81734771d189395551f14fe0f5507a0a78101193ff3ca388c52752593d0f","6":"519fb7da2caead2a84adf901fbe890a05781df0c1b62068cc9bd8a425940217d","7":"399d81734771d189395551f14fe0f5507a0a78101193ff3ca388c52752593d0f","8":"08b9300cc5c5b51679b4d84226ba4c38acfd8d828038075eff7305ca32c68aa9","9":"231b2b6046782bb3884a0b71fe61b2e25100626cd9715c84b08246f28c9c741e","10":"2bf59bfae172ff890bfe37ad2ae96824976f3c3e1261135d77cacc4f782083b8"};
 const v5ArticleRenderedSuccessors = ["742e90f86e2f5d50b55b9a6e6d5f0cc683552fce3e9e82586db6d24329c3c087","7342de015035776d62d6945ee042be0dddf9723608b9ac9ac6acef9e2aba6e6e","b28a8630377f3bbfd76f041402be58076ad6e3ae05333f290eac3068f76cc2c9"];
 function nativeRenderPredecessor(index, html, article = false) {
+  if (!article && [1, 2].includes(index)) {
+    let heroes = 0;
+    html = html.replace(/<section\b[^>]*id="home"[^>]*>[\s\S]*?<\/section>/g, hero => {
+      heroes++;
+      const current = 'class="buttonOutline" href="/about/"';
+      assert.equal(hero.split(current).length - 1, 1, 'one reviewed Home hero About destination');
+      return hero.replace(current, 'class="buttonOutline" href="#about-ccpun"');
+    });
+    assert.equal(heroes, 1, 'inverse confined to the original Home hero');
+  }
   const current = article ? v5ArticleRenderedSuccessors[index] : v5RenderedSuccessors[index];
   assert.equal(digest(html),current,'exact reviewed native markup '+(article?'article:':'page:')+index);
   return article ? articleBaseline[index] : baseline[index];
@@ -173,6 +183,12 @@ test('native page successors preserve frozen historical goldens and render compl
     const html=await renderFixture(scope,props);
     assert.equal(nativeRenderPredecessor(index,html),baseline[index]);
     assert.throws(()=>nativeRenderPredecessor(index,html+'<p>unreviewed markup</p>'));
+    if(scope==='home'){
+      const heroCta='class="buttonOutline" href="/about/"';
+      for(const changed of [html.replace(heroCta,'class="buttonOutline" href="/unowned/"'),html.replace(heroCta,heroCta+'><span>duplicate</span></a><a '+heroCta)]){
+        assert.notEqual(changed,html);assert.throws(()=>nativeRenderPredecessor(index,changed));
+      }
+    }
     const doc=new (require('jsdom').JSDOM)(html).window.document;
     assert.equal(doc.querySelectorAll('footer').length,1,scope+': one shared footer');
     if(scope!=='site'){
@@ -459,4 +475,11 @@ test('native Presentation selects the exact page copy or SEO form for every priv
   for(const requested of ['home','ci','site','seo-home','seo-moneyStory'])assert.equal((await(await route({params:Promise.resolve({scope:requested})})).props.searchParams).scope,requested.replace(/^seo-/,''));
   const filtered=await route({params:Promise.resolve({scope:'blog'}),searchParams:Promise.resolve({scope:'investment',q:'คำค้น',page:'2'})});assert.deepEqual(await filtered.props.searchParams,{scope:'blog',q:'คำค้น',page:'2'});
   for(const requested of ['investment','seo-site','unknown','home/evil'])await assert.rejects(route({params:Promise.resolve({scope:requested})}),/fixture404/);
+});
+
+
+test('Website5 Studio human title admits only the exact Production label while retaining UAT and machine configuration',async()=>{
+ const {assertProductionCmsOwner}=await import('../qa/production-cms-source-proof.mjs');const file='sanity.config.ts',source=readFileSync(file,'utf8');assert.equal(assertProductionCmsOwner(file,source),true);
+ for(const mutant of [source.replace('Website5 · เว็บไซต์จริง','Website5'),source.replace('CCPun Website UAT CMS','Website5 UAT'),source.replace('projectId && dataset && studioAllowed','projectId && dataset'),source+'\n']){assert.notEqual(mutant,source);assert.throws(()=>assertProductionCmsOwner(file,mutant));}
+ assert.throws(()=>assertProductionCmsOwner('unknown/sanity.config.ts',source));
 });

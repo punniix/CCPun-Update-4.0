@@ -2,6 +2,7 @@ import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mj
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import postcss from 'postcss';
 
 const read = (path) => productionCmsDisplaySource(path, readFileSync(path, 'utf8'));
 
@@ -155,4 +156,16 @@ test('mobile CI story cards loop around a centered card with swipe, arrows and p
   assert.match(website43Css, /ciStoryCarouselControls button:first-child \{ left:/);
   assert.match(website43Css, /ciStoryGrid > :nth-child\(n\+4\) \{ display: none; \}/);
   assert.match(website43Css, /ciStoryCarouselControls/);
+});
+
+
+test('native portrait calculators retain the full stage with 32px inner padding and intrinsic stacked states',()=>{
+ const css=postcss.parse(readFileSync('components/layout/v5/V5Tool.module.css','utf8'));let tablet;
+ css.walkAtRules('media',media=>{if(media.nodes.some(n=>n.type==='rule'&&n.selector===':global(:is(#ci-calculator, #fhc-calculator)) .calcScope'))tablet=media;});assert.ok(tablet);
+ assert.equal(tablet.params,'(min-width: 768px) and (max-width: 1023px)');
+ const props={};tablet.walkRules(rule=>{props[rule.selector]=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(d=>[d.prop,d.value]));});
+ assert.equal(props['.calcGrid']['grid-template-columns'],'minmax(0, 1fr)');assert.equal(props['.calcGrid'].gap,'24px');
+ assert.equal(props[':global(:is(#ci-calculator, #fhc-calculator)) .calcScope']['padding-right'],'0');
+ const card=props[':global(:is(#ci-calculator, #fhc-calculator)) .calcScope [data-ui="human-centered-calculator-card"]'];assert.equal(card.padding,'32px');assert.equal(card['min-height'],'0');
+ assert.equal(820-32*2-32*2,692,'native calculator content remains 692px wide');
 });

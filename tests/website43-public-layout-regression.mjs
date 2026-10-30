@@ -1,3 +1,4 @@
+import postcss from 'postcss';
 import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -355,4 +356,15 @@ test('Privacy and Cookie Policy use native v5 while preserving legal, SEO and re
   assert.match(legalCss, /@media \(max-width: 640px\)/);
   assert.match(legalCss, /\.content table \{\s*width: 100%;\s*table-layout: fixed;/);
   assert.match(legalCss, /\.content td,\s*\.content th \{\s*overflow-wrap: anywhere;/);
+});
+
+
+test('native portrait legal reader and 404 cards preserve readable sizes within their own tablet interval',()=>{
+ const rulesFor=(file,selector)=>{let found;postcss.parse(readFileSync(file,'utf8')).walkAtRules('media',media=>{if(media.params==='(min-width: 768px) and (max-width: 1023px)'&&media.nodes.some(n=>n.type==='rule'&&n.selector===selector))found=media;});assert.ok(found);const out={};found.walkRules(rule=>{out[rule.selector]=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(d=>[d.prop,d.value]));});return out;};
+ const legal=rulesFor('components/layout/v5/V5Tool.module.css','.legalGrid');
+ assert.equal(legal['.legalGrid']['max-width'],'calc(640px + var(--v5-gutter) * 2)');assert.equal(legal['.legalGrid']['grid-template-columns'],'minmax(0, 1fr)');
+ assert.equal(legal['.legalGrid .toc > ol']['grid-template-columns'],'repeat(2, minmax(0, 1fr))');assert.equal(legal['.legalBody']['font-size'],'18px');assert.equal(legal['.legalBody']['line-height'],'1.75');assert.equal(legal['.legalBody h2']['font-size'],'22px');
+ for(const path of ['features/legal/v5/V5Privacy.tsx','features/legal/v5/V5CookiePolicy.tsx'])assert.match(readFileSync(path,'utf8'),/lead=\{text\("(?:privacy|cookies)\.p2"\)\}/,'complete original hero introduction is retained');
+ const missing=rulesFor('components/layout/v5/V5.module.css','.root :global(section[aria-labelledby="not-found-title"])');
+ assert.equal(missing['.root :global(section[aria-labelledby="not-found-latest"]) .cardGrid']['grid-template-columns'],'minmax(0, 1fr)');assert.equal(missing['.root :global(section[aria-labelledby="not-found-latest"]) .articleCardImage'].width,'240px');assert.equal(missing['.root :global(section[aria-labelledby="not-found-latest"]) .articleCardTitle']['font-size'],'22px');
 });

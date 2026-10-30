@@ -33,7 +33,7 @@ const studioAllowed = serverRuntime
   : isStudioConfigurationAllowed(dataset, environment, projectId);
 const isProductionCms = dataset === "production";
 const studioName = isProductionCms ? "ccpun-website-production-cms" : "ccpun-website-uat-cms";
-const studioTitle = isProductionCms ? "CCPun Website Production CMS" : "CCPun Website UAT CMS";
+const studioTitle = isProductionCms ? "Website5 · เว็บไซต์จริง" : "CCPun Website UAT CMS";
 
 export const sanityStudioConfig =
   projectId && dataset && studioAllowed

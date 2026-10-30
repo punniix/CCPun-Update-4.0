@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
+import postcss from "postcss";
 import { createElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { loadFixtureModule } from "../qa/phase1-fixture-loader.mjs";
@@ -92,4 +94,40 @@ test("both FAQs begin closed and each complete CMS question occupies one summary
   assert.ok(visible(html).includes(question));
   assert.doesNotMatch(html, /<details[^>]*\sopen(?:=|\s|>)/);
   assert.match(visible(html), /ช่วยวางแผนการลงทุนและให้คำปรึกษาด้านประกันและการเงิน/);
+});
+
+
+test("desktop professional photos occupy separate chronological 456px rows without changing phone sizing",()=>{
+ const css=postcss.parse(readFileSync(new URL('../features/about/About.module.css',import.meta.url),'utf8'));
+ const values=(query:string,selector:string,property:string)=>{let value:string|undefined;css.walkAtRules('media',media=>{if(media.params!==query)return;media.walkRules(rule=>{if(rule.selectors.includes(selector))rule.walkDecls(property,d=>{value=d.value;});});});return value;};
+ const desktop='(min-width: 900px)';
+ assert.equal(values(desktop,'.ownerStoryExperience','grid-template-columns'),'minmax(0, 1fr)');
+ assert.equal(values(desktop,'.ownerStoryExperience','gap'),'32px');
+ assert.equal(values(desktop,'.ownerStoryExperienceBeat','grid-template-columns'),'minmax(0, 1fr) minmax(0, 456px)');
+ assert.equal(values(desktop,'.ownerStoryExperienceBeat','gap'),'64px');
+ for(const selector of ['.ownerStoryExperienceBeat:first-child > .ownerStoryPhoto','.ownerStoryExperienceBeat:nth-child(2) > .ownerStoryPhoto']){
+   assert.equal(values(desktop,selector,'grid-column'),'2');assert.equal(values(desktop,selector,'grid-row'),'1');assert.equal(values(desktop,selector,'max-width'),'456px');
+ }
+ assert.equal(values('(max-width: 899px)','.ownerStoryExperienceBeat .ownerStoryPhoto','max-width'),'350px');
+ assert.equal(1280-64-456,760);
+});
+
+
+test("portrait tablet About keeps a 640px reading column, whole chronological photos and two-by-two credentials",()=>{
+ const css=postcss.parse(readFileSync(new URL('../features/about/About.module.css',import.meta.url),'utf8'));
+ const tablet=css.nodes.at(-1);assert.equal(tablet?.type,'atrule');
+ assert.equal((tablet as postcss.AtRule).params,'(min-width: 768px) and (max-width: 1023px)');
+ const value=(selector:string,property:string)=>{let result:string|undefined;(tablet as postcss.AtRule).walkRules(rule=>{if(rule.selectors.includes(selector))rule.walkDecls(property,d=>{result=d.value;});});return result;};
+ assert.equal(value('.nativeHeroGrid','grid-template-columns'),'minmax(0, 340px) minmax(0, 1fr)');
+ assert.equal(value('.nativePortraitFrame .portrait','height'),'400px');
+ assert.equal(value('.ownerStoryCopy','grid-template-columns'),'minmax(0, 1fr)');
+ assert.equal(value('.ownerStoryCopy','max-width'),'640px');
+ assert.equal(value('.ownerStoryCopy p','overflow-wrap'),'anywhere');
+ assert.equal(value('.ownerStoryCopy p','line-height'),'1.75');
+ for(const selector of ['.ownerStoryExperienceBeat:first-child > .ownerStoryPhoto','.ownerStoryExperienceBeat:nth-child(2) > .ownerStoryPhoto']){
+  assert.equal(value(selector,'max-width'),'640px');assert.equal(value(selector,'grid-column'),'auto');assert.equal(value(selector,'grid-row'),'auto');
+ }
+ assert.equal(value('.ownerStoryV2 .credentials','grid-template-columns'),'repeat(2, minmax(0, 1fr))');
+ assert.equal(value('.nativeQuotes','grid-template-columns'),'minmax(0, 1fr)');
+ assert.equal((820-640)/2,90);
 });

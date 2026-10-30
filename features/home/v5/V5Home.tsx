@@ -72,7 +72,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
             <h1 id="home-hero-title" className={styles.heroTitle}>{text.node("home.hero.titleBefore")}<em>{text.node("home.hero.titleEmphasis")}</em>{text.node("home.hero.titleAfter")}</h1>
             <p className={styles.heroBody}>{text.node("home.hero.eyebrow")} {text.node("home.hero.description")}</p>
             <div className={shell.buttonRow}>
-              <Link className={shell.buttonOutline} href="#about-ccpun">{text.node("home.hero.aboutCta")}</Link>
+              <Link className={shell.buttonOutline} href="/about/">{text.node("home.hero.aboutCta")}</Link>
             </div>
             <V5CredentialCards className={`${styles.credentials} ${styles.staticCredentials}`} qualification={qualification} licenceCards={licenceCards} compact/>
           </div>

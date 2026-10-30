@@ -46,6 +46,7 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
   const enhanced = useHydrated();
   const [cookieOffset, setCookieOffset] = useState(0);
   const [panel, setPanel] = useState<{ trigger: V5ChatPanelTrigger; returnTo: HTMLElement | null; closing?: boolean; instance: number; resultTool?: V5OpenChatDetail["resultTool"] } | null>(null);
+  const pendingReturnTo = useRef<HTMLElement | null | undefined>(undefined);
   const panelSequence = useRef(0);
   const triggerRef = useRef<HTMLAnchorElement>(null);
   const layerRef = useRef<HTMLDivElement>(null);
@@ -195,6 +196,7 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
   }, [config.enabled, token]);
 
   const close = useCallback(() => {
+    pendingReturnTo.current = panel?.returnTo ?? null;
     setPanel(current => current ? { ...current, closing: true } : null);
     revealRef.current();
     // Release the hit area and focus in this event, before React paints the closing frame.
@@ -204,8 +206,20 @@ export default function V5ChatDock({ config, context, fallbackHref }: { config: 
     });
     dockRef.current?.setAttribute("data-state", "shown");
     triggerRef.current?.focus({ preventScroll: true });
-  }, []);
+  }, [panel?.returnTo]);
   const finishClose = useCallback(() => setPanel(current => current?.closing ? null : current), []);
+  useEffect(() => {
+    if (panel !== null || pendingReturnTo.current === undefined) return;
+    const previous = pendingReturnTo.current;
+    pendingReturnTo.current = undefined;
+    // Restore after the panel unmounts and releases its focus/inert boundary. A still-open
+    // consent modal owns focus; otherwise return to the original inline CTA, or the dock.
+    const cookie = document.querySelector<HTMLElement>(COOKIE_DIALOG);
+    const target = cookie && !cookie.inert && cookie.getAttribute("aria-hidden") !== "true"
+      ? cookie
+      : previous?.isConnected && !previous.closest("[inert]") ? previous : triggerRef.current;
+    target?.focus({ preventScroll: true });
+  }, [panel]);
 
   const open = panel !== null && !panel.closing;
   const state = typing ? "hidden" : open || shown ? "shown" : "hidden";

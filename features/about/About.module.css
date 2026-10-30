@@ -223,14 +223,51 @@
   .ownerStoryChapter { gap: 20px; --owner-chapter-gap: 20px; }
   .ownerStoryExperienceBeat .ownerStoryPhoto { width: 100%; max-width: 350px; }
 }
+/* Native desktop chronological experience: 760px copy + 64px gap + 456px photo at 1440. */
 @media (min-width: 900px) {
-  .ownerStoryExperience { grid-template-columns: minmax(0, 5fr) minmax(0, 1.5fr) minmax(0, 1.5fr); column-gap: 24px; row-gap: 20px; align-items: start; }
-  .ownerStoryExperienceBeat { display: contents; }
+  .ownerStoryExperience { grid-template-columns: minmax(0, 1fr); gap: 32px; align-items: start; }
+  .ownerStoryExperienceBeat { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 456px); gap: 64px; align-items: start; }
   .ownerStoryExperienceBeat > .ownerStoryCopy { grid-column: 1; }
-  .ownerStoryExperienceBeat:first-child > .ownerStoryPhoto { grid-column: 2; grid-row: 1 / 4; }
-  .ownerStoryExperienceBeat:nth-child(2) > .ownerStoryPhoto { grid-column: 3; grid-row: 1 / 4; }
-  .ownerStoryExperienceClosing { grid-column: 1; }
+  .ownerStoryExperienceBeat:first-child > .ownerStoryPhoto,
+  .ownerStoryExperienceBeat:nth-child(2) > .ownerStoryPhoto { grid-column: 2; grid-row: 1; width: 100%; max-width: 456px; }
+  .ownerStoryExperienceClosing { grid-column: 1; max-width: 760px; }
 }
 
 /* Alternate the eight approved About section bands at every viewport width. */
 .nativeHero { background: var(--v5-bg-alt); }
+
+/* Approved portrait tablet About 83166/83390: 640px reading column and complete chronological photos. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .nativeBand, .ownerStoryOpeningBand, .ownerStoryTodayBand { padding-block: 64px; }
+  .nativeHeroGrid { grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 32px; }
+  .nativePortraitFrame { width: 100%; max-width: 340px; justify-self: start; }
+  .nativePortraitFrame .portrait { height: 400px; aspect-ratio: auto; }
+  .nativeHeroCopy h1 { font-size: 34px; }
+  .nativeHeroIntro { max-width: none; font-size: 20px; line-height: 1.6; }
+  .ownerStoryOpeningBand > div, .ownerStoryCredentialBand > div, .ownerStoryTodayBand > div,
+  .nativeSplit, .nativeBand > div:has(> .nativeQuotes) { max-width: calc(640px + var(--v5-gutter) * 2); }
+  .ownerStoryOpening, .ownerStoryChapterBody, .ownerStoryPair, .ownerStoryExperience,
+  .ownerStoryExperienceBeat, .ownerStoryCopy, .nativeSplit { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+  .ownerStoryCopy { width: 100%; max-width: 640px; gap: 20px; }
+  .ownerStoryCopy p { font-size: 18px; line-height: 1.75; overflow-wrap: anywhere; }
+  .ownerStoryChapter > h2 { font-size: 28px; line-height: 1.4; max-width: 640px; }
+  .ownerStoryV2 { --owner-story-gap: 56px; --owner-timeline-offset: 10px; --owner-timeline-dot: 6px; }
+  .ownerStoryChapter { gap: 24px; --owner-chapter-gap: 24px; }
+  .ownerStoryChapter[data-story-chapter="2"]::after, .ownerStoryChapter[data-story-chapter="3"]::after { margin-bottom: -120px; }
+  .ownerStoryPair { gap: 24px; }
+  .ownerStoryPair > .ownerStoryPhoto { width: 100%; max-width: 340px; justify-self: center; }
+  .ownerStoryExperience { gap: 24px; }
+  .ownerStoryExperienceBeat { gap: 20px; }
+  .ownerStoryExperienceBeat:first-child > .ownerStoryPhoto,
+  .ownerStoryExperienceBeat:nth-child(2) > .ownerStoryPhoto { grid-column: auto; grid-row: auto; width: 100%; max-width: 640px; justify-self: center; }
+  .ownerStoryFatherPair > .ownerStoryPhoto { grid-column: 1; grid-row: auto; }
+  .ownerStoryV2 .credentials { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  .nativeSplit { gap: 24px; }
+  .nativeHeading, .nativePartners h2, .nativeAlternate h2 { font-size: 28px; line-height: 1.4; }
+  .nativeSteps h3 { font-size: 22px; line-height: 1.5; }
+  .nativePartners { padding-block: 48px; }
+  .nativePartnerTiles { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .nativeQuotes { grid-template-columns: minmax(0, 1fr); gap: 20px; margin-top: 24px; }
+  .nativeQuotes .quote { padding: 24px; gap: 20px; }
+  .nativeQuotes .quote blockquote, .nativeQuotes .quote figcaption { font-size: 18px; line-height: 1.75; }
+}

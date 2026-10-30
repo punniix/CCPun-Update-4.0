@@ -176,6 +176,13 @@ test("Admin v1 frozen-proof admissions are exact and reject any further edit", (
   assert.notEqual(adminPhase1PredecessorDigest("cms/sanity/policy/studio-policy.ts", partialPolicy), oldPolicy, "partial allowlist migrations are not admitted");
   assert.notEqual(adminPhase1PredecessorDigest("unknown.tsx", policy), oldPolicy, "a known successor cannot authorize an unknown owner");
 
+  const studio = read("sanity.config.ts"), studioBefore = adminPhase1QuickWinSources["sanity.config.ts"].before;
+  for (const mutant of [studio.replace("CCPun Website UAT CMS", "Website5 UAT"), studio.replace("Website5 · เว็บไซต์จริง", "Website5"), studio.replace("projectId && dataset && studioAllowed", "projectId && dataset"), studio + "\n"]) {
+    assert.notEqual(mutant, studio);
+    assert.notEqual(adminPhase1PredecessorDigest("sanity.config.ts", mutant), studioBefore, "partial title/configuration edits remain denied");
+  }
+  assert.notEqual(adminPhase1PredecessorDigest("unknown/sanity.config.ts", studio), studioBefore, "the exact Studio source cannot authorize an unknown owner");
+
   // The DOM inverse only rebuilds the approved changes; unrelated markup is untouched.
   const unrelated = '<a href="/seo/" class="x">กลับหน้าตรวจ SEO</a><a href="https://example.invalid/" class="y">ลิงก์</a>';
   assert.equal(adminPhase1DomPredecessor(unrelated), unrelated);

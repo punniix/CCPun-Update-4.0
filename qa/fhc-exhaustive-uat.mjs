@@ -91,16 +91,23 @@ async function navigate(client) {
   // Wait for the delayed consent dialog to release its focus trap.
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline) {
-    const settled = await evaluate(client, `(() => {
-      const dialog = document.querySelector('[role="dialog"][aria-labelledby="cookie-title"]');
-      const accept = [...(dialog?.querySelectorAll('button') || [])].find(x => x.textContent?.trim() === 'ยอมรับ');
-      if (accept?.getClientRects().length) accept.click();
+    const state = await evaluate(client, `(() => {
+      const dialog = document.querySelector('[role="dialog"][aria-labelledby^="cookie"]');
+      const label = dialog?.getAttribute('aria-labelledby') === 'cookie-settings-title' ? 'บันทึกการตั้งค่า' : 'ตั้งค่าคุกกี้';
+      const button = [...(dialog?.querySelectorAll('button') || [])].find(x => x.textContent?.trim() === label);
+      let point = null;
+      if (button?.getClientRects().length) { button.scrollIntoView({block:'center',behavior:'instant'}); const r=button.getBoundingClientRect();point={x:r.left+r.width/2,y:r.top+r.height/2}; }
       let consent;
-      try { consent = JSON.parse(localStorage.getItem('ccpun_cookie_consent') || 'null'); } catch { return false; }
+      try { consent = JSON.parse(localStorage.getItem('ccpun_cookie_consent') || 'null'); } catch { return {settled:false,point}; }
       const field = document.getElementById('householdMonthly');
-      return Boolean(consent && Date.now() <= consent.expires && !dialog && field && !field.closest('[inert]'));
+      return {settled:Boolean(consent && Date.now() <= consent.expires && !dialog && field && !field.closest('[inert]')),point};
     })()`);
-    if (settled) return;
+    if (state.settled) return;
+    if (state.point) {
+      // Save the ordinary initially-necessary-only choice through trusted UI clicks.
+      await client.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...state.point});
+      await client.send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...state.point});
+    }
     await sleep(50);
   }
   throw new Error('Timed out waiting for calculator cookie consent to settle');
@@ -337,9 +344,14 @@ async function main() {
     assertion(report.browserAssertions, 'panel LINE topics retain official safe links and never financial answers', panel?.topics?.length > 0 && panel.topics.every(a => a.href.startsWith('https://line.me/R/oaMessage/%40ccpun/?') && a.target === '_blank' && a.rel.split(/\s+/).includes('noopener') && a.rel.split(/\s+/).includes('noreferrer') && a.height >= 44 && !/householdMonthly|existingLifeCoverage|3[, ]?650[, ]?000|30[, ]?000|200[, ]?000|50[, ]?000|100[, ]?000|3[, ]?600[, ]?000|250[, ]?000/.test(decodeURIComponent(a.href))), JSON.stringify(panel?.topics));
     await client.send('Input.dispatchKeyEvent', {type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
     await client.send('Input.dispatchKeyEvent', {type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
-    await sleep(250);
-    const panelClosed = await evaluate(client, `!document.querySelector('#v5-chat-panel') && document.activeElement === document.querySelector('section[aria-labelledby="life-result-title"] [data-v5-chat-link]')`);
-    assertion(report.browserAssertions, 'Escape closes LINE panel and restores result CTA focus', panelClosed);
+    let closeState;
+    const closeDeadline = Date.now() + 5000;
+    do {
+      closeState = await evaluate(client, `(() => { const cookie=document.querySelector('[role="dialog"][aria-labelledby^="cookie"]');const cta=document.querySelector('section[aria-labelledby="life-result-title"] [data-v5-chat-link]');return {closed:!document.querySelector('#v5-chat-panel'),cookieOpen:!!cookie,focused:cookie?cookie.contains(document.activeElement):document.activeElement===cta,active:document.activeElement?.outerHTML?.slice(0,300)}; })()`);
+      if (closeState.closed && closeState.focused) break;
+      await sleep(50);
+    } while (Date.now() < closeDeadline);
+    assertion(report.browserAssertions, 'Escape closes LINE panel and restores result CTA focus', closeState?.closed && !closeState?.cookieOpen && closeState?.focused, JSON.stringify(closeState));
     assertion(report.browserAssertions, 'download control is present and described', known.download?.describedBy?.includes('fhc-image-privacy') && known.download?.height >= 44, JSON.stringify(known.download));
     report.screenshots.push(await screenshot(client, 'result-desktop-1440', 'main section[aria-labelledby="life-result-title"]'));
 

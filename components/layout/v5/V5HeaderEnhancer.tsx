@@ -124,8 +124,8 @@ export default function V5HeaderEnhancer({ storageKey }: { storageKey: string })
       if (item.dataset.open === "false") delete item.dataset.open;
     };
     dropdowns.forEach((item) => { item.addEventListener("mouseleave", resetIntent); item.addEventListener("focusout", resetIntent); });
-    const desktop = window.matchMedia("(min-width: 1024px)");
-    const tablet = window.matchMedia("(min-width: 834px)");
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const tablet = window.matchMedia("(min-width: 768px)");
     const desktopNav = header.querySelector("nav:not(#mobile-navigation)");
     const onBreakpoint = () => {
       const active = document.activeElement;

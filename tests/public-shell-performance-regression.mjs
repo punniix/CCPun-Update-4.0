@@ -358,6 +358,38 @@ assert.match(
   }
 }
 
+// Execute the real progressive enhancer through phone/tablet/desktop resizing.
+{
+  const require=createRequire(import.meta.url),React=require('react');
+  const {JSDOM}=require('jsdom');
+  const dom=new JSDOM(`<div id="enhancer-root"></div><header data-v5-header><nav><ul><li data-v5-dropdown><button aria-expanded="false">Topics</button><a href="/blog/">Article</a></li></ul></nav><button data-v5-theme-toggle data-labels='{"light":"Light","system":"System","dark":"Dark"}'>Theme</button><div data-v5-theme-group><button data-v5-theme-choice="light" tabindex="-1">Light</button><button data-v5-theme-choice="system" tabindex="0">System</button><button data-v5-theme-choice="dark" tabindex="-1">Dark</button></div><button data-v5-menu-toggle data-label-open="Open" data-label-close="Close">Menu</button><nav id="mobile-navigation" hidden><a href="/about/">About</a></nav></header>`,{url:'https://test.ccpun.com/'});
+  const saved=new Map(['window','document','localStorage'].map(key=>[key,Object.getOwnPropertyDescriptor(globalThis,key)]));
+  for(const key of saved.keys())Object.defineProperty(globalThis,key,{configurable:true,value:dom.window[key]});
+  let width=390;const media=[];
+  window.matchMedia=query=>{const min=Number(query.match(/min-width:\s*(\d+)/)?.[1]??Infinity);const listeners=new Set();const item={matches:width>=min,media:query,addEventListener(_name,fn){listeners.add(fn);},removeEventListener(_name,fn){listeners.delete(fn);},listeners,min};media.push(item);return item;};
+  window.requestAnimationFrame=()=>1;window.cancelAnimationFrame=()=>{};
+  const {createRoot}=require('react-dom/client'),{flushSync}=require('react-dom');
+  const Enhancer=loadFixtureModule('components/layout/v5/V5HeaderEnhancer.tsx').default;
+  const root=createRoot(document.getElementById('enhancer-root'));
+  try{
+    flushSync(()=>root.render(React.createElement(Enhancer,{storageKey:'header-fixture-theme'})));
+    const menu=document.getElementById('mobile-navigation'),toggle=document.querySelector('[data-v5-menu-toggle]');
+    const mobileTheme=document.querySelector('[data-v5-theme-toggle]');
+    const resize=next=>{width=next;for(const item of media){const matches=width>=item.min;if(item.matches!==matches){item.matches=matches;for(const listener of item.listeners)listener({matches});}}};
+    for(const target of [768,820,834,1024]){
+      resize(390);toggle.click();assert.equal(menu.hidden,false);menu.querySelector('a').focus();resize(target);
+      assert.equal(menu.hidden,true,`open phone menu closes at ${target}`);assert.equal(toggle.getAttribute('aria-expanded'),'false');
+      assert.ok(document.activeElement.matches('[data-v5-theme-choice]'),`focus moves to visible full theme control at ${target}`);
+      resize(390);assert.equal(document.activeElement,mobileTheme,'returning to phone moves theme focus to its visible toggle');
+      assert.equal(menu.hidden,true);assert.equal(document.body.style.overflow,'');assert.equal(document.querySelector('[inert]'),null);
+    }
+    resize(820);const light=document.querySelector('[data-v5-theme-choice="light"]');light.click();assert.equal(document.documentElement.dataset.themeChoice,'light');
+    light.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true,cancelable:true}));assert.equal(document.documentElement.dataset.themeChoice,'system');
+    assert.equal(document.activeElement.dataset.v5ThemeChoice,'system');
+    const dropdown=document.querySelector('[data-v5-dropdown] > button');dropdown.click();assert.equal(dropdown.getAttribute('aria-expanded'),'true');dropdown.focus();resize(390);assert.equal(dropdown.getAttribute('aria-expanded'),'false');assert.equal(document.activeElement,toggle);
+  }finally{flushSync(()=>root.unmount());await new Promise(resolve=>setImmediate(resolve));dom.window.close();for(const[key,descriptor]of saved){if(descriptor)Object.defineProperty(globalThis,key,descriptor);else delete globalThis[key];}}
+}
+
 // Keep the existing author regression in test:public/check:foundation, including
 // the actual RSC request cache and private preview guard checks.
 execFileSync(process.execPath, ['--import', 'tsx', '--test', 'tests/author-profile-schema-sync.test.ts'], { stdio: 'inherit' });

@@ -263,6 +263,13 @@ export function v5ProductionSourcePredecessor(file, source) {
   return source;
 }
 export function assertProductionCmsOwner(file, source = read(file)) {
+  if (file === 'sanity.config.ts' && cmsSha(source) === 'fcd2a0a5fca8ff3aea117a30881bf9a0036236b76d48163039178bd279492d20') {
+    const title = 'const studioTitle = isProductionCms ? "Website5 · เว็บไซต์จริง" : "CCPun Website UAT CMS";';
+    assert.equal(source.split(title).length, 2, 'one exact Production-only human Studio title change');
+    source = source.replace(title, 'const studioTitle = isProductionCms ? "CCPun Website Production CMS" : "CCPun Website UAT CMS";');
+    assert.equal(cmsSha(source), '25dc55df26c71146de1a8fa6517ae4526dda23f6531ce54d272aa61c41a1a25f', 'complete existing Studio machine IDs, authorization and UAT title retained');
+    assert.equal(adminPhase1PredecessorDigest(file, source), 'ca8fa14a21e771ffe17df1f8896497a7033cd0b095af6ed4b067da2a077b617a', 'existing Admin quick-win predecessor remains chained');
+  }
   source = v5ProductionSourcePredecessor(file, source);
   assert.equal(cmsSha(JSON.stringify(productionCmsOwners)), '1205b8e92dafafacff0a2ff3421f3acf7ff87e4d70c65a54a4ae5540aeb269fe', 'frozen CMS identities');
   assert.ok(hasProductionCmsOwner(file), 'Unknown CMS source owner: '+file);

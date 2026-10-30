@@ -327,9 +327,7 @@
 /* Health Happy countdown slot: removed entirely (no reserved space) once the deadline has passed. */
 .countdownSlot { display: block; }
 :global(html[data-v5-countdown-ended]) .countdownSlot { display: none; }
-/* Full campaign actions in Blog/Article keep the existing fixed LINE corner clear; Home owns its frame. */
-.countdownSlot:has(:global([data-campaign-placement="blog"])), .countdownSlot:has(:global([data-campaign-placement="article"])) { padding-inline-end: max(0px, calc(80px - var(--v5-gutter))); }
-@media (min-width: 1024px) { .countdownSlot:has(:global([data-campaign-placement="blog"])), .countdownSlot:has(:global([data-campaign-placement="article"])) { padding-inline-end: max(0px, calc(248px - var(--v5-gutter))); } }
+/* All campaign placements keep balanced slots; only widget action hit regions clear LINE. */
 
 /*
   Bridge for reused Website 4.3 widgets (Health Happy countdown, share/engagement
@@ -385,4 +383,43 @@
   .footerDisclosure > summary > span { display: block; color: var(--v5-gold-text); }
   .footerDisclosure[open] > summary > span { transform: rotate(180deg); }
   .footerDisclosure > ul { padding-bottom: 12px; }
+}
+
+/* Native portrait tablet chrome (Home 82641/82877, matching the approved full-nav 834 pattern). */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .headerBar { min-height: 78px; }
+  .desktopNav { display: block; }
+  .desktopNav > ul { gap: 32px; }
+  .navLink, .navToggle { padding-inline: 0; font-size: 16px; }
+  .desktopNav + .headerActions { margin-left: 0; }
+  .themeSegments { display: inline-grid; }
+  .mobileThemeToggle, .menuButton, .mobilePanel { display: none; }
+  .footer { padding-block: 64px 48px; }
+  .countdownSlot:has(:global([data-campaign-placement="blog"])) { padding-inline-end: 0; }
+  .footerMark { font-size: 96px; }
+  .footerGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Approved portrait 404 recovery keeps its existing URLs and complete article records. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .root :global(section[aria-labelledby="not-found-title"]) { padding-block: 48px; text-align: left !important; }
+  .root :global(section[aria-labelledby="not-found-title"]) > .inner { max-width: calc(640px + var(--v5-gutter) * 2); }
+  .root :global(section[aria-labelledby="not-found-title"]) > .inner > p[aria-hidden="true"] { font-family: var(--v5-font); font-size: 96px !important; font-weight: 600 !important; }
+  .root :global(#not-found-title) { font-size: 36px; line-height: 1.3; }
+  .root :global(section[aria-labelledby="not-found-title"]) .lead { font-size: 18px; line-height: 1.75; }
+  .root :global(section[aria-labelledby="not-found-title"]) .buttonRow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 520px; margin-inline: auto; }
+  .root :global(section[aria-labelledby="not-found-title"]) .buttonRow > a { min-height: 56px; }
+  .root :global(section[aria-labelledby="not-found-tools"]) { padding-block: 32px !important; background: var(--v5-bg-alt); }
+  .notFoundTools { padding-inline: var(--v5-gutter); }
+  .notFoundTools .chips { gap: 12px; }
+  .notFoundTools .buttonOutline { padding-inline: 16px; border-color: transparent; font-size: 16px; }
+  .root :global(#not-found-tools) { font-size: 22px; line-height: 1.5; }
+  .root :global(section[aria-labelledby="not-found-latest"]) { padding-bottom: 64px; }
+  .root :global(section[aria-labelledby="not-found-latest"]) .cardGrid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .root :global(section[aria-labelledby="not-found-latest"]) .articleCard { flex-direction: row; align-items: center; background: var(--v5-bg); }
+  .root :global(section[aria-labelledby="not-found-latest"]) .articleCardImage { width: 240px; height: auto; aspect-ratio: 16 / 9; flex: none; object-fit: contain; align-self: center; }
+  .root :global(section[aria-labelledby="not-found-latest"]) .articleCardBody { min-width: 0; padding: 24px; }
+  .root :global(section[aria-labelledby="not-found-latest"]) .articleCardTitle { font-family: var(--v5-font); font-size: 22px; font-weight: 600; line-height: 1.4; }
+  .root :global(section[aria-labelledby="not-found-latest"]) .articleCardTopic { font-family: var(--v5-font); font-size: 16px; font-weight: 600; line-height: 1.7; }
+  .root :global(section[aria-labelledby="not-found-latest"]) .articleCardMeta { font-size: 16px; line-height: 1.7; }
 }
