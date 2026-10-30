@@ -1049,6 +1049,7 @@ export const figcraftParitySourcePins = Object.freeze({
   }
 });
 export function figcraftParitySourcePredecessor(file, source) {
+  source = pagerBoundarySourcePredecessor(file, source);
   const pin = Object.hasOwn(figcraftParitySourcePins, file) ? figcraftParitySourcePins[file] : null;
   if (!pin || typeof source !== 'string' || sha(source) !== pin.after) return source;
   for (const [current, prior] of pin.edits) {
@@ -1079,3 +1080,58 @@ export const figcraftParityNewSourcePins = Object.freeze({
   "components/layout/v5/V5PhillipAccount.tsx": "677e52ce776a45946ffc75f292691b50f4a42567129ea257696a2436a1464942",
   "features/blog/v5/V5ArticleMobileToc.tsx": "410eb12456bcb23c34fe1ab2552c4d2ab762becf2a2497d4dbb457f8a77c9506"
 });
+
+// Narrow UAT RSC-boundary correction: numeric page sizes stay in a shared
+// server-safe module. Admit complete reviewed bytes only; older pins stay frozen.
+export const pagerBoundarySourcePins = Object.freeze({
+  "components/layout/v5/constants.ts": {
+    "before": "e79578970c68a4b953e229eaf87d26557c54ff39721296539c4cab1a765037d5",
+    "after": "f85a4f239466f82ec21f482fbff51f8fc41acacb1031f07dfda6c87bbaa47531",
+    "edits": [
+      [
+        "import type { SiteCopyKey } from \"@/lib/content/public-copy-registry\";\n\nexport const V5_LINE_URL = \"https://lin.ee/tqLCs4f\";\nexport const V5_THEME_STORAGE_KEY = \"ccpun-theme\";\n\n// Shared by server-rendered listings and the client pager; never export numbers from a client boundary.\nexport const GROUP_PAGE_SIZE = 6;\nexport const GROUP_PAGE_SIZE_MOBILE = 4;\n\n/** Existing public tool owners; labels come from the site copy registry. */\nexport const V5_TOOL_LINKS = [\n  { id: \"moneyStory\", href: \"/play/money-story/\", navKey: \"site.nav.moneyStory\", nameKey: \"site.tools.moneyStory\" },\n",
+        "import type { SiteCopyKey } from \"@/lib/content/public-copy-registry\";\n\nexport const V5_LINE_URL = \"https://lin.ee/tqLCs4f\";\nexport const V5_THEME_STORAGE_KEY = \"ccpun-theme\";\n\n/** Existing public tool owners; labels come from the site copy registry. */\nexport const V5_TOOL_LINKS = [\n  { id: \"moneyStory\", href: \"/play/money-story/\", navKey: \"site.nav.moneyStory\", nameKey: \"site.tools.moneyStory\" },\n"
+      ]
+    ]
+  },
+  "features/blog/v5/V5GroupPager.tsx": {
+    "before": "72035b932cf1a4cde4559c1baeee0d89e846c0a5b2c4a7b0cdabf6680ad7d1c2",
+    "after": "43e0d7198e29aa2492f745e574d362dd6d55613c81443495b5c72040393dcd38",
+    "edits": [
+      [
+        "import { usePublicCopy } from \"@/components/ui/PublicCopyProvider\";\nimport { BLOG_COPY_DEFAULTS } from \"@/lib/content/blog-copy-defaults\";\nimport styles from \"./V5Blog.module.css\";\n\nimport { GROUP_PAGE_SIZE, GROUP_PAGE_SIZE_MOBILE } from \"@/components/layout/v5/constants\";\n\n/**\n * Per-group pagination on the same /blog/ URL (FigCraft 02b Version B).\n * Every card stays in the server HTML; paging only toggles `data-pager-hidden`,\n",
+        "import { usePublicCopy } from \"@/components/ui/PublicCopyProvider\";\nimport { BLOG_COPY_DEFAULTS } from \"@/lib/content/blog-copy-defaults\";\nimport styles from \"./V5Blog.module.css\";\n\nexport const GROUP_PAGE_SIZE = 6;\nexport const GROUP_PAGE_SIZE_MOBILE = 4;\n\n/**\n * Per-group pagination on the same /blog/ URL (FigCraft 02b Version B).\n * Every card stays in the server HTML; paging only toggles `data-pager-hidden`,\n"
+      ]
+    ]
+  },
+  "features/blog/v5/V5BlogIndex.tsx": {
+    "before": "bd99661772789e0a6a457c3c4e456019ba48939fe68a117485300532240867af",
+    "after": "67cc7399244fe4a743dcc2af77dd2b67680a7407fd6760e077d7b15cf63b8d22",
+    "edits": [
+      [
+        "import { newestFirst, toV5Card, toV5Cards } from \"@/components/layout/v5/article-card-data\";\nimport V5HealthHappyCountdown from \"@/components/layout/v5/V5HealthHappyCountdown\";\nimport styles from \"./V5Blog.module.css\";\nimport V5BlogSearch from \"./V5BlogSearch\";\nimport V5GroupPager from \"./V5GroupPager\";\nimport { GROUP_PAGE_SIZE, GROUP_PAGE_SIZE_MOBILE } from \"@/components/layout/v5/constants\";\nimport V5CardEngagement, { V5CardMetricsProvider } from \"./V5ArticleCardEngagement\";\n\ntype Group = { id: string; title: string; href?: string; cards: V5CardArticle[]; searchText: Map<string, string> };\n\n",
+        "import { newestFirst, toV5Card, toV5Cards } from \"@/components/layout/v5/article-card-data\";\nimport V5HealthHappyCountdown from \"@/components/layout/v5/V5HealthHappyCountdown\";\nimport styles from \"./V5Blog.module.css\";\nimport V5BlogSearch from \"./V5BlogSearch\";\nimport V5GroupPager, { GROUP_PAGE_SIZE, GROUP_PAGE_SIZE_MOBILE } from \"./V5GroupPager\";\nimport V5CardEngagement, { V5CardMetricsProvider } from \"./V5ArticleCardEngagement\";\n\ntype Group = { id: string; title: string; href?: string; cards: V5CardArticle[]; searchText: Map<string, string> };\n\n"
+      ]
+    ]
+  },
+  "features/blog/v5/V5Category.tsx": {
+    "before": "46b108d23946d8552a0fb8b3ae64b6452df8ebc2ac6bc8f3f801ed6f31a5f8c3",
+    "after": "a4bce0fb7d1461ed99b5cc7709bca34d22def7d12940b7be18f26a94f9b72100",
+    "edits": [
+      [
+        "import { V5ArticleCard, V5Breadcrumbs, v5CardGridSizes } from \"@/components/layout/v5/V5Primitives\";\nimport { newestFirst, toV5Cards } from \"@/components/layout/v5/article-card-data\";\nimport { V5_ACCOUNT_LINKS, V5_LINE_URL } from \"@/components/layout/v5/constants\";\nimport styles from \"./V5Blog.module.css\";\nimport V5GroupPager from \"./V5GroupPager\";\nimport { GROUP_PAGE_SIZE, GROUP_PAGE_SIZE_MOBILE } from \"@/components/layout/v5/constants\";\nimport V5CardEngagement, { V5CardMetricsProvider } from \"./V5ArticleCardEngagement\";\n\n/**\n * Category / topic hub (FigCraft 03). Lists every article of the hub on the one\n",
+        "import { V5ArticleCard, V5Breadcrumbs, v5CardGridSizes } from \"@/components/layout/v5/V5Primitives\";\nimport { newestFirst, toV5Cards } from \"@/components/layout/v5/article-card-data\";\nimport { V5_ACCOUNT_LINKS, V5_LINE_URL } from \"@/components/layout/v5/constants\";\nimport styles from \"./V5Blog.module.css\";\nimport V5GroupPager, { GROUP_PAGE_SIZE, GROUP_PAGE_SIZE_MOBILE } from \"./V5GroupPager\";\nimport V5CardEngagement, { V5CardMetricsProvider } from \"./V5ArticleCardEngagement\";\n\n/**\n * Category / topic hub (FigCraft 03). Lists every article of the hub on the one\n"
+      ]
+    ]
+  }
+});
+export function pagerBoundarySourcePredecessor(file, source) {
+  const pin = Object.hasOwn(pagerBoundarySourcePins, file) ? pagerBoundarySourcePins[file] : null;
+  if (!pin || typeof source !== 'string' || sha(source) !== pin.after) return source;
+  for (const [current, prior] of pin.edits) {
+    assert.equal(source.split(current).length, 2, 'Exactly one complete pager boundary correction');
+    source = source.replace(current, prior);
+  }
+  assert.equal(sha(source), pin.before, 'Every preceding deployed UAT source byte reconstructed');
+  return source;
+}

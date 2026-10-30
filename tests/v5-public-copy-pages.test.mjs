@@ -90,7 +90,7 @@ function ownerStoryV2SourcePredecessor(file, source) {
 }
 // The historical assertions below execute only an exact reversible prior
 // fixture. Independent native tests above and below execute current sources.
-import { figcraftParityNewSourcePins, figcraftParitySourcePins, figcraftParitySourcePredecessor, figcraftParityLocationPin, figcraftParityLocationsPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
+import { pagerBoundarySourcePins, pagerBoundarySourcePredecessor, figcraftParityNewSourcePins, figcraftParitySourcePins, figcraftParitySourcePredecessor, figcraftParityLocationPin, figcraftParityLocationsPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 const historicalSources = new Map(Object.keys(figcraftParitySourcePins).map(file => [file, figcraftParitySourcePredecessor(file, actualReadFileSync(file, 'utf8'))]));
 function readFileSync(file, encoding) {
   const source = actualReadFileSync(file, encoding);
@@ -685,7 +685,7 @@ test('Current approved white-outline portraits retain exact RGBA assets, consume
 test('Full native parity successor retains all historical bytes and rejects unknown, partial and duplicate edits', () => {
   for (const [file, hash] of Object.entries(figcraftParityNewSourcePins)) assert.equal(digest(actualReadFileSync(file, 'utf8')), hash, file);
   for (const [file, pin] of Object.entries(figcraftParitySourcePins)) {
-    const current = actualReadFileSync(file, 'utf8');
+    const current = pagerBoundarySourcePredecessor(file, actualReadFileSync(file, 'utf8'));
     assert.equal(digest(current), pin.after, file);
     assert.equal(digest(figcraftParitySourcePredecessor(file, current)), pin.before, file);
     const [fragment, prior] = pin.edits[0];
@@ -716,3 +716,17 @@ test('Current native CMS additions preserve every prior value and have complete 
 });
 test('Current Home, ToolsHub, investment, QR and flush portrait behavior', async () => { await import('./v5-native-home-behavior.mjs'); });
 test('Current mobile TOC and footer interactions', async () => { await import('./v5-native-mobile-interactions.mjs'); });
+
+test('RSC pager boundary successor preserves every deployed byte and rejects unknown, partial or duplicate changes', () => {
+  for (const [file, pin] of Object.entries(pagerBoundarySourcePins)) {
+    const current = actualReadFileSync(file, 'utf8');
+    assert.equal(digest(current), pin.after, file);
+    assert.equal(digest(pagerBoundarySourcePredecessor(file, current)), pin.before, file);
+    const [fragment, prior] = pin.edits[0];
+    for (const mutant of [current + ' ', current.replace(/\S/, 'X'), current.replace(fragment, prior), current.replace(fragment, fragment + fragment)]) {
+      assert.notEqual(mutant, current);
+      assert.equal(pagerBoundarySourcePredecessor(file, mutant), mutant, file);
+    }
+    assert.equal(pagerBoundarySourcePredecessor('unowned.tsx', current), current);
+  }
+});

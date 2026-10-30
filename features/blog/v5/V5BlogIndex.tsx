@@ -12,7 +12,8 @@ import { newestFirst, toV5Card, toV5Cards } from "@/components/layout/v5/article
 import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdown";
 import styles from "./V5Blog.module.css";
 import V5BlogSearch from "./V5BlogSearch";
-import V5GroupPager, { GROUP_PAGE_SIZE, GROUP_PAGE_SIZE_MOBILE } from "./V5GroupPager";
+import V5GroupPager from "./V5GroupPager";
+import { GROUP_PAGE_SIZE, GROUP_PAGE_SIZE_MOBILE } from "@/components/layout/v5/constants";
 import V5CardEngagement, { V5CardMetricsProvider } from "./V5ArticleCardEngagement";
 
 type Group = { id: string; title: string; href?: string; cards: V5CardArticle[]; searchText: Map<string, string> };

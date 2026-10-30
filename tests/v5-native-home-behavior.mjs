@@ -134,3 +134,55 @@ assert.equal(compactFooter.querySelector('.footerCopyright').textContent,expande
 assert.equal(compactFooter.querySelectorAll('details > summary').length,3);
 assert.equal(compactFooter.querySelectorAll('[data-cookie-settings]').length,1);
 console.log('PASS: legacy footer exact DOM; compact variant retains every link, full legal text and cookie control');
+
+// Execute server consumers with real Next RSC client references, not ordinary fixture exports.
+execFileSync(process.execPath, ['--conditions=react-server', '--input-type=module', '-e', String.raw`
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {execFileSync} from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+const require=createRequire(path.join(process.cwd(),'package.json'));
+const React=require('react');
+const {registerClientReference}=require('next/dist/compiled/react-server-dom-webpack/server.node');
+const {loadFixtureModule}=await import(path.join(process.cwd(),'qa/phase1-fixture-loader.mjs'));
+const ref=(name)=>registerClientReference(function ClientBoundary(){ throw Error('Client-only boundary called on server'); }, '/fixture/'+name, name);
+const pager={__esModule:true,default:ref('V5GroupPager'),GROUP_PAGE_SIZE:ref('GROUP_PAGE_SIZE'),GROUP_PAGE_SIZE_MOBILE:ref('GROUP_PAGE_SIZE_MOBILE')};
+assert.equal(6>pager.GROUP_PAGE_SIZE_MOBILE,false,'Actual RSC reference reproduces the deployed no-pager condition');
+assert.equal(6>=pager.GROUP_PAGE_SIZE,false,'Actual RSC reference reproduces missing server hidden attributes');
+const css={__esModule:true,default:new Proxy({},{get:(_,key)=>String(key)})};
+const mocks=new Map([
+ ['@/lib/deployment-environment',{IS_REVIEW_ENVIRONMENT:true}],
+ ['@/components/ui/PublicCopyProvider',{PublicCopyProvider:ref('PublicCopyProvider')}],
+ ['@/components/layout/v5/V5Page',{__esModule:true,default:ref('V5Page')}],
+ ['./V5GroupPager',pager],
+ ['./V5ArticleCardEngagement',{__esModule:true,default:ref('V5CardEngagement'),V5CardMetricsProvider:ref('V5CardMetricsProvider')}],
+ ['@/components/layout/v5/V5Primitives',{V5ArticleCard:ref('V5ArticleCard'),V5Breadcrumbs:ref('V5Breadcrumbs'),v5CardGridSizes:()=> '100vw',V5_HORIZONTAL_CARD_SIZES:'100vw',v5Label:value=>value}],
+ ['./V5BlogSearch',{__esModule:true,default:ref('V5BlogSearch')}],
+]);
+for(const file of ['features/blog/v5/V5BlogIndex.tsx','features/blog/v5/V5Category.tsx'])if(fs.existsSync(file))for(const [,id]of fs.readFileSync(file,'utf8').matchAll(/from ["']([^"']+\.css)["']/g))mocks.set(id,css);
+const articles=Array.from({length:7},(_,i)=>({id:'rsc-'+i,slug:'rsc-fixture-'+i,title:'RSC fixture '+i,excerpt:'Complete excerpt '+i,category:'การเงินส่วนบุคคล',categorySlug:'personal-finance',semanticTopic:'personal-finance',status:'published',publishedAt:'2026-10-30T00:00:00Z',updatedAt:'2026-10-30T00:00:00Z',tags:[],body:[]}));
+const topics=[{slug:'personal-finance',title:'การเงินส่วนบุคคล',count:7,href:'/blog/personal-finance/'}];
+const elements=node=>Array.isArray(node)?node.flatMap(elements):React.isValidElement(node)?[node,...elements(node.props.children)]:[];
+for(const file of ['features/blog/v5/V5BlogIndex.tsx','features/blog/v5/V5Category.tsx']){
+ if(!fs.existsSync(file))continue;
+ const oldSource=execFileSync('git',['show',"edbf2d6da7b4b45f7727e1045fb519ee084efb2b:"+file],{encoding:'utf8'});
+ for(const count of [6,7]){
+  const props=file.endsWith('V5BlogIndex.tsx')?{articles:articles.slice(0,count),featured:[],topics,copy:{},author:null}:{slug:'personal-finance',title:'การเงินส่วนบุคคล',hub:null,articles:articles.slice(0,count),topics,copy:{}};
+  const render=async sources=>elements(await loadFixtureModule(file,{mocks,sources}).default(props));
+  const prior=await render(new Map([[file,oldSource]]));
+  const current=await render(new Map());
+  assert.equal(prior.filter(node=>node.type===pager.default).length,0,file+': prior RSC module reproduces no pager');
+  const pagers=current.filter(node=>node.type===pager.default);
+  assert.equal(pagers.length,1,file+': actual RSC client reference is mounted');
+  assert.equal(pagers[0].props.total,count);
+  assert.equal(current.filter(node=>Object.hasOwn(node.props,'data-pager-hidden')&&node.props['data-pager-hidden']!==undefined).length,Math.max(0,count-6),file+': numeric server page size marks the seventh card hidden');
+ }
+ console.log('PASS RSC boundary:',file,'six/seven-card pager mounts; old reference bug reproduced');
+}
+const constants=loadFixtureModule('components/layout/v5/constants.ts');
+assert.equal(constants.GROUP_PAGE_SIZE,6);assert.equal(constants.GROUP_PAGE_SIZE_MOBILE,4);
+assert.ok(!/^['"]use client['"]/m.test(fs.readFileSync('components/layout/v5/constants.ts','utf8')));
+assert.ok(!/export\s+const\s+GROUP_PAGE_SIZE/.test(fs.readFileSync('features/blog/v5/V5GroupPager.tsx','utf8')));
+`], { cwd: root, encoding: 'utf8', stdio: 'pipe', env: { ...process.env, NODE_ENV: 'production' } });
+console.log('PASS: actual Next RSC pager references reproduce old failure and current six/seven-card server composition works');

@@ -11,7 +11,8 @@ import { V5ArticleCard, V5Breadcrumbs, v5CardGridSizes } from "@/components/layo
 import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data";
 import { V5_ACCOUNT_LINKS, V5_LINE_URL } from "@/components/layout/v5/constants";
 import styles from "./V5Blog.module.css";
-import V5GroupPager, { GROUP_PAGE_SIZE, GROUP_PAGE_SIZE_MOBILE } from "./V5GroupPager";
+import V5GroupPager from "./V5GroupPager";
+import { GROUP_PAGE_SIZE, GROUP_PAGE_SIZE_MOBILE } from "@/components/layout/v5/constants";
 import V5CardEngagement, { V5CardMetricsProvider } from "./V5ArticleCardEngagement";
 
 /**

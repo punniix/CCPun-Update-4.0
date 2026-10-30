@@ -5,8 +5,7 @@ import { usePublicCopy } from "@/components/ui/PublicCopyProvider";
 import { BLOG_COPY_DEFAULTS } from "@/lib/content/blog-copy-defaults";
 import styles from "./V5Blog.module.css";
 
-export const GROUP_PAGE_SIZE = 6;
-export const GROUP_PAGE_SIZE_MOBILE = 4;
+import { GROUP_PAGE_SIZE, GROUP_PAGE_SIZE_MOBILE } from "@/components/layout/v5/constants";
 
 /**
  * Per-group pagination on the same /blog/ URL (FigCraft 02b Version B).
