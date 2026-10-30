@@ -3,6 +3,10 @@ import type { SiteCopyKey } from "@/lib/content/public-copy-registry";
 export const V5_LINE_URL = "https://lin.ee/tqLCs4f";
 export const V5_THEME_STORAGE_KEY = "ccpun-theme";
 
+// Shared by server-rendered listings and the client pager; never export numbers from a client boundary.
+export const GROUP_PAGE_SIZE = 6;
+export const GROUP_PAGE_SIZE_MOBILE = 4;
+
 /** Existing public tool owners; labels come from the site copy registry. */
 export const V5_TOOL_LINKS = [
   { id: "moneyStory", href: "/play/money-story/", navKey: "site.nav.moneyStory", nameKey: "site.tools.moneyStory" },
