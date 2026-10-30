@@ -5,6 +5,7 @@ import V5ChatLink from "@/components/layout/v5/V5ChatLink";
 import { V5_LINE_URL } from "@/components/layout/v5/constants";
 import type { publicCopyText } from "@/lib/content/public-copy-registry";
 import styles from "./About.module.css";
+import shell from "@/components/layout/v5/V5.module.css";
 import flipStyles from "@/components/layout/v5/V5LicenceFlip.module.css";
 
 // Render ONLY on UAT via AboutPage. Exact owner-approved source order is
@@ -94,7 +95,8 @@ export default function OwnerStoryV2({ text, qualification, licenceCards }: {
   const sec = { href: "https://market.sec.or.th/LicenseCheck/Search", label: text("about.storyV2.verify.sec") };
   const oic = { href: "https://oiceservice.oic.or.th/licenseagency/license.php", label: text("about.storyV2.verify.oic") };
   return <article className={styles.ownerStoryV2} data-owner-story-v2="approved-20261029">
-    <section className={styles.ownerStoryChapter} aria-labelledby="about-owner-story-one">
+    <div className={styles.ownerStoryOpeningBand}><div className={`${shell.inner} ${styles.ownerStoryOpening}`}>
+    <section className={styles.ownerStoryChapter} data-story-chapter="1" aria-labelledby="about-owner-story-one">
       <h2 id="about-owner-story-one">{keepWords(text.node(university.heading))}</h2>
       <div className={styles.ownerStoryChapterBody}>
         <div className={styles.ownerStoryPair}>
@@ -110,20 +112,22 @@ export default function OwnerStoryV2({ text, qualification, licenceCards }: {
         </div>
       </div>
     </section>
-    <section className={styles.ownerStoryChapter} aria-labelledby="about-owner-story-two">
+    <section className={styles.ownerStoryChapter} data-story-chapter="2" aria-labelledby="about-owner-story-two">
       <h2 id="about-owner-story-two">{keepWords(text.node(father.heading))}</h2>
       <div className={styles.ownerStoryChapterBody}>
-        <div className={styles.ownerStoryPair}>
+        <div className={`${styles.ownerStoryPair} ${styles.ownerStoryFatherPair}`}>
           <div className={styles.ownerStoryCopy}>
             <Paragraphs keys={father.paragraphs.slice(0, 2)} text={text} />
             <blockquote className={styles.ownerStoryMotto}>{keepWords(text.node(father.paragraphs[2]))}</blockquote>
           </div>
           <OwnerPhoto src="/assets/ccpun-father-v5-colour.webp" alt={text("about.father.photoAlt")} width={1086} height={1448} />
+          <div className={styles.ownerStoryCopy}><Paragraphs keys={father.paragraphs.slice(3)} text={text} /></div>
         </div>
-        <div className={styles.ownerStoryCopy}><Paragraphs keys={father.paragraphs.slice(3)} text={text} /></div>
       </div>
     </section>
-    <section className={styles.ownerStoryChapter} aria-labelledby="about-owner-story-three">
+    </div></div>
+    <div className={styles.ownerStoryCredentialBand}><div className={shell.inner}>
+    <section className={styles.ownerStoryChapter} data-story-chapter="3" aria-labelledby="about-owner-story-three">
       <h2 id="about-owner-story-three">{keepWords(text.node(career.heading))}</h2>
       <div className={styles.ownerStoryChapterBody}>
         <div className={styles.ownerStoryCopy}><Paragraphs keys={career.paragraphs} text={text} /></div>
@@ -131,12 +135,15 @@ export default function OwnerStoryV2({ text, qualification, licenceCards }: {
         <p className={flipStyles.verifyHelp}>{text.node("about.storyV2.verify.help")}</p>
       </div>
     </section>
-    <section className={styles.ownerStoryChapter} aria-labelledby="about-owner-story-four">
+    </div></div>
+    <div className={styles.ownerStoryTodayBand}><div className={shell.inner}>
+    <section className={styles.ownerStoryChapter} data-story-chapter="4" aria-labelledby="about-owner-story-four">
       <h2 id="about-owner-story-four">{keepWords(text.node(today.heading))}</h2>
       <div className={styles.ownerStoryChapterBody}>
         <div className={styles.ownerStoryCopy}><Paragraphs keys={today.paragraphs} text={text} /></div>
         <V5ChatLink href={V5_LINE_URL} className={styles.ownerStoryChatLink}>{text.node("about.storyV2.ctaLabel")}</V5ChatLink>
       </div>
     </section>
+    </div></div>
   </article>;
 }

@@ -66,10 +66,10 @@ export default async function AiaFundAllocationPage() {
       <V5ToolHero
         id="aia-fund-hero-title"
         breadcrumbs={<V5Breadcrumbs label={text("investment.aia.text265")} items={[{ href: "/", label: text("investment.aia.text264") }, { href: V5_TOOLS_HUB.href, label: V5_TOOLS_HUB.label }, { label: V5_AIA_FUND_TOOL.label }]} />}
-        title={text("investment.aia.text266")}
-        subtitle={<span className={shell.lead}>{text.node("investment.aia.text267")}</span>}
+        title={<>{text.node("investment.aia.text266")}<br /><span>{text.node("investment.aia.text267")}</span></>}
         lead={text("investment.aia.text268")}
         meta={text("investment.aia.text269")}
+        proofs={[text.node("investment.hero.modeProof"), text.node("investment.single.text034"), text.node("investment.main.text252"), text.node("investment.hero.noForecastProof")]}
         cta={{ href: "#investment-mode-title", label: text("investment.main.text255") }}
       />
       <div className={`${v5ToolStyles.calcScope} ${v5ToolStyles.iaScope} ${motionStyles.scope}`}>

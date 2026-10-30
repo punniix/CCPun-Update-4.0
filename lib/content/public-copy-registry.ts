@@ -100,7 +100,21 @@ export const HOME_COPY_DEFAULTS = {
   "home.coreGuides.title": "คู่มือหลัก",
   "home.latest.title": "บทความล่าสุด",
   "home.moneyStory.description": "เกมจำลองชีวิตการเงิน 12 เดือน",
-  "home.contactBand.title": "ถ้าอยากรู้ว่าตอนนี้พร้อมแค่ไหน ทักมาคุยทาง LINE ได้เลย"
+  "home.contactBand.title": "ถ้าอยากรู้ว่าตอนนี้พร้อมแค่ไหน ทักมาคุยทาง LINE ได้เลย",
+  "home.startHere.title": "เริ่มจากตรงนี้",
+  "home.startHere.lead": "เลือกเรื่องที่ตรงกับคุณ อ่านคู่มือหลักก่อน แล้วลองเครื่องมือที่คู่กัน",
+  "home.startHere.noRepeats": "บทความล่าสุดด้านล่างไม่ซ้ำกับส่วนนี้",
+  "home.startHere.health.situation": "ดูแลค่ารักษาพยาบาล",
+  "home.startHere.ci.situation": "เตรียมเงินก้อนเมื่อเจอโรคร้ายแรง",
+  "home.startHere.tax.situation": "ลดหย่อนภาษีและดูแลครอบครัว",
+  "home.startHere.pyramid.situation": "วางรากฐานการเงินก่อนลงทุน",
+  "home.startHere.health.paired": "อ่านคู่กัน · AIA Health CI Hero คุ้มครองอะไร?",
+  "home.startHere.ci.paired": "เครื่องมือ · วางแผนการเงินเมื่อเจอโรคร้ายแรง",
+  "home.startHere.tax.paired": "เครื่องมือ · Financial Health Check",
+  "home.startHere.pyramid.paired": "เครื่องมือ · Money Story",
+  "home.startHere.externalGuide": "อ่านคู่มือบนเว็บไซต์หลัก",
+  "home.startHere.externalSource": "เว็บไซต์หลัก",
+  "home.startHere.health.campaign": "แผนนี้ปิดรับ {deadline}"
 } as const;
 
 

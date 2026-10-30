@@ -138,6 +138,20 @@ export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: Public
   return (
     <V5Page current="/about/" siteCopy={siteValues}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />
+      {IS_REVIEW_ENVIRONMENT ? (
+        <section className={`${styles.nativeBand} ${styles.nativeHero}`} aria-labelledby="about-title">
+          <div className={`${shell.inner} ${styles.nativeHeroGrid}`}>
+            <div className={`${styles.portraitFrame} ${styles.nativePortraitFrame}`}>
+              <Image className={`${styles.portrait} ${styles.portraitDark}`} src={PORTRAIT_DARK} alt={home("home.website43Homealt8")} width={1248} height={1872} sizes="(max-width: 899px) calc(100vw - 40px), 544px" fetchPriority="high" />
+              <Image className={`${styles.portrait} ${styles.portraitLight}`} src={PORTRAIT_LIGHT} alt={home("home.website43Homealt8")} width={1248} height={1872} sizes="(max-width: 899px) calc(100vw - 40px), 544px" fetchPriority="high" />
+            </div>
+            <div className={styles.nativeHeroCopy}>
+              <h1 id="about-title">{aboutWords(home.node("home.h2"))}</h1>
+              <p className={styles.nativeHeroIntro}>{aboutWords(text.node("about.storyV2.heroIntro"))}</p>
+            </div>
+          </div>
+        </section>
+      ) : (
       <section className={styles.hero} aria-labelledby="about-title">
         <div className={shell.inner}>
           <V5Breadcrumbs label={site("site.nav.mainLabel")} items={[{ href: "/", label: text("about.breadcrumb.home") }, { label: aboutLabel }]} />
@@ -157,13 +171,10 @@ export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: Public
           </div>
         </div>
       </section>
+      )}
 
       {IS_REVIEW_ENVIRONMENT ? (
-        <section className={shell.section} aria-label="ประวัติและแนวทางการวางแผนการเงิน">
-          <div className={shell.inner}>
-            <OwnerStoryV2 text={text} qualification={qualification} licenceCards={licenceCards} />
-          </div>
-        </section>
+        <OwnerStoryV2 text={text} qualification={qualification} licenceCards={licenceCards} />
       ) : (
         <section className={shell.section} aria-labelledby="about-story">
           <div className={`${shell.inner} ${styles.split}`}>
@@ -179,33 +190,69 @@ export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: Public
         </section>
       )}
 
-      <section className={shell.sectionAlt} aria-labelledby="about-partners">
+      {IS_REVIEW_ENVIRONMENT ? (
+        <section className={`${styles.nativeBand} ${styles.nativeAlternate}`} aria-labelledby="about-how">
+          <div className={`${shell.inner} ${styles.nativeSplit}`}>
+            <div>
+              <h2 id="about-how" className={styles.nativeHeading}>{aboutWords(home.node("home.website43Hometitle3"))}</h2>
+              <p className={styles.nativeLead}>{aboutWords(home.node("home.website43Homedescription2"))}</p>
+            </div>
+            <ol className={styles.nativeSteps}>
+              {([
+                ["home.stepsText", "home.stepsText2"],
+                ["home.stepsText3", "home.stepsText4"],
+                ["home.stepsText5", "home.stepsText6"],
+                ["home.stepsText7", "home.stepsText8"],
+              ] as const).map(([heading, body], index) => <li key={heading}>
+                <span className={styles.nativeStepNumber} aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                <div><h3>{aboutWords(home.node(heading))}</h3><p>{aboutWords(home.node(body))}</p></div>
+              </li>)}
+            </ol>
+          </div>
+        </section>
+      ) : null}
+
+      <section className={IS_REVIEW_ENVIRONMENT ? styles.nativePartners : shell.sectionAlt} aria-labelledby="about-partners">
         <div className={shell.inner}>
           <h2 id="about-partners" className={shell.h2}>{aboutWords(home.node("home.partnerLabel"))}</h2>
-          <ul className={styles.partners}>
+          <ul className={IS_REVIEW_ENVIRONMENT ? `${styles.partners} ${styles.nativePartnerTiles}` : styles.partners}>
             {partners.map((partner) => (
               <li className={styles.partner} key={partner.name}>
                 <Image src={partner.src} alt={partner.name} width={partner.width} height={partner.height} sizes="120px" loading="lazy" />
-                <strong>{aboutWords(partner.name)}</strong><span>{aboutWords(partner.role)}</span>
+                {IS_REVIEW_ENVIRONMENT ? <span className={styles.accessibleOnly}>{aboutWords(partner.role)}</span> : <><strong>{aboutWords(partner.name)}</strong><span>{aboutWords(partner.role)}</span></>}
               </li>
             ))}
           </ul>
         </div>
       </section>
 
-      <section className={shell.section} aria-labelledby="about-reviews">
+      <section className={IS_REVIEW_ENVIRONMENT ? `${styles.nativeBand} ${styles.nativeAlternate}` : shell.section} aria-labelledby="about-reviews">
         <div className={shell.inner}>
           <h2 id="about-reviews" className={shell.h2}>{aboutWords(home.node("home.website43Hometitle2"))}</h2>
-          <div className={styles.quotes}>
+          <div className={IS_REVIEW_ENVIRONMENT ? `${styles.quotes} ${styles.nativeQuotes}` : styles.quotes}>
             <figure className={styles.quote}><blockquote>{aboutWords(home.node("home.blockquote"))}</blockquote><figcaption>{aboutWords(home.node("home.cite"))}</figcaption></figure>
             <figure className={styles.quote}><blockquote>{aboutWords(home.node("home.blockquote2"))}</blockquote><figcaption>{aboutWords(home.node("home.cite2"))}</figcaption></figure>
           </div>
-          <div className={styles.next}>
+          {!IS_REVIEW_ENVIRONMENT ? <div className={styles.next}>
             <Link className={shell.textLink} href="/blog/">{v5Label(home("home.toolCtaAction"))}</Link>
             <Link className={shell.textLink} href={V5_TOOLS_HUB.href}>{aboutWords(text.node("about.next.tools"))}</Link>
-          </div>
+          </div> : null}
         </div>
       </section>
+
+      {IS_REVIEW_ENVIRONMENT ? (
+        <section className={styles.nativeBand} aria-labelledby="about-faq">
+          <div className={`${shell.inner} ${styles.nativeSplit}`}>
+            <h2 id="about-faq" className={styles.nativeHeading}>{aboutWords(text.node("about.faq.heading"))}</h2>
+            <div className={styles.nativeFaq}>
+              {([1, 2] as const).map((index) => <details key={index} open={index === 1}>
+                <summary>{aboutWords(home.node(`home.faq${index}.question`))}</summary>
+                <p>{aboutWords(home.node(`home.faq${index}.answer`))}</p>
+              </details>)}
+            </div>
+          </div>
+        </section>
+      ) : null}
     </V5Page>
   );
 }

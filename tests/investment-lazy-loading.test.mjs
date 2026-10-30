@@ -1,4 +1,4 @@
-import { ownerReviewLocationsPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
+import { figcraftParitySourcePredecessor, ownerReviewLocationsPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -12,7 +12,11 @@ const { act } = React;
 const { JSDOM } = require("jsdom");
 const ts = require("typescript");
 const root = fileURLToPath(new URL("../", import.meta.url));
-const defaults = require("../lib/content/investment-copy-defaults.ts");
+// Keep the original lazy-label proof on its exact predecessor; current additive
+// proof labels are independently tested by v5-native-home-behavior.mjs.
+const { loadFixtureModule } = await import('../qa/phase1-fixture-loader.mjs');
+const defaultsFile = 'lib/content/investment-copy-defaults.ts';
+const defaults = loadFixtureModule(defaultsFile, { sources: new Map([[defaultsFile, figcraftParitySourcePredecessor(defaultsFile, readFileSync(root + defaultsFile, 'utf8'))]]) });
 const lazyKeys = ["investment.mode.loading", "investment.mode.loadError", "investment.mode.reload"];
 const sha = value => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 

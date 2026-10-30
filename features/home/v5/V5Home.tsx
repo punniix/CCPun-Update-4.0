@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getPublicCopy } from "@/lib/content/public-copy";
-import { getHomeCopyFaqs, publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
+import { getHomeCopyFaqs, HOME_COPY_DEFAULTS, publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
 import { v5AdvisorProfile, v5Partners } from "@/components/layout/v5/advisor-profile";
 import { HOME_CORE_GUIDE_SLUGS } from "@/lib/content/topic-navigation";
+import { getArticlePath } from "@/lib/content/url";
 import type { Article, ArticleAuthorProfile } from "@/lib/content/types";
 import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
@@ -13,7 +14,7 @@ import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data";
 import { getPublishedArticles, getShellTopics } from "@/components/layout/v5/shell-data";
 import { V5_TOOLS_HUB } from "@/components/layout/v5/constants";
-import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdown";
+import V5HealthHappyCountdown, { V5_HEALTH_HAPPY_DEADLINE } from "@/components/layout/v5/V5HealthHappyCountdown";
 import protectionGapIcon from "../../../public/assets/website-43/icon-protection-gap.svg";
 import taxIcon from "../../../public/assets/website-43/icon-tax.svg";
 import investmentRiskIcon from "../../../public/assets/website-43/icon-investment-risk.svg";
@@ -48,7 +49,23 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
     { href: "/play/money-story/", title: siteText("site.tools.moneyStory"), body: text("home.moneyStory.description"), action: v5Label(text("home.toolCtaAction2")), label: siteText("site.tools.moneyStory") },
   ];
   const coreGuides = toV5Cards(HOME_CORE_GUIDE_SLUGS.map((slug) => articles.find((article) => article.slug === slug)).filter((article): article is Article => Boolean(article)), {});
-  const latest = toV5Cards(newestFirst(articles).slice(0, 3), {});
+  const guideFor = (slug: string, category: string, categorySlug: string) => {
+    const article = articles.find((entry) => entry.slug === slug);
+    const card = article ? toV5Cards([article], {})[0] : undefined;
+    return { article: card ? article : undefined, card, href: card?.href ?? `https://ccpun.com${getArticlePath({ slug, category, categorySlug })}`, external: !card };
+  };
+  const healthPair = guideFor("aia-health-ci-hero-guide", "ประกันสุขภาพ", "health-insurance");
+  const startHere = [
+    { situation: "home.startHere.health.situation", paired: "home.startHere.health.paired", guide: guideFor("aia-health-happy-describe", "ประกันสุขภาพ", "health-insurance"), pairedHref: healthPair.href, pairedExternal: healthPair.external, campaign: true },
+    { situation: "home.startHere.ci.situation", paired: "home.startHere.ci.paired", guide: guideFor("critical-illness-insurance", "ประกันโรคร้ายแรง", "critical-illness-insurance"), pairedHref: "/ci-planning/", pairedExternal: false, campaign: false },
+    { situation: "home.startHere.tax.situation", paired: "home.startHere.tax.paired", guide: guideFor("tax-deduction", "การเงินส่วนบุคคล", "personal-finance"), pairedHref: "/tools/financial-health-check/", pairedExternal: false, campaign: false },
+    { situation: "home.startHere.pyramid.situation", paired: "home.startHere.pyramid.paired", guide: guideFor("financial-pyramid", "การเงินส่วนบุคคล", "personal-finance"), pairedHref: "/play/money-story/", pairedExternal: false, campaign: false },
+  ] as const;
+  const deadline = new Intl.DateTimeFormat("th-TH", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Bangkok" }).format(new Date(V5_HEALTH_HAPPY_DEADLINE));
+  // ponytail: the existing countdown owns the deadline and ended state for this label.
+  const campaignText = publicCopyText({ ...copy, "home.startHere.health.campaign": (copy["home.startHere.health.campaign"] ?? HOME_COPY_DEFAULTS["home.startHere.health.campaign"]).replace("{deadline}", deadline) });
+  const startHereGuideSlugs = new Set<string>([...HOME_CORE_GUIDE_SLUGS, "aia-health-ci-hero-guide"]);
+  const latest = toV5Cards(newestFirst(articles).filter((article) => !IS_REVIEW_ENVIRONMENT || !startHereGuideSlugs.has(article.slug)).slice(0, 3), {});
 
   return (
     <V5Page current="/" siteCopy={siteCopy}>
@@ -63,7 +80,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
             <V5CredentialCards className={IS_REVIEW_ENVIRONMENT ? `${styles.credentials} ${styles.staticCredentials}` : styles.credentials} qualification={qualification} licenceCards={licenceCards} compact />
           </div>
           <div className={styles.portrait}>
-            <Image src="/assets/website-v5/home-hero-white-outline-8e7f5dc2.png" alt={text("home.website43Homealt")} fill preload loading="eager" fetchPriority="high" sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1023px) calc(100vw - 64px), (max-width: 1199px) calc(50vw - 56px), (max-width: 1439px) calc(50vw - 104px), 616px" />
+            <Image src="/assets/website-v5/home-hero-white-outline-bottom-flush-f548ab58.png" alt={text("home.website43Homealt")} fill preload loading="eager" fetchPriority="high" sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1023px) calc(100vw - 64px), (max-width: 1199px) calc(50vw - 56px), (max-width: 1439px) calc(50vw - 104px), 616px" />
             <div className={styles.portraitBadge} data-home-profile-badge><strong>{displayName}</strong><span>{role}</span></div>
           </div>
         </div>
@@ -128,8 +145,29 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
       </section>
       </div>
 
-      <section className={`${shell.section} ${styles.homeSection} ${styles.learningSection}`} data-uat-section="home-learning" aria-labelledby="home-start">
+      <section className={IS_REVIEW_ENVIRONMENT ? `${shell.section} ${styles.homeSection} ${styles.learningSection} ${styles.startHereSection}` : `${shell.section} ${styles.homeSection} ${styles.learningSection}`} data-uat-section="home-learning" aria-labelledby="home-start">
         <div className={shell.inner}>
+          {IS_REVIEW_ENVIRONMENT ? <>
+            <V5SectionHeading id="home-start" title={text.node("home.startHere.title")} description={<>{text.node("home.startHere.lead")}<span className={styles.noRepeats}> · {text.node("home.startHere.noRepeats")}</span></>} />
+            <div className={styles.startHereGrid}>
+              {startHere.map((item, index) => (
+                <article className={styles.startHereCard} key={item.situation}>
+                  <div className={styles.situation}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><h3>{text.node(item.situation)}</h3></div>
+                  <div className={styles.guideBody}>
+                    {item.guide.article?.featuredImage ? <Image className={styles.guideCover} src={item.guide.article.featuredImage.src} alt={item.guide.article.featuredImage.alt} width={item.guide.article.featuredImage.width} height={item.guide.article.featuredImage.height} sizes="(max-width: 1099px) 112px, 302px" loading="lazy" /> : <div className={styles.guidePlaceholder} aria-hidden="true">{index === 3 ? "▲" : String(index + 1).padStart(2, "0")}</div>}
+                    <div className={styles.guideCopy}>
+                      <p className={styles.guideKicker}>{text.node("home.coreGuides.title")}{item.guide.card ? ` · ${item.guide.card.topic}` : ""}</p>
+                      <p className={styles.guideTitle}><Link href={item.guide.href} target={item.guide.external ? "_blank" : undefined} rel={item.guide.external ? "noopener noreferrer" : undefined}>{item.guide.card?.title ?? text.node("home.startHere.externalGuide")}</Link></p>
+                      {item.campaign ? <p className={`${styles.guideCampaign} ${shell.countdownSlot}`}>{campaignText.node("home.startHere.health.campaign")}</p> : null}
+                    </div>
+                  </div>
+                  <Link className={styles.pairedGuide} href={item.pairedHref} target={item.pairedExternal ? "_blank" : undefined} rel={item.pairedExternal ? "noopener noreferrer" : undefined}>
+                    <span>{text.node(item.paired)}{item.pairedExternal ? <small>{text.node("home.startHere.externalSource")}</small> : null}</span><span aria-hidden="true">›</span>
+                  </Link>
+                </article>
+              ))}
+            </div>
+          </> : <>
           <V5SectionHeading id="home-start" title={text.node("home.website43Hometitle4")} description={text.node("home.website43Homedescription3")} />
           <div className={styles.tools}>
             {tools.map((tool) => (
@@ -152,6 +190,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
               <ul className={shell.chips}>{topics.map((topic) => <li key={topic.slug}><Link className={shell.chip} href={topic.href}>{topic.title}</Link></li>)}</ul>
             </>}
           </div>}
+          </>}
         </div>
       </section>
 

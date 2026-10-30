@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import { PublicCopyProvider } from "@/components/ui/PublicCopyProvider";
 import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
 import type { BlogTopicHub } from "@/lib/content/taxonomy";
@@ -10,6 +11,7 @@ import { V5ArticleCard, V5Breadcrumbs, v5CardGridSizes } from "@/components/layo
 import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data";
 import { V5_ACCOUNT_LINKS, V5_LINE_URL } from "@/components/layout/v5/constants";
 import styles from "./V5Blog.module.css";
+import V5GroupPager, { GROUP_PAGE_SIZE, GROUP_PAGE_SIZE_MOBILE } from "./V5GroupPager";
 import V5CardEngagement, { V5CardMetricsProvider } from "./V5ArticleCardEngagement";
 
 /**
@@ -31,6 +33,7 @@ export default async function V5Category({ slug, title, description, hub, articl
   const cards = toV5Cards(newestFirst(articles), copy);
   const featuredLink = getTopicFeaturedLink(slug);
   const path = `/blog/${slug}/`;
+  const relatedTopics = topics.filter((topic) => topic.slug !== slug);
   const listTitle = text("blog.dynamic5").replaceAll("{0}", title);
 
   return (
@@ -75,8 +78,16 @@ export default async function V5Category({ slug, title, description, hub, articl
               <h2 id="category-articles" className={shell.h2}>{listTitle} <span className={shell.count}>{text("blog.group.count").replaceAll("{0}", String(cards.length))}</span></h2>
             </div>
             {cards.length > 0
-              ? <V5CardMetricsProvider><div className={shell.cardGrid}>{cards.map((card, index) => <V5ArticleCard key={card.id} article={card} showExcerpt sizes={v5CardGridSizes(cards.length)} priority={index === 0 && !(hub && hub.intro.length > 0)}
-                metaEnd={<V5CardEngagement articleId={card.id} title={card.title} />} />)}</div></V5CardMetricsProvider>
+              ? <V5CardMetricsProvider>{IS_REVIEW_ENVIRONMENT ? <>
+                <div id="v5-category-grid" className={`${shell.cardGrid} ${styles.categoryGrid}`}>
+                  {cards.map((card, index) => <div key={card.id} data-pager-hidden={index >= GROUP_PAGE_SIZE ? "" : undefined}>
+                    <V5ArticleCard article={card} className={styles.categoryCard} showExcerpt sizes={v5CardGridSizes(cards.length)} priority={index === 0 && !(hub && hub.intro.length > 0)}
+                      metaEnd={<V5CardEngagement articleId={card.id} title={card.title} />} />
+                  </div>)}
+                </div>
+                {cards.length > GROUP_PAGE_SIZE_MOBILE && <V5GroupPager gridId="v5-category-grid" total={cards.length} groupTitle={title} />}
+              </> : <div className={shell.cardGrid}>{cards.map((card, index) => <V5ArticleCard key={card.id} article={card} showExcerpt sizes={v5CardGridSizes(cards.length)} priority={index === 0 && !(hub && hub.intro.length > 0)}
+                metaEnd={<V5CardEngagement articleId={card.id} title={card.title} />} />)}</div>}</V5CardMetricsProvider>
               : <p className={styles.empty}>{text.node("blog.div")}</p>}
             <div className={styles.toolsCard}>
               <div>
@@ -92,6 +103,12 @@ export default async function V5Category({ slug, title, description, hub, articl
           </div>
         </section>
 
+        {IS_REVIEW_ENVIRONMENT && relatedTopics.length > 0 && <section className={styles.relatedCategories} aria-labelledby="category-related">
+          <div className={shell.inner}>
+            <h2 id="category-related">{text.node("blog.category.related")}</h2>
+            <nav aria-labelledby="category-related"><ul className={shell.chips}>{relatedTopics.map((topic) => <li key={topic.slug}><Link className={shell.chip} href={topic.href}>{topic.title}</Link></li>)}</ul></nav>
+          </div>
+        </section>}
       </V5Page>
     </PublicCopyProvider>
   );

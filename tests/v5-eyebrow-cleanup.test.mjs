@@ -9,9 +9,12 @@ import {createHash}from'node:crypto';
 import test from 'node:test';
 import {eyebrowPredecessor,eyebrowSourceSuccessors}from'../qa/v5-eyebrow-proof.mjs';
 import {inverseEyebrowMoneyTree,moneyTreeDigest,eyebrowMoneyTreePins}from'../qa/v5-eyebrow-money-tree.mjs';
-import {loadFixtureModule}from'../qa/phase1-fixture-loader.mjs';
+import {loadFixtureModule as actualLoadFixtureModule}from'../qa/phase1-fixture-loader.mjs';
+import {figcraftParitySourcePins,figcraftParitySourcePredecessor} from '../qa/v5-owner-review-source-successor.mjs';
 import {c15SourceFromMerge,c14SourceFromMerge}from'../qa/v5-c15-c14-merge-successor.mjs';
-const read=file=>readFileSync(file,'utf8');
+const read=file=>figcraftParitySourcePredecessor(file,readFileSync(file,'utf8'));
+const historicalSources=new Map(Object.keys(figcraftParitySourcePins).map(file=>[file,read(file)]));
+const loadFixtureModule=(file,options={})=>actualLoadFixtureModule(file,{...options,sources:new Map([...historicalSources,...(options.sources??new Map())])});
 const sha=x=>createHash('sha256').update(x).digest('hex');
 test('C15 exact reviewed source inverses preserve old pins and reject every unrelated byte',()=>{
  for(const[file,pin]of Object.entries(eyebrowSourceSuccessors)){

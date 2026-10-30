@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import Link from "next/link";
 import { PublicCopyProvider } from "@/components/ui/PublicCopyProvider";
 import { getPublicCopy } from "@/lib/content/public-copy";
@@ -26,6 +27,7 @@ import { ArticleEngagementProvider, ArticleEngagementSummary } from "@/features/
 import { estimateArticleReadingMinutes } from "@/features/blog/website-43/articleReadingTime";
 import styles from "./V5Blog.module.css";
 import Toc from "./V5ArticleToc";
+import V5ArticleMobileToc from "./V5ArticleMobileToc";
 import { renderV5ArticleBody } from "./V5ArticleBody";
 import { resolveNextSteps } from "./next-step";
 import NextStepCiLink from "./NextStepCiLink";
@@ -121,6 +123,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
           {article.slug === HEALTH_HAPPY_SLUG && <V5HealthHappyCountdown placement="article" className={styles.countdownSlot} />}
 
           <div className={`${shell.inner} ${styles.readingGrid}`} id={article.slug === HEALTH_HAPPY_SLUG ? "health-happy-details" : undefined}>
+            {IS_REVIEW_ENVIRONMENT && <div className={styles.readingProgress} aria-hidden="true" />}
             {tocGroups.length > 0 && <aside className={styles.tocAside} aria-label={text("blog.website43Articlearialabel2")}>
               <p className={styles.tocTitle}>{text.node("blog.website43Articlearialabel2")}</p>
               <nav className={styles.toc} aria-label={text("blog.website43ArticleTocarialabel")}><Toc groups={tocGroups} /></nav>
@@ -130,10 +133,12 @@ export default async function V5Article({ article, relatedArticles = [], allArti
                 <V5SharedTransition part="cover" articleId={article.id}><Image src={article.featuredImage.src} alt={article.featuredImage.alt} width={article.featuredImage.width} height={article.featuredImage.height} sizes="(max-width: 767px) calc(100vw - 40px), 720px" preload loading="eager" fetchPriority="high" /></V5SharedTransition>
                 {article.featuredImage.caption && <figcaption>{article.featuredImage.caption}</figcaption>}
               </figure>}
-              {tocGroups.length > 0 && <details className={styles.tocMobile}>
-                <summary>{text.node("blog.website43Articlearialabel2")}<span aria-hidden="true">⌄</span></summary>
-                <div className={styles.toc}><Toc groups={tocGroups} /></div>
-              </details>}
+              {tocGroups.length > 0 && (IS_REVIEW_ENVIRONMENT
+                ? <V5ArticleMobileToc label={text.node("blog.website43Articlearialabel2")} countLabel={text("blog.toc.count").replaceAll("{0}", String(headings.length))} closeLabel={text("blog.toc.close")}><Toc groups={tocGroups} /></V5ArticleMobileToc>
+                : <details className={styles.tocMobile}>
+                  <summary>{text.node("blog.website43Articlearialabel2")}<span aria-hidden="true">⌄</span></summary>
+                  <div className={styles.toc}><Toc groups={tocGroups} /></div>
+                </details>)}
               {(preview || article.status === "published") && <Website43ArticleOverview summary={article.geo?.summary} />}
               <article className={styles.prose}>{renderV5ArticleBody(article.body, headingIds, copy, chatHref)}</article>
               {!preview && <V5LegacyBridge className={`${styles.bottomShare} ${styles.shareSlot}`}>

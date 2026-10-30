@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { INVESTMENT_ALLOCATION_ENABLED } from "@/lib/runtime/investment-availability";
 import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import V5Page from "@/components/layout/v5/V5Page";
+import V5PhillipAccount from "@/components/layout/v5/V5PhillipAccount";
 import shell from "@/components/layout/v5/V5.module.css";
 import { V5ToolHero, v5ToolStyles } from "@/components/layout/v5/V5ToolParts";
 import motionStyles from "@/components/ui/FunctionalMotion.module.css";
@@ -62,6 +63,7 @@ export function renderInvestmentAllocationContent(copy: PublicCopyValues, siteCo
         id="investment-hero-title"
         title={<>{text.node("investment.main.text252")}<br /><span>{text.node("investment.main.text253")}</span></>}
         lead={text("investment.main.text254")}
+        proofs={[text.node("investment.hero.modeProof"), text.node("investment.single.text034"), text.node("investment.main.text252"), text.node("investment.hero.noForecastProof")]}
         cta={{ href: "#investment-mode-title", label: text("investment.main.text255") }}
       />
       <div className={`${v5ToolStyles.calcScope} ${v5ToolStyles.iaScope} ${motionStyles.scope}`}>
@@ -78,6 +80,7 @@ export function renderInvestmentAllocationContent(copy: PublicCopyValues, siteCo
           ) : null}
         </div>
       </section>
+      <V5PhillipAccount siteCopy={siteCopy} />
     </V5Page></PublicCopyProvider>
   );
 }

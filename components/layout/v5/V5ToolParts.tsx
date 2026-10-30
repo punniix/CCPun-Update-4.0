@@ -6,7 +6,7 @@ import styles from "./V5Tool.module.css";
  * Text-first hero for v5 tool, legal and Investment pages (FigCraft 07-11, 14).
  * There is no hero image, so the server-rendered H1 is the LCP element.
  */
-export function V5ToolHero({ id = "tool-hero-title", title, subtitle, lead, meta, cta, breadcrumbs }: {
+export function V5ToolHero({ id = "tool-hero-title", title, subtitle, lead, meta, cta, breadcrumbs, proofs }: {
   id?: string;
   title: ReactNode;
   subtitle?: ReactNode;
@@ -14,9 +14,10 @@ export function V5ToolHero({ id = "tool-hero-title", title, subtitle, lead, meta
   meta?: ReactNode;
   cta?: { href: string; label: ReactNode };
   breadcrumbs?: ReactNode;
+  proofs?: readonly ReactNode[];
 }) {
   return (
-    <section className={styles.hero} aria-labelledby={id}>
+    <section className={proofs?.length ? `${styles.hero} ${styles.heroWithProofs}` : styles.hero} aria-labelledby={id}>
       <div className={shell.inner}>
         {breadcrumbs ? <div className={styles.heroBreadcrumbs}>{breadcrumbs}</div> : null}
         <div className={styles.heroGrid}>
@@ -24,9 +25,10 @@ export function V5ToolHero({ id = "tool-hero-title", title, subtitle, lead, meta
             <h1 id={id} className={styles.heroTitle}>{title}</h1>
             {subtitle ? <p className={styles.heroSubtitle}>{subtitle}</p> : null}
           </div>
-          {lead || meta || cta ? <div className={styles.heroAside}>
+          {lead || meta || cta || proofs?.length ? <div className={styles.heroAside}>
             {lead ? <p className={styles.heroLead}>{lead}</p> : null}
             {meta ? <p className={styles.heroMeta}>{meta}</p> : null}
+            {proofs?.length ? <ul className={styles.heroProofs}>{proofs.map((proof, index) => <li key={index}>{proof}</li>)}</ul> : null}
             {cta ? <div className={shell.buttonRow}><a className={shell.button} href={cta.href}>{cta.label}</a></div> : null}
           </div> : null}
         </div>

@@ -51,7 +51,7 @@ const files = {
   moneyStory:'features/money-story/page.tsx',
   site:'components/layout/website-43/Website43Shared.tsx',
 };
-const serverNames = new Set(['V5ChatDockServer','V5Page','V5BlogIndex','V5Header','V5Footer','V5CiPlanning','V5Fhc','V5MoneyStory','V5Privacy','V5CookiePolicy','Website43Home','HomeFooter','Website43Footer','Website43Blog','renderWebsite43Blog','Website43Article','Website43ArticleToc','ClientFHC','Website43Navbar','Website43ToolHero','Website43Brand']);
+const serverNames = new Set(['V5PhillipAccount','V5ChatDockServer','V5Page','V5BlogIndex','V5Header','V5Footer','V5CiPlanning','V5Fhc','V5MoneyStory','V5Privacy','V5CookiePolicy','Website43Home','HomeFooter','Website43Footer','Website43Blog','renderWebsite43Blog','Website43Article','Website43ArticleToc','ClientFHC','Website43Navbar','Website43ToolHero','Website43Brand']);
 async function resolveServer(node) {
   if (Array.isArray(node)) return Promise.all(node.map(resolveServer));
   if (!React.isValidElement(node)) return node;

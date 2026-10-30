@@ -97,4 +97,8 @@ export const SITE_COPY_DEFAULTS = {
   "site.campaign.unitHours": "ชั่วโมง",
   "site.campaign.unitMinutes": "นาที",
   "site.campaign.unitSeconds": "วินาที",
+  "site.account.phillip.title": "เปิดพอร์ตลงทุนกับ Phillip",
+  "site.account.phillip.desktopDescription": "เปิดลิงก์หรือสแกน QR Code เพื่อเริ่มเปิดบัญชีลงทุนกับ Phillip",
+  "site.account.phillip.mobileDescription": "เปิดลิงก์เพื่อเริ่มเปิดบัญชีลงทุนกับ Phillip",
+  "site.account.phillip.action": "เปิดพอร์ต Phillip",
 } as const;

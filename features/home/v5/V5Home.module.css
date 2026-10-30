@@ -168,3 +168,58 @@
 /* The existing native compact strip/grid is scoped to the owner-selected static UAT badges. */
 .staticCredentials { grid-auto-columns: max-content; gap: 8px; padding: 0 20px 0 0; }
 @media (min-width: 1024px) { .staticCredentials { grid-auto-columns: auto; gap: 12px 16px; padding: 16px; border: 1px solid var(--v5-border); border-radius: var(--v5-radius); } }
+
+/* Native T01 alone uses the full approved content width; other LINE clearance stays intact. */
+.startHereSection.startHereSection { background: var(--v5-bg-alt); }
+.startHereSection.startHereSection > div { padding-inline-end: var(--v5-gutter); }
+.noRepeats { display: none; }
+.startHereGrid { display: grid; gap: 16px; margin-top: 16px; }
+.startHereCard { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.situation { display: flex; align-items: baseline; gap: 12px; }
+.situation > span { flex: none; color: var(--v5-gold-text); font-size: 16px; line-height: 24px; }
+.situation h3 { font-family: var(--v5-font-display); font-size: 21px; line-height: 32px; font-weight: 500; }
+.guideBody { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 16px; align-items: start; }
+.guideCover, .guidePlaceholder { width: 112px; height: auto; aspect-ratio: 40 / 21; border-radius: 8px; object-fit: cover; }
+.guidePlaceholder { display: grid; place-items: center; background: var(--v5-card); color: var(--v5-gold-text); font-family: var(--v5-font-display); font-size: 28px; }
+.guideCopy { min-width: 0; overflow-wrap: anywhere; }
+.guideKicker { color: var(--v5-muted); font-size: 16px; line-height: 27px; }
+.guideTitle { margin-top: 4px; font-family: var(--v5-font-display); font-size: 16px; font-weight: 500; line-height: 24px; }
+.guideTitle a { text-decoration: none; border-bottom: 1px solid transparent; scroll-margin-block: 112px; }
+.guideTitle a:hover { border-bottom-color: var(--v5-gold); }
+.guideCampaign { margin-top: 4px; color: var(--v5-gold-text); font-size: 16px; line-height: 27px; }
+.pairedGuide { display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 54px; margin-top: auto; padding: 12px 0; border-block: 1px solid var(--v5-border); text-decoration: none; font-family: var(--v5-font-display); font-size: 16px; line-height: 24px; scroll-margin-block: 112px; }
+.pairedGuide > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.pairedGuide > span:last-child { flex: none; font-size: 28px; color: var(--v5-gold-text); }
+.pairedGuide small { display: block; color: var(--v5-muted); font-family: var(--v5-font-body); font-size: 13px; font-weight: 400; }
+@media (min-width: 640px) { .startHereGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; } }
+@media (min-width: 1360px) {
+  .noRepeats { display: inline; }
+  .startHereGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 32px; }
+  .guideBody { display: flex; flex-direction: column; gap: 12px; }
+  .guideCover, .guidePlaceholder { width: 100%; }
+  .guideCopy { width: 100%; }
+  .guideTitle { font-size: 20px; line-height: 32px; }
+  .guideKicker { font-size: 18px; }
+  .pairedGuide { min-height: 70px; }
+}
+
+/* Bound T01 controls beside the unchanged LINE corner; retain full content width. */
+.guideTitle a { display: inline-block; max-width: 100%; }
+@media (max-width: 639px) {
+  .guideTitle a { max-width: calc(100% - max(0px, 80px - var(--v5-gutter))); }
+  .pairedGuide { width: calc(100% - max(0px, 80px - var(--v5-gutter))); }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .startHereCard:nth-child(2n) .guideTitle a,
+  .startHereCard:nth-child(2n) .pairedGuide { max-width: calc(100% - max(0px, 80px - var(--v5-gutter))); }
+}
+@media (min-width: 1024px) and (max-width: 1359px) {
+  .guideBody { display: flex; flex-direction: column; }
+  .guideCopy { width: 100%; }
+  .startHereCard:nth-child(2n) .guideTitle a,
+  .startHereCard:nth-child(2n) .pairedGuide { max-width: calc(100% - max(0px, 248px - var(--v5-gutter))); }
+}
+@media (min-width: 1360px) {
+  .startHereCard:last-child .guideTitle a,
+  .startHereCard:last-child .pairedGuide { max-width: calc(100% - max(0px, 248px - var(--v5-gutter))); }
+}

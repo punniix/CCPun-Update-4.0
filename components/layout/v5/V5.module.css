@@ -369,3 +369,18 @@
 /* 404 recovery controls leave the same fixed LINE corner clear as the reading surfaces. */
 .notFoundTools { padding-inline-end: max(var(--v5-gutter), 80px); }
 @media (min-width: 1024px) { .notFoundTools { padding-inline-end: max(var(--v5-gutter), 248px); } }
+
+/* Compact phone footer is selected explicitly by the page's physical context. */
+.footerDisclosure > summary { list-style: none; }
+.footerDisclosure > summary::-webkit-details-marker { display: none; }
+.footerDisclosure > summary > span { display: none; }
+@media (min-width: 640px) { .footerDisclosure > summary { pointer-events: none; } }
+@media (max-width: 639px) {
+  .footerCompact .footerGrid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .footerDisclosure { border-bottom: 1px solid var(--v5-border-soft); }
+  .footerDisclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; cursor: pointer; }
+  .footerDisclosure > summary > h2 { margin: 0; font-size: 16px; }
+  .footerDisclosure > summary > span { display: block; color: var(--v5-gold-text); }
+  .footerDisclosure[open] > summary > span { transform: rotate(180deg); }
+  .footerDisclosure > ul { padding-bottom: 12px; }
+}

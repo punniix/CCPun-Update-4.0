@@ -218,3 +218,59 @@
   .authorCard img { grid-row: auto; width: 72px; height: 72px; }
   .authorBio, .authorLink { grid-column: 1 / -1; }
 }
+
+/* Native phone listings keep full headlines while reducing repeated cover/excerpt height. */
+@media (max-width: 639px) {
+  .nativeBlog .featuredGrid { display: flex; gap: 12px; overflow-x: auto; margin-inline: calc(var(--v5-gutter) * -1); padding: 0 var(--v5-gutter) 4px; scroll-snap-type: x mandatory; scroll-padding-inline: var(--v5-gutter); }
+  .nativeBlog .featuredGrid > .searchItem { display: flex; flex: 0 0 min(300px, calc(100vw - 40px)); min-width: 0; scroll-snap-align: start; }
+  .nativeBlog .featuredGrid article { flex: 1; flex-direction: column; }
+  .nativeBlog .featuredGrid article > :is(img, span[aria-hidden]) { width: 100%; height: auto; aspect-ratio: 1200 / 630; object-fit: contain; border-radius: var(--v5-card-image-radius) var(--v5-card-image-radius) 0 0; }
+  .nativeBlog .featuredGrid article > div { padding: 12px 16px 16px; gap: 4px; }
+  .nativeBlog .featuredGrid article > div > p { display: none; }
+  .nativeBlog .featuredGrid h3 { font-size: 18px; line-height: 1.75; }
+  .nativeBlog .groupGrid { grid-template-columns: minmax(0, 1fr); }
+  .nativeBlog .compactCard,
+  .categoryGrid > :not([data-pager-hidden]) ~ :not([data-pager-hidden]) > .categoryCard { flex-direction: row; align-items: start; gap: 12px; padding: 12px; border-radius: 16px; --v5-card-meta-top: 0; }
+  .nativeBlog .compactCard > :is(img, span[aria-hidden]),
+  .categoryGrid > :not([data-pager-hidden]) ~ :not([data-pager-hidden]) > .categoryCard > :is(img, span[aria-hidden]) { flex: 0 0 96px; width: 96px; height: auto; aspect-ratio: 1200 / 630; object-fit: contain; border-radius: 8px; }
+  .nativeBlog .compactCard > div,
+  .categoryGrid > :not([data-pager-hidden]) ~ :not([data-pager-hidden]) > .categoryCard > div { min-width: 0; padding: 0; gap: 4px; justify-content: flex-start; }
+  .nativeBlog .compactCard h3,
+  .categoryGrid > :not([data-pager-hidden]) ~ :not([data-pager-hidden]) > .categoryCard h3 { font-size: 16px; line-height: 1.5; }
+  .nativeBlog .compactCard > div > p,
+  .categoryGrid > :not([data-pager-hidden]) ~ :not([data-pager-hidden]) > .categoryCard > div > p { display: none; }
+}
+.categoryGrid > [data-pager-hidden] { display: none; }
+.categoryGrid > div { display: flex; min-width: 0; }
+.categoryGrid > div > article { flex: 1; }
+.relatedCategories { padding-block: 24px 32px; }
+.relatedCategories h2 { margin-bottom: 12px; font-size: 20px; }
+
+/* Native mobile TOC sheet; the article and its anchors remain in normal document flow. */
+.tocMobileSheet { margin-bottom: 24px; }
+.tocTrigger { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 52px; padding: 12px 20px; border: 1px solid var(--v5-border-soft); border-radius: var(--v5-radius-sm); background: var(--v5-card); color: var(--v5-text); font: inherit; font-family: var(--v5-font-display); font-weight: 500; text-align: left; cursor: pointer; }
+@media (min-width: 1280px) { .tocMobileSheet { display: none; } }
+.tocSheet { position: fixed; inset: auto 0 0; box-sizing: border-box; width: 100%; max-width: 720px; max-height: 80svh; margin: 0 auto; padding: 0 0 max(20px, env(safe-area-inset-bottom)); overflow-y: auto; border: 1px solid var(--v5-border-soft); border-bottom: 0; border-radius: 24px 24px 0 0; background: var(--v5-bg); color: var(--v5-text); }
+.tocSheet::backdrop { background: rgb(0 0 0 / 50%); }
+.tocSheetHandle { display: grid; place-items: center; height: 44px; touch-action: none; }
+.tocSheetHandle > span { width: 48px; height: 4px; border-radius: 999px; background: var(--v5-border); }
+.tocSheetHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 20px 12px; }
+.tocSheetHeader h2 { font-size: 20px; line-height: 1.5; }
+.tocSheetHeader button { display: grid; place-items: center; flex: 0 0 44px; min-height: 44px; border: 0; border-radius: 999px; background: var(--v5-card); color: var(--v5-text); font: inherit; font-size: 28px; cursor: pointer; }
+.tocSheetList { padding-inline: 12px; }
+.tocSheetList a[aria-current="location"] { box-shadow: inset 3px 0 var(--v5-gold); }
+@media (prefers-reduced-motion: no-preference) {
+  .tocSheet[open] { animation: tocSheetEnter 240ms ease-out; }
+  @keyframes tocSheetEnter { from { transform: translateY(100%); } to { transform: translateY(0); } }
+}
+.readingProgress { display: none; transform: scaleX(0); }
+@media (max-width: 639px) {
+  @supports (animation-timeline: --v5-article-reading) {
+    .readingGrid:has(> .readingProgress) { timeline-scope: --v5-article-reading; }
+    .readingGrid:has(> .readingProgress) .prose { view-timeline-name: --v5-article-reading; view-timeline-axis: block; }
+    .readingProgress { display: block; position: fixed; z-index: 41; top: calc(68px + 1px); left: 0; width: 100%; height: 3px; background: var(--v5-gold); transform-origin: left; animation: articleReading linear both; animation-duration: auto; animation-timeline: --v5-article-reading; animation-range: contain 0% contain 100%; }
+    @keyframes articleReading { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) { .readingProgress { display: none; } }

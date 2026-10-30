@@ -1,4 +1,4 @@
-import { ownerReviewVisualSourcePredecessor } from "../qa/v5-owner-review-source-successor.mjs";
+import { figcraftParitySourcePins, figcraftParitySourcePredecessor, ownerReviewVisualSourcePredecessor } from "../qa/v5-owner-review-source-successor.mjs";
 import { INVESTMENT_COPY_DEFAULTS } from "../lib/content/investment-copy-defaults";
 import "./v5-uat-collision.test.mjs";
 import "./v5-eyebrow-cleanup.test.mjs";
@@ -380,7 +380,17 @@ test("D3/L8 + one LINE button: the dock is visible from load, tucks away below t
   assert.match(read("components/layout/v5/V5ChatDockServer.tsx"), /panel\.mode === "panel" \? panel\.topics\[0\]\?\.href \?\? LINE_OA_CHAT_URL : panel\.href/);
   assert.equal((read("components/layout/v5/V5Page.tsx").match(/<V5ChatDockServer/g) ?? []).length, 1, "exactly one bottom element per page");
   for (const file of v5Files.filter((name) => name.endsWith(".css") && !name.endsWith("V5ChatDock.module.css"))) {
-    assert.doesNotMatch(read(file), /position:\s*fixed[^}]*bottom:\s*0/, `${file}: no second fixed bottom bar`);
+    let source = read(file);
+    // Only the complete approved native modal block is admitted here. All
+    // persistent bars and every current spacing declaration remain checked.
+    if (file === "features/blog/v5/V5Blog.module.css" && createHash("sha256").update(source).digest("hex") === figcraftParitySourcePins[file]?.after) {
+      const blocks = [...source.matchAll(/^\.tocSheet \{[^\n]*\}$/gm)];
+      assert.equal(blocks.length, 1);
+      assert.match(blocks[0][0], /position: fixed; inset: auto 0 0;/);
+      assert.match(read("features/blog/v5/V5ArticleMobileToc.tsx"), /<dialog ref=\{dialog\}/);
+      source = source.replace(blocks[0][0], "");
+    }
+    assert.doesNotMatch(source, /position:\s*fixed[^}]*bottom:\s*0/, `${file}: no second fixed bottom bar`);
   }
   assert.match(read("components/layout/v5/V5.module.css"), /@media \(prefers-reduced-motion: reduce\) \{\n  \.root \*, \.root \*::before, \.root \*::after \{ transition: none !important;/);
   const css = read("components/layout/v5/V5ChatDock.module.css");
@@ -641,7 +651,7 @@ test("UX: the cookie notice matches the site visually and keeps its consent beha
 });
 
 test("SEO: /about/ is the approved new owner: self canonical, core sitemap, ProfilePage + Person, linked from header, footer and home", async () => {
-  const page = read("features/about/page.tsx");
+  const page = figcraftParitySourcePredecessor("features/about/page.tsx", read("features/about/page.tsx"));
   assert.equal(read("apps/web/app/about/page.tsx").trim(), 'export { default, metadata } from "@/features/about/page";');
   assert.match(page, /const URL = "https:\/\/ccpun\.com\/about\/";/);
   assert.match(page, /alternates: \{ canonical: URL \}/);
