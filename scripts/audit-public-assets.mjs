@@ -25,6 +25,13 @@ const implicitlyOwnedAssets = new Set([
   'public/assets/pun.webp',
   'public/assets/pun.jpg',
   'public/assets/website-43/about-pun.png',
+  // Owner-approved 30-Oct UAT replacement: retain previous published image URLs
+  // for existing cache references and rollback until a separate asset lifecycle audit.
+  'public/assets/website-v5/pun-cutout-31beef3a.png',
+  'public/assets/ccpun-portrait-v5-about-dark.webp',
+  'public/assets/ccpun-portrait-v5-about-light.webp',
+  'public/assets/ccpun-portrait-v5-light.webp',
+  'public/assets/ccpun-portrait-v5-dark.webp',
 ]);
 
 const auditedAssets = trackedFiles

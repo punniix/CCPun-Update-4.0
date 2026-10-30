@@ -120,3 +120,20 @@
 .ownerStoryV2 .credentials > li { height: 100%; padding: 0; }
 @media (min-width: 640px) { .ownerStoryV2 .credentials { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1024px) { .ownerStoryV2 .credentials { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; } }
+
+/* Saved native timeline: decorative rails share the actual heading/body grid rows. */
+.ownerStoryV2 { --owner-story-gap: 72px; --owner-chapter-gap: 24px; --owner-timeline-offset: 24px; --owner-timeline-dot: 10px; --owner-timeline-rule: color-mix(in srgb, var(--v5-gold) 35%, transparent); }
+.ownerStoryChapter { position: relative; grid-template-rows: auto auto; }
+.ownerStoryChapter > h2 { position: relative; grid-area: 1 / 1; }
+.ownerStoryChapterBody { grid-area: 2 / 1; display: grid; gap: inherit; min-width: 0; }
+.ownerStoryChapter::before, .ownerStoryChapter::after { content: ""; grid-column: 1; width: 2px; justify-self: start; align-self: stretch; transform: translateX(calc(-1 * var(--owner-timeline-offset) - 1px)); background: var(--owner-timeline-rule); pointer-events: none; }
+.ownerStoryChapter::before { grid-row: 1; }
+.ownerStoryChapter::after { grid-row: 2; margin-top: calc(-1 * var(--owner-chapter-gap)); margin-bottom: calc(-1 * var(--owner-story-gap)); }
+.ownerStoryChapter:first-child::before { background: linear-gradient(to bottom, transparent 50%, var(--owner-timeline-rule) 50%); }
+.ownerStoryChapter:last-child::before { background: linear-gradient(to bottom, var(--owner-timeline-rule) 50%, transparent 50%); }
+.ownerStoryChapter:last-child::after { display: none; }
+.ownerStoryChapter > h2::before { content: ""; position: absolute; left: calc(-1 * var(--owner-timeline-offset)); top: 50%; width: var(--owner-timeline-dot); height: var(--owner-timeline-dot); border-radius: 50%; transform: translate(-50%, -50%); background: var(--v5-gold); pointer-events: none; }
+@media (max-width: 899px) { .ownerStoryV2 { --owner-story-gap: 56px; --owner-chapter-gap: 20px; --owner-timeline-offset: 10px; --owner-timeline-dot: 6px; } }
+
+/* The approved alpha portrait stays inside its existing rounded frame, with the full head visible. */
+.portrait { object-fit: contain; }

@@ -66,7 +66,7 @@
 .painCard::before { content: counter(home-pain, decimal-leading-zero); position: absolute; left: 0; top: 10px; color: var(--v5-gold-text); font-family: var(--v5-font-display); font-weight: 500; }
 @media (min-width: 768px) {
   .painCard { padding: 24px 28px 0; border-left: 1px solid var(--v5-border-soft); }
-  .painCard:first-child { padding-left: 0; border-left: 0; }
+  .painCard:first-child { padding-left: 28px; border-left: 0; }
 }
 .painIcon { display: block; width: 24px; height: 24px; margin-bottom: 8px; }
 .painCard h3 { font-size: 20px; line-height: 1.45; }

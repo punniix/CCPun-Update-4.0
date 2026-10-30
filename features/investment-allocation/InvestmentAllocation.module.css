@@ -303,3 +303,10 @@
 /* The v5 six-choice grid shares the tallest natural row; selected borders retain their reserved width. */
 :global([data-v5-header] ~ main) .categoryGrid { grid-auto-rows: 1fr; align-items: stretch; }
 :global([data-v5-header] ~ main) .categoryCard { box-sizing: border-box; width: 100%; min-width: 0; height: 100%; }
+
+/* Native six-choice cards start at the same top inset; selection keeps its reserved border. */
+:global([data-v5-header] ~ main) .categoryCard { display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; }
+@media (max-width: 699px) {
+  :global([data-v5-header] ~ main) .stepHeader { flex-direction: column; align-items: stretch; }
+  :global([data-v5-header] ~ main) .stepPill { align-self: flex-start; }
+}

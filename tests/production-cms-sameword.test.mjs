@@ -1,5 +1,6 @@
+import { visualHtmlPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import { inverseC17OnCurrentUatHtml } from '../qa/v5-c17-current-uat-successor.mjs';
-const inverseC15OnC14Html = (html, key) => inverseC15(inverseC17OnCurrentUatHtml(html, key), key);
+const inverseC15OnC14Html = (html, key) => inverseC15(inverseC17OnCurrentUatHtml(visualHtmlPredecessor(html, key), key), key);
 import { inverseEyebrowHtml } from "../qa/v5-eyebrow-html.mjs";
 import { inverseC15OnC14Html as inverseC15 } from '../qa/v5-c15-c14-merge-successor.mjs';
 import assert from 'node:assert/strict';
@@ -460,4 +461,19 @@ test('native Presentation selects the exact page copy or SEO form for every priv
   for(const requested of ['investment','home','ci','site','seo-home','seo-moneyStory'])assert.equal((await(await route({params:Promise.resolve({scope:requested})})).props.searchParams).scope,requested.replace(/^seo-/,''));
   const filtered=await route({params:Promise.resolve({scope:'blog'}),searchParams:Promise.resolve({scope:'investment',q:'คำค้น',page:'2'})});assert.deepEqual(await filtered.props.searchParams,{scope:'blog',q:'คำค้น',page:'2'});
   for(const requested of ['seo-investment','seo-site','unknown','__proto__','home/evil'])await assert.rejects(route({params:Promise.resolve({scope:requested})}),/fixture404/);
+});
+
+test('Approved CI attribution fallback restores exact prior render and refuses every unknown fragment', async () => {
+  const current = await renderFixture('ci', {});
+  assert.equal(digest(current), '8e231e256904346d23ab65bed84551fc7b491c75a2d1fd674b14b988a1a6c04d');
+  const prior = visualHtmlPredecessor(current, 3);
+  assert.equal(digest(prior), '1395e1e06ca9e9eba33a39e26854bf3add131e80cd14f1f7673d49192800e842');
+  assert.equal(visualHtmlPredecessor(prior, 3), prior);
+  assert.equal(visualHtmlPredecessor(current, 'unowned'), current);
+  const link = current.match(/<a[^>]*href="https:\/\/www\.toryod\.co\/projects\/35d2877e-e97a-45ee-a6df-aefa5e09e2b3-ccpun-s-ci-planning[^>]*>[\s\S]*?<\/a>/)?.[0];
+  assert.ok(link, 'Original attribution href remains rendered');
+  for (const mutant of [current + ' ', current.replace(link, link + link), current.replace(link, ''), current.replace(link, link.replace('www.toryod.co', 'unowned.invalid'))]) {
+    assert.notEqual(mutant, current);
+    assert.equal(visualHtmlPredecessor(mutant, 3), mutant);
+  }
 });

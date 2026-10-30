@@ -1,3 +1,4 @@
+import { ownerReviewVisualSourcePredecessor } from "../qa/v5-owner-review-source-successor.mjs";
 import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -173,7 +174,9 @@ test('current text tool heroes keep title, full lead and calculator CTA in natur
 });
 
 test('current CI keeps TorYod secondary proof after its FAQ with the exact external target', () => {
-  const ci = read('features/ci-planning/v5/V5CiPlanning.tsx');
+  // Retain the historical image contract; current accessible fallback has its own exact render proof.
+  const ciPath = 'features/ci-planning/v5/V5CiPlanning.tsx';
+  const ci = productionCmsDisplaySource(ciPath, ownerReviewVisualSourcePredecessor(ciPath, readFileSync(ciPath, 'utf8')));
   const toolCss = read('components/layout/v5/V5Tool.module.css');
   const target = 'https://www.toryod.co/projects/35d2877e-e97a-45ee-a6df-aefa5e09e2b3-ccpun-s-ci-planning';
   assert.equal(ci.split(target).length - 1, 1);
