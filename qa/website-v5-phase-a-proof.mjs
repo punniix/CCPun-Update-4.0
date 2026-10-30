@@ -1,4 +1,4 @@
-import { ownerReviewSourcePredecessor } from './v5-owner-review-source-successor.mjs';
+import { figcraftParitySourcePredecessor, ownerReviewSourcePredecessor } from './v5-owner-review-source-successor.mjs';
 import {collisionCssPredecessor} from './v5-uat-collision-source-successor.mjs';
 import { eyebrowPredecessor } from "./v5-eyebrow-proof.mjs";
 import { createHash } from 'node:crypto';
@@ -187,6 +187,7 @@ export const websiteV5InvestmentC15DigestSuccessors = Object.freeze({
   }
 });
 export function websiteV5InvestmentC15Digest(file, source) {
+  source = figcraftParitySourcePredecessor(file, source);
   const entry = Object.hasOwn(websiteV5InvestmentC15DigestSuccessors, file) ? websiteV5InvestmentC15DigestSuccessors[file] : null;
   return entry && typeof source === 'string' && sha(source) === entry.after ? entry.before : null;
 }

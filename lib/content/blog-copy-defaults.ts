@@ -79,5 +79,8 @@ export const BLOG_COPY_DEFAULTS = {
   "blog.topicTools.title": "ลองเทียบความคุ้มครองที่มีอยู่กับภาระจริง",
   "blog.topicTools.description": "เครื่องมือที่เกี่ยวกับหมวดนี้",
   "blog.nextStep.eyebrow": "ขั้นต่อไป",
-  "blog.engagement.hearts": "ถูกใจ {0} ครั้ง"
+  "blog.engagement.hearts": "ถูกใจ {0} ครั้ง",
+  "blog.category.related": "หมวดใกล้เคียง",
+  "blog.toc.count": "{0} หัวข้อ",
+  "blog.toc.close": "ปิดสารบัญ"
 } as const;

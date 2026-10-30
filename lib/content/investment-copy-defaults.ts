@@ -296,7 +296,9 @@ export const INVESTMENT_COPY_DEFAULTS = {
   "investment.labels.text294": "SEC ไม่ระบุขอบเขตประเทศ",
   "investment.labels.text295": "การลงทุนมีความเสี่ยง ผู้ลงทุนควรทำความเข้าใจลักษณะสินค้า เงื่อนไขผลตอบแทน และความเสี่ยงก่อนตัดสินใจลงทุน",
   "investment.labels.text296": "ข้อมูลในเครื่องมือนี้ไม่ใช่คำแนะนำการลงทุน และไม่ได้รับประกันผลตอบแทนหรือเงินต้น ผลการดำเนินงานในอดีตไม่ได้เป็นสิ่งยืนยันถึงผลการดำเนินงานในอนาคต",
-  "investment.labels.text297": "มีการค้นหาถี่เกินไป กรุณาลองใหม่อีกสักครู่"
+  "investment.labels.text297": "มีการค้นหาถี่เกินไป กรุณาลองใหม่อีกสักครู่",
+  "investment.hero.modeProof": "กองเดียวหรือหลายกอง",
+  "investment.hero.noForecastProof": "ไม่มีการคาดการณ์ผลตอบแทน",
 } as const;
 
 const LABEL_KEYS = new Map<string, keyof typeof INVESTMENT_COPY_DEFAULTS>(Object.entries(INVESTMENT_COPY_DEFAULTS).map(([key, value]) => [value, key as keyof typeof INVESTMENT_COPY_DEFAULTS]));

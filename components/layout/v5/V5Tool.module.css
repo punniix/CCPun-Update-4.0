@@ -332,3 +332,10 @@
   .legalBody :global(#privacy-collect) > p:nth-of-type(3) { padding-right:clamp(48px, calc(764px - 50vw), calc(248px - var(--v5-gutter))); }
   :global(#fhc-calculator) .asideCard > p:last-child { padding-right:calc(224px - var(--v5-gutter)); }
 }
+
+/* Optional native fund proof pills leave every other hero unchanged. */
+.heroWithProofs .heroGrid { display: block; }
+.heroWithProofs { padding-block: 48px; }
+.heroProofs { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 24px 0 0; }
+.heroProofs li { padding: 8px 16px; border: 1px solid var(--v5-border); border-radius: 999px; color: var(--v5-muted); font-size: 16px; line-height: 24px; }
+@media (min-width: 1024px) { .heroWithProofs { padding-block: 80px; } .heroWithProofs .heroLead { max-width: 1280px; font-size: 22px; line-height: 1.7; } }

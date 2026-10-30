@@ -8,10 +8,51 @@ import { aboutToolsLayoutPins, aboutToolsLayoutPredecessor } from '../qa/v5-owne
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { readFileSync } from 'node:fs';
+import { readFileSync as actualReadFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
+test('canonical About native branch preserves legacy markup and all prior CMS values', async () => {
+  const { execFileSync } = require('node:child_process');
+  const { JSDOM } = require('jsdom');
+  const base = 'fb5eee8655d141587c5df46476e2dd38a3bd1be6';
+  const oldSource = file => execFileSync('git', ['show', base + ':' + file], { encoding: 'utf8' });
+  const oldDefaults = actualLoadFixtureModule('lib/content/about-copy-defaults.ts', { sources: new Map([['lib/content/about-copy-defaults.ts', oldSource('lib/content/about-copy-defaults.ts')]]) }).ABOUT_COPY_DEFAULTS;
+  const current = actualLoadFixtureModule('lib/content/public-copy-registry.ts');
+  const values = current.PUBLIC_COPY_SCOPES.about.defaults;
+  assert.equal(Object.keys(oldDefaults).length, 63);
+  assert.equal(Object.keys(values).length, 64);
+  for (const [key, value] of Object.entries(oldDefaults)) assert.equal(values[key], value, key);
+  assert.equal(values['about.faq.heading'], 'ก่อนเริ่มวางแผนกับ CCPun');
+  const oldEntries = current.publicCopyInitialEntries('about').filter(entry => entry.key !== 'about.faq.heading');
+  const edited = oldEntries.map(entry => entry.key === 'about.storyV2.c1.p1' ? { ...entry, _key: 'persisted-owner-key', text: entry.text + ' · UAT' } : entry);
+  const parsed = current.parsePublicCopy('about', { _id: current.publicCopyDocumentId('about'), _type: 'publicPageCopy', scope: 'about', locale: 'th', entries: edited });
+  assert.equal(parsed['about.storyV2.c1.p1'], oldDefaults['about.storyV2.c1.p1'] + ' · UAT');
+  assert.equal(parsed['about.faq.heading'], values['about.faq.heading']);
+  const actualOptions = review => ({ ...fixtureOptions({ review }), sources: new Map() });
+  const currentPage = actualLoadFixtureModule('features/about/page.tsx', actualOptions(true));
+  const html = renderToStaticMarkup(await currentPage.default());
+  const document = new JSDOM(html).window.document;
+  assert.equal(document.querySelector('h1').textContent, current.HOME_COPY_DEFAULTS['home.h2']);
+  assert.ok(document.querySelector('.nativeHeroGrid').firstElementChild.classList.contains('nativePortraitFrame'));
+  assert.equal(document.querySelectorAll('[data-owner-story-v2] h2').length, 4);
+  assert.equal(document.querySelectorAll('.nativeSteps > li').length, 4);
+  assert.equal(document.querySelectorAll('.nativePartnerTiles > li').length, 6);
+  assert.equal(document.querySelectorAll('.nativePartnerTiles strong').length, 0);
+  assert.equal(document.querySelectorAll('.nativePartnerTiles .accessibleOnly').length, 6);
+  assert.equal(document.querySelectorAll('.nativeQuotes blockquote').length, 2);
+  const faq = [...document.querySelectorAll('.nativeFaq details')];
+  assert.equal(faq.length, 2);
+  assert.equal(faq[0].open, true);
+  assert.equal(faq[1].open, false);
+  for (const [key, value] of Object.entries(oldDefaults).filter(([key]) => /^about\.storyV2\.c\d\.p\d+$/.test(key))) assert.ok(document.querySelector('[data-owner-story-v2]').textContent.includes(value), key);
+  assert.equal(document.querySelectorAll('[data-uat-placeholder]').length, 0);
+  const legacyOptions = actualOptions(false);
+  const legacyHtml = renderToStaticMarkup(await actualLoadFixtureModule('features/about/page.tsx', legacyOptions).default());
+  const priorOptions = { ...legacyOptions, sources: new Map(['features/about/page.tsx', 'features/about/OwnerStoryV2.tsx'].map(file => [file, oldSource(file)])) };
+  const priorHtml = renderToStaticMarkup(await actualLoadFixtureModule('features/about/page.tsx', priorOptions).default());
+  assert.equal(legacyHtml, priorHtml, 'Legacy Production DOM and metadata remain exact');
+});
+import { loadFixtureModule as actualLoadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 const require = createRequire(path.resolve('package.json'));
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
@@ -46,6 +87,19 @@ function ownerStoryV2SourcePredecessor(file, source) {
   }
   assert.equal(digest(source), 'd2070ede6bcaec4dcc56cb39e71aa7fcb11a8ef41973b85bb3bc87425cd92a23', 'Every prior About source byte restored');
   return source;
+}
+// The historical assertions below execute only an exact reversible prior
+// fixture. Independent native tests above and below execute current sources.
+import { figcraftParityNewSourcePins, figcraftParitySourcePins, figcraftParitySourcePredecessor, figcraftParityLocationPin, figcraftParityLocationsPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
+const historicalSources = new Map(Object.keys(figcraftParitySourcePins).map(file => [file, figcraftParitySourcePredecessor(file, actualReadFileSync(file, 'utf8'))]));
+function readFileSync(file, encoding) {
+  const source = actualReadFileSync(file, encoding);
+  if (encoding !== 'utf8') return source;
+  const name = String(file);
+  return name === 'lib/content/public-copy-locations.json' ? figcraftParityLocationsPredecessor(source) : figcraftParitySourcePredecessor(name, source);
+}
+function loadFixtureModule(file, options = {}) {
+  return actualLoadFixtureModule(file, { ...options, sources: new Map([...historicalSources, ...(options.sources ?? new Map())]) });
 }
 const registry = loadFixtureModule('lib/content/public-copy-registry.ts');
 const defaults = scope => registry.PUBLIC_COPY_SCOPES[scope].defaults;
@@ -615,3 +669,38 @@ test('Current approved white-outline portraits retain exact RGBA assets, consume
   assert.doesNotMatch(hero, /loading="lazy"/);
   assert.match(readFileSync('features/about/About.module.css', 'utf8'), /\.portrait \{ object-fit: contain; \}/);
 });
+
+test('Full native parity successor retains all historical bytes and rejects unknown, partial and duplicate edits', () => {
+  for (const [file, hash] of Object.entries(figcraftParityNewSourcePins)) assert.equal(digest(actualReadFileSync(file, 'utf8')), hash, file);
+  for (const [file, pin] of Object.entries(figcraftParitySourcePins)) {
+    const current = actualReadFileSync(file, 'utf8');
+    assert.equal(digest(current), pin.after, file);
+    assert.equal(digest(figcraftParitySourcePredecessor(file, current)), pin.before, file);
+    const [fragment, prior] = pin.edits[0];
+    for (const mutant of [current + ' ', current.replace(/\S/, 'X'), current.replace(fragment, prior), current.replace(fragment, fragment + fragment)]) {
+      assert.notEqual(mutant, current);
+      assert.equal(figcraftParitySourcePredecessor(file, mutant), mutant, file);
+    }
+    assert.equal(figcraftParitySourcePredecessor('unowned.tsx', current), current);
+  }
+  const current = actualReadFileSync('lib/content/public-copy-locations.json', 'utf8');
+  assert.equal(digest(current), figcraftParityLocationPin.after);
+  assert.equal(digest(figcraftParityLocationsPredecessor(current)), figcraftParityLocationPin.before);
+  const partial = JSON.parse(current); delete partial.blog.entries['blog.toc.close'];
+  const unrelated = JSON.parse(current); unrelated.ci.entries['ci.landing.alt'].visible = false;
+  for (const mutant of [current + ' ', JSON.stringify(partial) + '\n', JSON.stringify(unrelated) + '\n', current.replace('blog.toc.close', 'blog.toc.unknown')]) assert.equal(figcraftParityLocationsPredecessor(mutant), mutant);
+});
+
+test('Current native CMS additions preserve every prior value and have complete readable placements', () => {
+  const current = actualLoadFixtureModule('lib/content/public-copy-registry.ts');
+  const locations = JSON.parse(actualReadFileSync('lib/content/public-copy-locations.json', 'utf8'));
+  for (const [scope, config] of Object.entries(current.PUBLIC_COPY_SCOPES)) {
+    for (const [key, value] of Object.entries(registry.PUBLIC_COPY_SCOPES[scope].defaults)) assert.equal(config.defaults[key], value, key);
+    assert.deepEqual(Object.keys(locations[scope].entries).sort(), Object.keys(config.defaults).sort(), scope);
+    assert.deepEqual(Object.values(locations[scope].entries).map(entry => entry.order), Object.keys(locations[scope].entries).map((_, i) => i));
+  }
+  for (const key of Object.keys(current.HOME_COPY_DEFAULTS).filter(key => key.startsWith('home.startHere.'))) assert.equal(locations.home.entries[key].section, 'เริ่มจากสถานการณ์ของคุณ · คู่มือและเครื่องมือ', key);
+  for (const key of ['blog.toc.count', 'blog.toc.close']) assert.equal(locations.blog.entries[key].section, 'หน้าอ่านบทความ · สารบัญบนมือถือ');
+});
+test('Current Home, ToolsHub, investment, QR and flush portrait behavior', async () => { await import('./v5-native-home-behavior.mjs'); });
+test('Current mobile TOC and footer interactions', async () => { await import('./v5-native-mobile-interactions.mjs'); });

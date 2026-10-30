@@ -369,6 +369,7 @@ const PAGE_ENTRY_LOCATIONS = {
     ...[1, 2, 3].map(index => [`about.father.question${index}`, "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "รายการคำถาม", true]),
     ["about.father.paragraph7", "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT", "ย่อหน้าปิด", true],
     ["about.next.tools", "อ่านและใช้เครื่องมือต่อ", "ลิงก์", true],
+    ["about.faq.heading", "ก่อนเริ่มวางแผนกับ CCPun", "หัวข้อส่วน", true],
   ],
   toolsHub: [
     ["toolsHub.breadcrumb.label", "ส่วนหัวและเส้นทาง", "ข้อความสำหรับโปรแกรมอ่านหน้าจอ", false],
@@ -382,6 +383,31 @@ const PAGE_ENTRY_LOCATIONS = {
     ["toolsHub.aia.body", "การ์ดกองทุน บลจ. เอไอเอ", "คำอธิบายเครื่องมือ", true],
   ],
 };
+
+// Dynamic native card keys are rendered through typed records. Give editors
+// their actual placement instead of the scanner's generic runtime fallback.
+const nativeHomeFields = [
+  ["home.startHere.title", "หัวข้อส่วน"], ["home.startHere.lead", "คำอธิบาย"],
+  ["home.startHere.noRepeats", "คำอธิบาย"],
+  ["home.startHere.health.situation", "หัวข้อการ์ด · ประกันสุขภาพ"],
+  ["home.startHere.externalGuide", "ลิงก์คู่มือเมื่อยังไม่มีบทความในระบบ"],
+  ["home.startHere.health.campaign", "กำหนดเวลาของแคมเปญ"],
+  ["home.startHere.health.paired", "ลิงก์เครื่องมือหรือบทความคู่กัน"],
+  ["home.startHere.externalSource", "คำอธิบายลิงก์เว็บไซต์หลัก"],
+  ["home.startHere.ci.situation", "หัวข้อการ์ด · โรคร้ายแรง"],
+  ["home.startHere.ci.paired", "ลิงก์เครื่องมือคู่กัน"],
+  ["home.startHere.tax.situation", "หัวข้อการ์ด · ภาษี"],
+  ["home.startHere.tax.paired", "ลิงก์เครื่องมือคู่กัน"],
+  ["home.startHere.pyramid.situation", "หัวข้อการ์ด · พื้นฐานการเงิน"],
+  ["home.startHere.pyramid.paired", "ลิงก์เครื่องมือคู่กัน"],
+];
+const nativeHomeAnchor = found.get("home.startHere.title")?.order;
+for (const [index, [key, kind]] of nativeHomeFields.entries()) {
+  if (defaults.has(key)) found.set(key, { section: "เริ่มจากสถานการณ์ของคุณ · คู่มือและเครื่องมือ", kind, visible: true, order: (nativeHomeAnchor ?? 1_000_000_000) + index / 100 });
+}
+for (const [key, kind] of [["blog.toc.count", "จำนวนหัวข้อ"], ["blog.toc.close", "ปุ่มปิดสารบัญ"]]) {
+  if (defaults.has(key)) found.set(key, { section: "หน้าอ่านบทความ · สารบัญบนมือถือ", kind, visible: true, order: found.get(key)?.order ?? 1_000_000_000 });
+}
 
 const result = {};
 for (const [scope, config] of Object.entries(PUBLIC_COPY_SCOPES)) {

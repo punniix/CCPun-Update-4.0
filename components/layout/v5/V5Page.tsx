@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import type { PublicCopyValues } from "@/lib/content/public-copy-registry";
 import { chatContextForPath, type ChatPageContext, type LineChatTopic } from "@/lib/line/chat-panel";
 import styles from "./V5.module.css";
@@ -17,7 +18,7 @@ export default function V5Page({ current, children, siteCopy, chat, chatTopic }:
     <div className={styles.root}>
       <V5Header current={current} siteCopy={siteCopy} />
       <main id="main-content" tabIndex={-1}>{children}</main>
-      <V5Footer siteCopy={siteCopy} />
+      <V5Footer siteCopy={siteCopy} compactMobile={IS_REVIEW_ENVIRONMENT && Boolean(current === "/" || current?.startsWith("/blog/"))} />
       <V5ChatDockServer context={chat ?? chatContextForPath(current)} pageTopic={chatTopic} />
     </div>
   );

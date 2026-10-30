@@ -9,6 +9,7 @@ import Link from "next/link";
 import { V5Breadcrumbs, v5Label } from "@/components/layout/v5/V5Primitives";
 import { V5ToolHero } from "@/components/layout/v5/V5ToolParts";
 import { V5_AIA_FUND_TOOL, V5_INVESTMENT_TOOL, V5_TOOLS_HUB } from "@/components/layout/v5/constants";
+import V5PhillipAccount from "@/components/layout/v5/V5PhillipAccount";
 import styles from "./ToolsHub.module.css";
 
 // Owner-approved new indexable URL (2026-10-25, T1): one hub for the existing tool owners. Each
@@ -93,6 +94,7 @@ export async function renderToolsHubPage(copy?: PublicCopyValues, siteCopy?: Pub
           </div>
         </div>
       </section>
+      <V5PhillipAccount siteCopy={siteValues} />
     </V5Page>
   );
 }

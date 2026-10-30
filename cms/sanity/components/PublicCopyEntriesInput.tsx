@@ -44,7 +44,7 @@ export default function PublicCopyEntriesInput(props: ArrayOfObjectsInputProps) 
     for (const [key, location] of Object.entries(scopeLocations.entries)) {
       if (!Object.hasOwn(defaults, key)) continue;
       // Keep persisted trial/return copy valid, but never offer retired About text as current-page edits.
-      if (scope === "about" && ((key.startsWith("about.father.") && key !== "about.father.photoAlt") || key === "about.storyV2.verify.back")) continue;
+      if (scope === "about" && ((key.startsWith("about.father.") && key !== "about.father.photoAlt") || (key === "about.storyV2.verify.back" || key === "about.breadcrumb.home" || key === "about.next.tools"))) continue;
       grouped.get(location.section)?.push({ key, location });
     }
     return [...grouped.entries()].map(([section, items]) => ({ section, items: items.sort((a, b) => a.location.order - b.location.order) })).filter(group => group.items.length);

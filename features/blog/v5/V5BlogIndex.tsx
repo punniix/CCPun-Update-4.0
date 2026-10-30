@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import { PublicCopyProvider } from "@/components/ui/PublicCopyProvider";
 import { publicCopyText, type PublicCopyValues } from "@/lib/content/public-copy-registry";
 import { articleBelongsToPhysicalCategory } from "@/lib/content/category-registry";
@@ -11,7 +12,7 @@ import { newestFirst, toV5Card, toV5Cards } from "@/components/layout/v5/article
 import V5HealthHappyCountdown from "@/components/layout/v5/V5HealthHappyCountdown";
 import styles from "./V5Blog.module.css";
 import V5BlogSearch from "./V5BlogSearch";
-import V5GroupPager, { GROUP_PAGE_SIZE } from "./V5GroupPager";
+import V5GroupPager, { GROUP_PAGE_SIZE, GROUP_PAGE_SIZE_MOBILE } from "./V5GroupPager";
 import V5CardEngagement, { V5CardMetricsProvider } from "./V5ArticleCardEngagement";
 
 type Group = { id: string; title: string; href?: string; cards: V5CardArticle[]; searchText: Map<string, string> };
@@ -63,7 +64,7 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
     <PublicCopyProvider values={copy}>
       <V5Page current="/blog/" siteCopy={siteCopy}>
         <V5CardMetricsProvider>
-        <div id="v5-blog-scope" className={styles.searchScope}>
+        <div id="v5-blog-scope" className={`${styles.searchScope} ${IS_REVIEW_ENVIRONMENT ? styles.nativeBlog : ""}`}>
           <section className={styles.hero} aria-labelledby="blog-title">
             <div className={shell.inner}>
               <div className={styles.heroTop}>
@@ -126,11 +127,11 @@ export default function V5BlogIndex({ articles, featured, topics, copy, siteCopy
                     <div id={gridId} className={`${shell.cardGrid} ${styles.groupGrid}`}>
                       {group.cards.map((card, index) => (
                         <div key={card.id} data-v5-search={group.searchText.get(card.id)} data-pager-hidden={index >= GROUP_PAGE_SIZE ? "" : undefined}>
-                          <V5ArticleCard article={card} showExcerpt sizes={v5CardGridSizes(group.cards.length)} metaEnd={<V5CardEngagement articleId={card.id} title={card.title} />} />
+                          <V5ArticleCard article={card} className={IS_REVIEW_ENVIRONMENT ? styles.compactCard : undefined} showExcerpt sizes={v5CardGridSizes(group.cards.length)} metaEnd={<V5CardEngagement articleId={card.id} title={card.title} />} />
                         </div>
                       ))}
                     </div>
-                    {group.cards.length > GROUP_PAGE_SIZE && <V5GroupPager gridId={gridId} total={group.cards.length} groupTitle={group.title} />}
+                    {group.cards.length > (IS_REVIEW_ENVIRONMENT ? GROUP_PAGE_SIZE_MOBILE : GROUP_PAGE_SIZE) && <V5GroupPager gridId={gridId} total={group.cards.length} groupTitle={group.title} />}
                   </section>
                 );
               })}

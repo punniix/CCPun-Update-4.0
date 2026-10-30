@@ -208,3 +208,20 @@
 /* Clearance for the category list heading and the desktop featured-card excerpt only. */
 @media (max-width:479px) { .categoryHero ~ section :global(#category-articles) { display:block; box-sizing:border-box; padding-right:60px; } }
 @media (min-width:1024px) { .featuredLead > div > p, .featuredLead > div > div:has(button) { padding-right:calc(216px - var(--v5-gutter, 80px)); } }
+
+/* Native phone listings keep full headlines while reducing repeated cover/excerpt height. */
+@media (max-width: 639px) {
+  .nativeBlog .featuredGrid { display: flex; gap: 12px; overflow-x: auto; margin-inline: calc(var(--v5-gutter) * -1); padding: 0 var(--v5-gutter) 4px; scroll-snap-type: x mandatory; scroll-padding-inline: var(--v5-gutter); }
+  .nativeBlog .featuredGrid > .searchItem { display: flex; flex: 0 0 min(300px, calc(100vw - 40px)); min-width: 0; scroll-snap-align: start; }
+  .nativeBlog .featuredGrid article { flex: 1; flex-direction: column; }
+  .nativeBlog .featuredGrid article > :is(img, span[aria-hidden]) { width: 100%; height: auto; aspect-ratio: 1200 / 630; object-fit: contain; border-radius: var(--v5-card-image-radius) var(--v5-card-image-radius) 0 0; }
+  .nativeBlog .featuredGrid article > div { padding: 12px 16px 16px; gap: 4px; }
+  .nativeBlog .featuredGrid article > div > p { display: none; }
+  .nativeBlog .featuredGrid h3 { font-size: 18px; line-height: 1.75; }
+  .nativeBlog .groupGrid { grid-template-columns: minmax(0, 1fr); }
+  .nativeBlog .compactCard { flex-direction: row; align-items: start; gap: 12px; padding: 12px; border-radius: 16px; --v5-card-meta-top: 0; }
+  .nativeBlog .compactCard > :is(img, span[aria-hidden]) { flex: 0 0 96px; width: 96px; height: auto; aspect-ratio: 1200 / 630; object-fit: contain; border-radius: 8px; }
+  .nativeBlog .compactCard > div { min-width: 0; padding: 0; gap: 4px; justify-content: flex-start; }
+  .nativeBlog .compactCard h3 { font-size: 16px; line-height: 1.5; }
+  .nativeBlog .compactCard > div > p { display: none; }
+}

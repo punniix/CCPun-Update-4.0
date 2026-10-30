@@ -28,6 +28,7 @@ const implicitlyOwnedAssets = new Set([
   // Owner-approved 30-Oct UAT replacement: retain previous published image URLs
   // for existing cache references and rollback until a separate asset lifecycle audit.
   'public/assets/website-v5/pun-cutout-31beef3a.png',
+  'public/assets/website-v5/home-hero-white-outline-8e7f5dc2.png',
   'public/assets/ccpun-portrait-v5-about-dark.webp',
   'public/assets/ccpun-portrait-v5-about-light.webp',
   'public/assets/ccpun-portrait-v5-light.webp',
