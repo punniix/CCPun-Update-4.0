@@ -20,11 +20,13 @@ function stegaCombine(text: string, info: Record<string, string>) {
 
 // Each displayed preview text carries a zero-width pointer to its Sanity field, so
 // a click on the page in Presentation opens exactly that entry for editing.
-function withEditTargets(scope: PublicCopyScope, values: Record<string, string>) {
+function withEditTargets(scope: PublicCopyScope, values: Record<string, string>, entries: Array<{ key: string; _key: string }> = []) {
   const id = publicCopyDocumentId(scope);
   return Object.fromEntries(Object.entries(values).map(([key, value]) => {
     const { text, style } = splitCopyValue(value);
-    const path = `entries[_key=="${key.replaceAll(".", "-")}"].text`;
+    const persistedKey = entries.find(entry => entry.key === key)?._key;
+    const entryKey = typeof persistedKey === "string" && persistedKey ? persistedKey : key.replaceAll(".", "-");
+    const path = `entries[_key==${JSON.stringify(entryKey)}].text`;
     const href = `/studio/intent/edit/id=${id};type=publicPageCopy;path=${encodeURIComponent(path)}`;
     return [key, encodeCopyValue(stegaCombine(text, { origin: "sanity.io", href }), style)];
   }));
@@ -43,7 +45,8 @@ export async function getPublicCopyPreview(scope: PublicCopyScope = "home") {
       query: '*[_id == $id && _type == "publicPageCopy"][0]{_id, _type, scope, locale, entries[]{_key, key, text, size, sizeMobile, sizeDesktop}}',
       params: { id: publicCopyDocumentId(scope) }, perspective: "drafts",
     });
-    return withEditTargets(scope, parsePublicCopy(scope, data) as Record<string, string>);
+    const values = parsePublicCopy(scope, data) as Record<string, string>;
+    return withEditTargets(scope, values, data?.entries);
   };
   const seoPage = getPageSeoPage(PUBLIC_COPY_SCOPES[contentScope].pathname);
   const [copy, site, home, { data: seo }] = await Promise.all([

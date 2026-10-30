@@ -1,3 +1,5 @@
+import { editorSourcePins, ownerReviewEditorSourcePredecessor } from "../qa/v5-owner-review-source-successor.mjs";
+import { ownerReviewStaticCredentialsPredecessor, staticCredentialSourcePins } from "../qa/v5-owner-review-source-successor.mjs";
 import { ownerReviewAboutWordsPredecessor, ownerReviewLocationsPredecessor } from "../qa/v5-owner-review-source-successor.mjs";
 import { ownerReviewHtmlPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import { aboutToolsLayoutPins, aboutToolsLayoutPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
@@ -284,47 +286,80 @@ test('About editor hides retired trial fields, retains current defaults and coun
     scope = name;
     const doc = render();
     const count = [...doc.querySelectorAll('[data-label]')].reduce((sum, button) => sum + Number(button.dataset.label.match(/ · (\d+) ข้อความ/)?.[1] ?? 0), 0);
-    assert.equal(count, Object.keys(defaults(name)).length - (name === 'about' ? 12 : 0), name);
+    assert.equal(count, Object.keys(defaults(name)).length - (name === 'about' ? 13 : 0), name);
   }
   scope = 'about';
   const legacy = { _key: 'about-father-heading', key: 'about.father.heading', text: 'ข้อความเก่าที่เคยแก้ไว้' };
-  assert.ok(render([legacy]).querySelector('[data-label="แก้แล้ว 0"]'));
+  assert.ok(render([legacy]).querySelector('[data-label="ต่างจากค่าเริ่มต้น 0"]'));
+  const retiredReturn = { _key: 'about-storyV2-verify-back', key: 'about.storyV2.verify.back', text: 'ข้อความปุ่มกลับเก่าที่เคยบันทึก' };
+  assert.ok(render([retiredReturn]).querySelector('[data-label="ต่างจากค่าเริ่มต้น 0"]'));
+  const retained = registry.parsePublicCopy('about', { _id: registry.publicCopyDocumentId('about'), _type: 'publicPageCopy', scope: 'about', locale: 'th', entries: [retiredReturn] });
+  assert.equal(retained['about.storyV2.verify.back'], retiredReturn.text, 'The retired persisted key remains valid');
   const current = { _key: 'about-storyV2-c1-heading', key: 'about.storyV2.c1.heading', text: 'หัวข้อทดสอบ' };
-  assert.ok(render([legacy, current]).querySelector('[data-label="แก้แล้ว 1"]'));
-  const retired = Object.keys(defaults('about')).filter(key => key.startsWith('about.father.') && key !== 'about.father.photoAlt');
-  assert.equal(retired.length, 12);
+  assert.ok(render([legacy, current]).querySelector('[data-label="ต่างจากค่าเริ่มต้น 1"]'));
+  const retired = Object.keys(defaults('about')).filter(key => (key.startsWith('about.father.') && key !== 'about.father.photoAlt') || key === 'about.storyV2.verify.back');
+  assert.equal(retired.length, 13);
   for (const key of retired) assert.equal(render([], [{ _key: key.replaceAll('.', '-') }, 'text']).getElementById('copy-' + key.replaceAll('.', '-')), null, key);
   assert.ok(render([], [{ _key: 'about-father-photoAlt' }, 'text']).getElementById('copy-about-father-photoAlt'));
+  for (const key of ['about.storyV2.photoAlt.scbs', 'about.storyV2.photoAlt.phillip', 'about.storyV2.photoAlt.bitkub', 'about.storyV2.verify.tfpa', 'about.storyV2.verify.sec', 'about.storyV2.verify.oic', 'about.storyV2.verify.help']) assert.ok(render([], [{ _key: key.replaceAll('.', '-') }, 'text']).getElementById('copy-' + key.replaceAll('.', '-')), key);
 });
 
-test('About words and photo descriptions retain editable copy; verification is opt-in with sibling links', async () => {
+test('About static credentials retain all facts, always-visible verification and editable photo descriptions', async () => {
   const { JSDOM } = require('jsdom');
   const html = await renderPage('about', { review: true });
   const doc = new JSDOM(html).window.document;
   for (const word of ['เครื่องมือ', 'การลงทุน', 'การเงิน', 'รับผิดชอบ', 'เตรียมตัว', 'วางแผน']) assert.ok([...doc.querySelectorAll('.keep')].some(node => node.textContent.includes(word)), word);
-  const cards = [...doc.querySelectorAll('.verifiedCard')];
+  const cards = [...doc.querySelectorAll('.staticCard')];
   assert.equal(cards.length, 4);
+  assert.equal(doc.querySelectorAll('.verifiedCard, .verifyReturn, [aria-pressed]').length, 0, 'Review credentials have no flip state or return action');
   const afpt = loadFixtureModule('components/layout/v5/licence-flip-copy.ts').V5_AFPT_CARD;
-  const afptButton = cards[0].querySelector('button');
-  assert.equal(afptButton.getAttribute('aria-label'), null, 'Natural accessible name preserves all credential facts');
-  for (const fact of [afpt.term, afpt.detail, ...afpt.back.map(line => line.value)]) assert.ok(afptButton.textContent.includes(fact), fact);
-  assert.ok([...cards[0].querySelectorAll('.back .line')].every(line => !line.hasAttribute('aria-hidden')));
-  assert.deepEqual(cards.map(card => card.querySelector(':scope > a.verifyLink').getAttribute('href')), [
+  for (const fact of [afpt.term, afpt.detail, ...afpt.back.map(line => line.value)]) assert.ok(cards[0].textContent.includes(fact), fact);
+  assert.deepEqual(cards.map(card => card.querySelector(':scope > a.staticRegistryLink').getAttribute('href')), [
     'https://www.tfpa.or.th/', 'https://oiceservice.oic.or.th/licenseagency/license.php', 'https://market.sec.or.th/LicenseCheck/Search', 'https://oiceservice.oic.or.th/licenseagency/license.php',
   ]);
   for (const card of cards) {
-    const link = card.querySelector(':scope > a.verifyLink');
-    assert.equal(card.querySelector('button a'), null);
-    assert.ok(link.hidden);
+    const link = card.querySelector(':scope > a.staticRegistryLink');
+    assert.equal(card.querySelector('button, [hidden], [aria-hidden="true"]'), null, 'All credential facts and registry links remain visible without an action');
     assert.equal(link.target, '_blank');
     assert.match(link.rel, /noopener/);
-    assert.match(card.querySelector('.verifyReturn').textContent, /กลับด้านหน้า/);
+    assert.match(link.rel, /noreferrer/);
   }
   assert.equal(doc.querySelectorAll('.verifyHelp').length, 1);
   assert.ok(!doc.querySelector('article[data-owner-story-v2]').textContent.includes('UAT: รอข้อความวิธีตรวจสอบ'));
   const edits = { 'about.storyV2.photoAlt.scbs': 'ภาพทดสอบหนึ่ง', 'about.storyV2.photoAlt.phillip': 'ภาพทดสอบสอง', 'about.storyV2.photoAlt.bitkub': 'ภาพทดสอบสาม' };
   const edited = new JSDOM(await renderPage('about', { review: true, edits: { about: edits } })).window.document;
   for (const [suffix, key] of [['owner-scbs-u-invest.webp', 'scbs'], ['owner-phillip-seminar.webp', 'phillip'], ['owner-bitkub.webp', 'bitkub']]) assert.equal(edited.querySelector(`img[src*="${suffix}"]`).alt, edits[`about.storyV2.photoAlt.${key}`]);
+});
+
+test('Review Home uses compact registry links while About retains full facts and unknown credentials do not invent links', () => {
+  const { JSDOM } = require('jsdom');
+  const Widget = loadFixtureModule('components/layout/v5/V5CredentialCards.tsx', fixtureOptions()).default;
+  const licenceCards = [
+    { term: 'ตัวแทนประกันชีวิต', detail: 'life-test' },
+    { term: 'ผู้วางแผนการลงทุน', detail: 'investment-test' },
+    { term: 'นายหน้าประกันวินาศภัย', detail: 'non-life-test' },
+  ];
+  const render = compact => new JSDOM(renderToStaticMarkup(React.createElement(Widget, { qualification: null, licenceCards, compact }))).window.document;
+  const compact = render(true), full = render(false);
+  assert.equal(compact.querySelector('[data-credential-presentation]').dataset.credentialPresentation, 'summary');
+  assert.equal(compact.querySelectorAll('a.compactCard').length, 4);
+  assert.equal(compact.querySelectorAll('button, [aria-pressed], .staticCard, dl').length, 0);
+  assert.equal(full.querySelectorAll('article.staticCard').length, 4);
+  assert.equal(full.querySelectorAll('button, [aria-pressed]').length, 0);
+  const afpt = loadFixtureModule('components/layout/v5/licence-flip-copy.ts').V5_AFPT_CARD;
+  const number = afpt.back.find(line => line.label === 'เลขที่ใบรับรอง').value;
+  assert.ok(compact.querySelector('a').textContent.includes(`คุณวุฒิ ${number}`));
+  assert.ok(!compact.querySelector('a').textContent.includes(afpt.detail), 'The unchanged compact summary leaves full facts on About');
+  for (const line of afpt.back) assert.ok(full.querySelector('article').textContent.includes(line.value), line.label);
+  for (const item of licenceCards) {
+    assert.ok(compact.body.textContent.includes(item.detail));
+    assert.ok(full.body.textContent.includes(item.detail));
+  }
+  const unknown = new JSDOM(renderToStaticMarkup(React.createElement(Widget, { qualification: null, licenceCards: [{ term: 'คุณสมบัติอื่น', detail: 'unknown-test' }], compact: true }))).window.document;
+  assert.equal([...unknown.querySelectorAll('li')].at(-1).querySelector('a'), null);
+  for (const link of compact.querySelectorAll('a')) { assert.equal(link.target, '_blank'); assert.match(link.rel, /noopener noreferrer/); assert.equal(new URL(link.href).search, ''); }
+  const css = readFileSync('components/layout/v5/V5LicenceFlip.module.css', 'utf8');
+  for (const selector of ['staticRegistryLink', 'compactCard']) assert.match(css, new RegExp(`\\.${selector} \\{[^}]*min-height: (?:44|73)px;`));
 });
 
 test('About eight-key metadata and word markup admit exact reviewed bytes only', () => {
@@ -338,5 +373,140 @@ test('About eight-key metadata and word markup admit exact reviewed bytes only',
     const current = readFileSync(file, 'utf8');
     assert.equal(digest(ownerReviewAboutWordsPredecessor(file, current)), previous);
     for (const mutant of [current + ' ', current.replace(/\S/, 'X')]) assert.equal(ownerReviewAboutWordsPredecessor(file, mutant), mutant);
+  }
+});
+
+
+test('Static credential admission restores only the reviewed caller/layout bytes and rejects unknown, partial or duplicate changes', () => {
+  for (const [file, pin] of Object.entries(staticCredentialSourcePins)) {
+    const source = readFileSync(file, 'utf8');
+    assert.equal(digest(source), pin.after, file);
+    assert.equal(digest(ownerReviewStaticCredentialsPredecessor(file, source)), pin.before, file);
+    const [current, previous] = pin.edits[0];
+    for (const mutant of [source + ' ', source.replace(/\S/, 'X'), source.replace(current, previous), source.replace(current, current + current)]) {
+      assert.notEqual(mutant, source);
+      assert.equal(ownerReviewStaticCredentialsPredecessor(file, mutant), mutant, 'Unknown, partial or duplicate successor is not admitted');
+    }
+    assert.equal(ownerReviewStaticCredentialsPredecessor('unowned.css', source), source, 'The complete bytes do not admit a different path');
+  }
+});
+
+test('Copy editor edits persisted entry identities, creates missing fields, preserves invalid drafts and respects read-only', async () => {
+  const { JSDOM } = require('jsdom');
+  const dom = new JSDOM('<div id="root"></div>', { url: 'https://admin-test.example/' });
+  const previous = Object.fromEntries(['window', 'document', 'navigator', 'IS_REACT_ACT_ENVIRONMENT'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries({ window: dom.window, document: dom.window.document, navigator: dom.window.navigator, IS_REACT_ACT_ENVIRONMENT: true })) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  dom.window.HTMLElement.prototype.scrollIntoView = () => {};
+  const { createRoot } = require('react-dom/client');
+  const { act } = React;
+  const root = createRoot(dom.window.document.getElementById('root'));
+  const patches = [];
+  const box = ({ children, id, role }) => React.createElement('div', { id, role }, children);
+  const ui = Object.fromEntries(['Badge', 'Box', 'Card', 'Flex', 'Stack', 'Text'].map(name => [name, box]));
+  ui.Button = function MockButton({ text, onClick, disabled, ...props }) { return React.createElement('button', { onClick, disabled, 'aria-expanded': props['aria-expanded'], 'aria-pressed': props['aria-pressed'] }, text); };
+  ui.TextArea = function MockTextArea({ value, onChange, readOnly, id, ...props }) { return React.createElement('textarea', { value, onChange, readOnly, id, 'aria-label': props['aria-label'], 'aria-invalid': props['aria-invalid'], 'aria-describedby': props['aria-describedby'] }); };
+  ui.TextInput = function MockTextInput({ value, onChange, ...props }) { return React.createElement('input', { value, onChange, 'aria-label': props['aria-label'] }); };
+  const mocks = new Map([
+    ['../../../lib/content/public-copy-registry', registry],
+    ['../../../lib/content/public-copy-locations.json', JSON.parse(readFileSync('lib/content/public-copy-locations.json', 'utf8'))],
+    ['sanity', { useFormValue: () => 'about', set: (value, path) => ({ type: 'set', value, path }), unset: path => ({ type: 'unset', path }), setIfMissing: value => ({ type: 'setIfMissing', value }), insert: (items, position, path) => ({ type: 'insert', items, position, path }) }],
+    ['@sanity/ui', ui],
+  ]);
+  for (const icon of ['ChevronDown', 'ChevronRight', 'Reset', 'Search']) mocks.set('@sanity/icons/' + icon, { [icon + 'Icon']: () => null });
+  const ts = require('typescript'), fixtureModule = { exports: {} };
+  const compiled = ts.transpileModule(readFileSync('cms/sanity/components/PublicCopyEntriesInput.tsx', 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText;
+  new Function('require', 'module', 'exports', compiled)(id => mocks.get(id) ?? require(id), fixtureModule, fixtureModule.exports);
+  const Editor = fixtureModule.exports.default;
+  const key = 'about.storyV2.c1.heading', actualKey = 'persisted-sanity-row-17';
+  const row = { _key: actualKey, key, text: 'หัวข้อเดิมที่แก้ไว้' };
+  const render = async (value = [row], readOnly = false, focusPath = [{ _key: actualKey }, 'text']) => {
+    await act(async () => root.render(React.createElement(Editor, { value, readOnly, focusPath, onChange: value => patches.push(...value), renderDefault: () => null })));
+    await act(async () => new Promise(resolve => setTimeout(resolve, 0)));
+    await act(async () => new Promise(resolve => setTimeout(resolve, 80)));
+  };
+  const type = async (element, value) => act(async () => {
+    Object.getOwnPropertyDescriptor(element instanceof dom.window.HTMLTextAreaElement ? dom.window.HTMLTextAreaElement.prototype : dom.window.HTMLInputElement.prototype, 'value').set.call(element, value);
+    element.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+  });
+  try {
+    await render();
+    const input = () => dom.window.document.getElementById('copy-input-' + key.replaceAll('.', '-'));
+    assert.ok(input(), 'Actual persisted _key opens the correct section');
+    assert.ok(input().getAttribute('aria-label'));
+    await type(input(), 'หัวข้อใหม่');
+    assert.deepEqual(patches.at(-1), { type: 'set', value: 'หัวข้อใหม่', path: [{ _key: actualKey }, 'text'] });
+    patches.length = 0;
+    await act(async () => [...dom.window.document.querySelectorAll('button')].find(button => button.textContent === 'คืนค่าเริ่มต้น').click());
+    assert.equal(patches.length, 4);
+    assert.ok(patches.every(patch => patch.path[0]._key === actualKey));
+    assert.equal(patches[0].value, defaults('about')[key]);
+    patches.length = 0;
+    await render([], false, [{ _key: key.replaceAll('.', '-') }, 'text']);
+    await type(input(), '');
+    assert.deepEqual(patches.map(patch => patch.type), ['setIfMissing', 'insert', 'set']);
+    assert.equal(patches[1].items[0].key, key);
+    assert.equal(patches[2].value, '', 'Cleared text stays visibly invalid instead of reverting to the original');
+    await render([{ ...row, text: '' }]);
+    assert.equal(input().value, '');
+    assert.equal(input().getAttribute('aria-invalid'), 'true');
+    assert.match(dom.window.document.querySelector('[role="alert"]').textContent, /กรุณาใส่ข้อความ/);
+    await render([{ ...row, text: 'หัวข้อ {unknown}' }]);
+    assert.match(dom.window.document.querySelector('[role="alert"]').textContent, /ไม่รู้จัก \{unknown\}/);
+    patches.length = 0;
+    await render([row], true);
+    await type(input(), 'ห้ามเขียน');
+    assert.deepEqual(patches, [], 'Even a programmatic input event cannot patch read-only data');
+    await render([row], false);
+    const search = dom.window.document.querySelector('input[aria-label="ค้นหาข้อความบนหน้า"]');
+    await type(search, 'NO_MATCH_12345');
+    assert.match(dom.window.document.querySelector('[role="status"]').textContent, /ไม่พบข้อความ/);
+    await act(async () => [...dom.window.document.querySelectorAll('button')].find(button => button.textContent === 'ต่างจากค่าเริ่มต้น 1').click());
+    await render([row], false, [{ _key: 'about-storyV2-c2-heading' }, 'text']);
+    assert.equal(search.value, '', 'A new incoming field focus clears stale search once');
+    const incoming = dom.window.document.getElementById('copy-input-about-storyV2-c2-heading');
+    assert.ok(incoming);
+    assert.equal(dom.window.document.activeElement, incoming, 'Incoming preview focus lands on the actual textarea after filters clear');
+    assert.equal(incoming.closest('[id^="copy-section-"]').parentElement.querySelector('button').getAttribute('aria-expanded'), 'true');
+    assert.equal([...dom.window.document.querySelectorAll('button')].find(button => button.textContent === 'ต่างจากค่าเริ่มต้น 1').getAttribute('aria-pressed'), 'false');
+  } finally {
+    await act(async () => root.unmount());
+    dom.window.close();
+    for (const [key, descriptor] of Object.entries(previous)) if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key];
+  }
+});
+
+test('Actual authenticated copy preview targets persisted entry _key and falls back only for missing fields', async () => {
+  const key = 'about.storyV2.c1.heading', actualKey = 'existing-row-17';
+  const fixtureModule = loadFixtureModule('lib/admin/public-copy-preview.ts', { mocks: new Map([
+    ['./require-permission', { requireAdminPermission: async permission => assert.equal(permission, 'draft:apply') }],
+    ['./environment', { getAdminEnvironment: () => 'admin-uat', isAdminReadDataPlaneAllowed: (dataset, environment) => dataset === 'uat' && environment === 'admin-uat' }],
+    ['../content/sanity-fetch', { sanityFetch: async ({ params, perspective }) => {
+      assert.equal(perspective, 'drafts');
+      const scope = Object.keys(registry.PUBLIC_COPY_SCOPES).find(scope => registry.publicCopyDocumentId(scope) === params.id);
+      return { data: scope ? { _id: params.id, _type: 'publicPageCopy', scope, locale: 'th', entries: scope === 'about' ? [{ _key: actualKey, key, text: defaults('about')[key] }] : [] } : null };
+    } }],
+  ]) });
+  const { copy } = await fixtureModule.getPublicCopyPreview('about');
+  const target = value => {
+    const digits = ['\u200B', '\u200C', '\u200D', '\uFEFF'];
+    const encoded = value.slice(value.indexOf(digits[0].repeat(4)) + 4);
+    const bytes = [];
+    for (let i = 0; i < encoded.length; i += 4) bytes.push(digits.indexOf(encoded[i]) * 64 + digits.indexOf(encoded[i + 1]) * 16 + digits.indexOf(encoded[i + 2]) * 4 + digits.indexOf(encoded[i + 3]));
+    return decodeURIComponent(JSON.parse(new TextDecoder().decode(Uint8Array.from(bytes))).href);
+  };
+  assert.ok(target(copy[key]).includes(`entries[_key=="${actualKey}"].text`));
+  const missing = 'about.storyV2.c2.heading';
+  assert.ok(target(copy[missing]).includes(`entries[_key=="${missing.replaceAll('.', '-')}"].text`));
+  assert.equal(registry.PUBLIC_COPY_SCOPES.about.label, 'รู้จักปั้น');
+});
+
+test("Editor successor admits only complete reviewed label and actual-key targets", () => {
+  for (const [file, pin] of Object.entries(editorSourcePins)) {
+    const source = readFileSync(file, "utf8");
+    assert.equal(digest(source), pin.after);
+    assert.equal(digest(ownerReviewEditorSourcePredecessor(file, source)), pin.before);
+    const [current, previous] = pin.edits[0];
+    for (const mutant of [source + " ", source.replace(/\S/, "X"), source.replace(current, previous), source.replace(current, current + current)]) assert.equal(ownerReviewEditorSourcePredecessor(file, mutant), mutant);
+    assert.equal(ownerReviewEditorSourcePredecessor("unowned.ts", source), source);
   }
 });

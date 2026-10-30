@@ -164,3 +164,7 @@
 
 /* Published CMS paragraphs may contain long Latin tokens or URLs as well as Thai. */
 .homeSection p { overflow-wrap: anywhere; }
+
+/* The existing native compact strip/grid is scoped to the owner-selected static UAT badges. */
+.staticCredentials { grid-auto-columns: max-content; gap: 8px; padding: 0 20px 0 0; }
+@media (min-width: 1024px) { .staticCredentials { grid-auto-columns: auto; gap: 12px 16px; padding: 16px; border: 1px solid var(--v5-border); border-radius: var(--v5-radius); } }

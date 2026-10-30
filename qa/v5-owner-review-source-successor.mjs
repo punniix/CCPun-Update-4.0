@@ -235,6 +235,8 @@ export function aboutToolsLayoutPredecessor(file, source) {
 }
 
 export function ownerReviewSourcePredecessor(file, source) {
+  source = ownerReviewEditorSourcePredecessor(file, source);
+  source = ownerReviewStaticCredentialsPredecessor(file, source);
   source = aboutToolsLayoutPredecessor(file, source);
   source = adminCmsBridgePredecessor(file, source);
   source = cmsCopyScopePredecessor(file, source);
@@ -340,6 +342,7 @@ export function oneRowCountdownSourcePredecessor(file, source) {
 
 // Admit only the exact About word-markup and descendant-selector corrections.
 export function ownerReviewAboutWordsPredecessor(file, source) {
+  source = ownerReviewStaticCredentialsPredecessor(file, source);
   if (file === "features/about/page.tsx" && sha(source) === "f1540c85d551a708b02254e56383a4f4b67571264afb21e3bae0b958014ee9c0") {
     source = source.replace('import OwnerStoryV2, { keepWords } from "./OwnerStoryV2";', 'import OwnerStoryV2 from "./OwnerStoryV2";')
       .replace('  const aboutWords = (value: ReactNode) => IS_REVIEW_ENVIRONMENT ? keepWords(value) : value;\n', '')
@@ -350,5 +353,95 @@ export function ownerReviewAboutWordsPredecessor(file, source) {
     source = source.replace('.credentials > li:last-child:has(button)', '.credentials > li:last-child:has(> button)');
     assert.equal(sha(source), "dd4c912f5ca4f0f22c1b983f70f1f3e60cd550447c498c3073712db83951ce58", "Exact preceding About CSS; LINE reserve retained");
   }
+  return source;
+}
+
+// COO 30-Oct: only these exact static credential successors enter the historical proof chain.
+export const staticCredentialSourcePins = Object.freeze({
+  "features/about/About.module.css": {
+    "before": "cf9c85e787b5e5ae7f0a696f4ca428002c8fa7478737c77605b0c64e69424fe4",
+    "after": "9287a5320eec10b026d9f46d43633876b1bf9c7d062e0011d44d22726df3d9ae",
+    "edits": [
+      [
+        "\n/* The static story cards own their borders; keep one 20px page gutter on both sides. */\n.ownerStoryV2 .credentials { grid-template-columns: minmax(0, 1fr); align-items: stretch; margin: 0; padding: 0; border: 0; background: none; }\n.ownerStoryV2 .credentials > li { height: 100%; padding: 0; }\n@media (min-width: 640px) { .ownerStoryV2 .credentials { grid-template-columns: repeat(2, minmax(0, 1fr)); } }\n@media (min-width: 1024px) { .ownerStoryV2 .credentials { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; } }\n",
+        ""
+      ]
+    ]
+  },
+  "features/home/v5/V5Home.module.css": {
+    "before": "70527d8d17452244f2ed2089374141ae6a5569682ea0e66c298e7a652a2da6ba",
+    "after": "6bd76ed4714b066d6f78e7a2c27c70141218d1f50c541cec153f8fbce336f809",
+    "edits": [
+      [
+        "\n/* The existing native compact strip/grid is scoped to the owner-selected static UAT badges. */\n.staticCredentials { grid-auto-columns: max-content; gap: 8px; padding: 0 20px 0 0; }\n@media (min-width: 1024px) { .staticCredentials { grid-auto-columns: auto; gap: 12px 16px; padding: 16px; border: 1px solid var(--v5-border); border-radius: var(--v5-radius); } }\n",
+        ""
+      ]
+    ]
+  },
+  "features/home/v5/V5Home.tsx": {
+    "before": "ae4cdb7cb2b0c43c2aad88068a1ae9d571f5c4004671f67b86ff4b888ff2e800",
+    "after": "714b243154c0217b9e2f2d3b2a1dbd437ef3c11ad4bc2b97a3794e4928081070",
+    "edits": [
+      [
+        "import { IS_REVIEW_ENVIRONMENT } from \"@/lib/deployment-environment\";\n",
+        ""
+      ],
+      [
+        "<V5CredentialCards className={IS_REVIEW_ENVIRONMENT ? `${styles.credentials} ${styles.staticCredentials}` : styles.credentials} qualification={qualification} licenceCards={licenceCards} compact />",
+        "<V5CredentialCards className={styles.credentials} qualification={qualification} licenceCards={licenceCards} />"
+      ]
+    ]
+  }
+});
+export function ownerReviewStaticCredentialsPredecessor(file, source) {
+  const pin = Object.hasOwn(staticCredentialSourcePins, file) ? staticCredentialSourcePins[file] : null;
+  if (!pin || typeof source !== "string" || sha(source) !== pin.after) return source;
+  for (const [current, previous] of pin.edits) {
+    assert.equal(source.split(current).length, 2, "Only one complete reviewed static credential edit");
+    source = source.replace(current, previous);
+  }
+  assert.equal(sha(source), pin.before, "Every prior credential caller/layout byte restored");
+  return source;
+}
+
+// Exact approved editor label/field-target successor; every earlier safety byte remains pinned.
+export const editorSourcePins = Object.freeze({
+  "lib/content/public-copy-registry.ts": {
+    "before": "4a426876b5c37e45fcdc883bdcc38572e8c16a6f51a3aad3b1ced697939005ae",
+    "after": "cb72ea9412d855c0568c4a93f4fc8002849a6a239219251e8b9f1261122f60e3",
+    "edits": [
+      [
+        "label: \"\u0e23\u0e39\u0e49\u0e08\u0e31\u0e01\u0e1b\u0e31\u0e49\u0e19\"",
+        "label: \"\u0e23\u0e39\u0e49\u0e08\u0e31\u0e01\u0e1b\u0e31\u0e49\u0e19 (\u0e02\u0e49\u0e2d\u0e04\u0e27\u0e32\u0e21\u0e40\u0e14\u0e34\u0e21\u0e23\u0e30\u0e2b\u0e27\u0e48\u0e32\u0e07\u0e15\u0e23\u0e27\u0e08 UAT)\""
+      ]
+    ]
+  },
+  "lib/admin/public-copy-preview.ts": {
+    "before": "08f1737857833796f02404adb8a38a671d157abc59a564fae23f4c7125c32498",
+    "after": "6ee620f9c0c235dd1272193a1cbb75d74f4898380d2971b338792df311b828a7",
+    "edits": [
+      [
+        "function withEditTargets(scope: PublicCopyScope, values: Record<string, string>, entries: Array<{ key: string; _key: string }> = []) {",
+        "function withEditTargets(scope: PublicCopyScope, values: Record<string, string>) {"
+      ],
+      [
+        "    const persistedKey = entries.find(entry => entry.key === key)?._key;\n    const entryKey = typeof persistedKey === \"string\" && persistedKey ? persistedKey : key.replaceAll(\".\", \"-\");\n    const path = `entries[_key==${JSON.stringify(entryKey)}].text`;",
+        "    const path = `entries[_key==\"${key.replaceAll(\".\", \"-\")}\"].text`;"
+      ],
+      [
+        "    const values = parsePublicCopy(scope, data) as Record<string, string>;\n    return withEditTargets(scope, values, data?.entries);",
+        "    return withEditTargets(scope, parsePublicCopy(scope, data) as Record<string, string>);"
+      ]
+    ]
+  }
+});
+export function ownerReviewEditorSourcePredecessor(file, source) {
+  const pin = Object.hasOwn(editorSourcePins, file) ? editorSourcePins[file] : null;
+  if (!pin || typeof source !== "string" || sha(source) !== pin.after) return source;
+  for (const [current, previous] of pin.edits) {
+    assert.equal(source.split(current).length, 2, "one reviewed editor change");
+    source = source.replace(current, previous);
+  }
+  assert.equal(sha(source), pin.before, "complete historical editor source restored");
   return source;
 }

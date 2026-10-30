@@ -9,6 +9,7 @@ import V5Page from "@/components/layout/v5/V5Page";
 import shell from "@/components/layout/v5/V5.module.css";
 import { V5_HORIZONTAL_CARD_SIZES, V5ArticleCard, V5SectionHeading, v5CardGridSizes, v5Label } from "@/components/layout/v5/V5Primitives";
 import V5CredentialCards from "@/components/layout/v5/V5CredentialCards";
+import { IS_REVIEW_ENVIRONMENT } from "@/lib/deployment-environment";
 import { newestFirst, toV5Cards } from "@/components/layout/v5/article-card-data";
 import { getPublishedArticles, getShellTopics } from "@/components/layout/v5/shell-data";
 import { V5_TOOLS_HUB } from "@/components/layout/v5/constants";
@@ -59,7 +60,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
             <div className={shell.buttonRow}>
               <Link className={shell.buttonOutline} href="#about-ccpun">{text.node("home.hero.aboutCta")}</Link>
             </div>
-            <V5CredentialCards className={styles.credentials} qualification={qualification} licenceCards={licenceCards} />
+            <V5CredentialCards className={IS_REVIEW_ENVIRONMENT ? `${styles.credentials} ${styles.staticCredentials}` : styles.credentials} qualification={qualification} licenceCards={licenceCards} compact />
           </div>
           <div className={styles.portrait}>
             <Image src="/assets/website-v5/pun-cutout-31beef3a.png" alt={text("home.website43Homealt")} fill preload loading="eager" fetchPriority="high" sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1023px) calc(100vw - 64px), (max-width: 1199px) calc(50vw - 56px), (max-width: 1439px) calc(50vw - 104px), 616px" />

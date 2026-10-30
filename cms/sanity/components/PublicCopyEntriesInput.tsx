@@ -43,8 +43,8 @@ export default function PublicCopyEntriesInput(props: ArrayOfObjectsInputProps) 
     const grouped = new Map<string, Array<{ key: string; location: Location }>>(scopeLocations.sections.map(section => [section, []]));
     for (const [key, location] of Object.entries(scopeLocations.entries)) {
       if (!Object.hasOwn(defaults, key)) continue;
-      // Keep persisted trial copy valid, but never offer retired About text as current-page edits.
-      if (scope === "about" && key.startsWith("about.father.") && key !== "about.father.photoAlt") continue;
+      // Keep persisted trial/return copy valid, but never offer retired About text as current-page edits.
+      if (scope === "about" && ((key.startsWith("about.father.") && key !== "about.father.photoAlt") || key === "about.storyV2.verify.back")) continue;
       grouped.get(location.section)?.push({ key, location });
     }
     return [...grouped.entries()].map(([section, items]) => ({ section, items: items.sort((a, b) => a.location.order - b.location.order) })).filter(group => group.items.length);
@@ -53,17 +53,18 @@ export default function PublicCopyEntriesInput(props: ArrayOfObjectsInputProps) 
   // A click on the page in "ตัวอย่างเว็บไซต์" focuses entries[_key==…].text:
   // open that text's section and bring its row into view.
   const focusKey = (props.focusPath?.[0] as { _key?: string } | undefined)?._key;
-  const focusCopyKey = focusKey && scopeLocations ? Object.keys(scopeLocations.entries).find(candidate => entryKey(candidate) === focusKey) : undefined;
+  const focusCopyKey = focusKey && scopeLocations ? value.find(entry => entry._key === focusKey)?.key ?? Object.keys(scopeLocations.entries).find(candidate => entryKey(candidate) === focusKey) : undefined;
   const focusSection = focusCopyKey ? scopeLocations?.entries[focusCopyKey]?.section : undefined;
   useEffect(() => {
     if (!focusCopyKey || !focusKey) return;
+    const resetFilters = setTimeout(() => { setQuery(""); setOnlyChanged(false); }, 0);
     const timer = setTimeout(() => {
-      const row = document.getElementById(`copy-${focusKey}`);
-      row?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const row = document.getElementById(`copy-${entryKey(focusCopyKey)}`);
+      row?.scrollIntoView({ behavior: "auto", block: "center" });
       row?.querySelector("textarea")?.focus({ preventScroll: true });
     }, 60);
-    return () => clearTimeout(timer);
-  }, [focusCopyKey, focusKey]);
+    return () => { clearTimeout(resetFilters); clearTimeout(timer); };
+  }, [focusCopyKey, focusKey, scope]);
 
   if (!config || !scopeLocations) return props.renderDefault(props);
 
@@ -73,7 +74,6 @@ export default function PublicCopyEntriesInput(props: ArrayOfObjectsInputProps) 
     return Boolean(entry && ((entry.text ?? defaults[key]) !== defaults[key] || entry.size || entry.sizeMobile || entry.sizeDesktop));
   };
   const matches = (key: string) => {
-    if (key === focusCopyKey) return true;
     if (onlyChanged && !isChanged(key)) return false;
     if (!needle) return true;
     const text = byKey.get(key)?.text ?? defaults[key];
@@ -85,17 +85,19 @@ export default function PublicCopyEntriesInput(props: ArrayOfObjectsInputProps) 
   // Every write targets the entry by _key; an entry missing from an older
   // document is created from the approved default first.
   const patchEntry = (key: string, field: keyof Entry, next: string | number | undefined) => {
-    const path: Path = [{ _key: entryKey(key) }, field];
+    if (readOnly) return;
+    const path: Path = [{ _key: byKey.get(key)?._key ?? entryKey(key) }, field];
     const patches = [];
     if (!byKey.has(key)) {
       patches.push(setIfMissing([]), insert([{ _type: "publicCopyEntry", _key: entryKey(key), key, text: defaults[key] }], "after", [-1]));
     }
-    patches.push(next === undefined || next === "" ? unset(path) : set(next, path));
+    patches.push(next === undefined ? unset(path) : set(next, path));
     onChange(patches);
   };
   const resetEntry = (key: string) => {
-    if (!byKey.has(key)) return;
-    onChange([set(defaults[key], [{ _key: entryKey(key) }, "text"]), unset([{ _key: entryKey(key) }, "size"]), unset([{ _key: entryKey(key) }, "sizeMobile"]), unset([{ _key: entryKey(key) }, "sizeDesktop"])]);
+    const entry = byKey.get(key);
+    if (readOnly || !entry) return;
+    onChange([set(defaults[key], [{ _key: entry._key }, "text"]), unset([{ _key: entry._key }, "size"]), unset([{ _key: entry._key }, "sizeMobile"]), unset([{ _key: entry._key }, "sizeDesktop"])]);
   };
 
   return (
@@ -105,25 +107,28 @@ export default function PublicCopyEntriesInput(props: ArrayOfObjectsInputProps) 
           <Text size={1}>ข้อความเรียงตามลำดับที่คนเห็นบนหน้า กดชื่อส่วนเพื่อเปิด หรือคลิกข้อความในแท็บ “ตัวอย่างเว็บไซต์” เพื่อมาที่ช่องนั้นโดยตรง</Text>
           <Flex gap={2} wrap="wrap" align="center">
             <Box flex={1} style={{ minWidth: 220 }}>
-              <TextInput icon={SearchIcon} placeholder="ค้นหาข้อความบนหน้า" value={query} onChange={(event: ChangeEvent<HTMLInputElement>) => setQuery(event.currentTarget.value)} clearButton={Boolean(query)} onClear={() => setQuery("")} />
+              <TextInput aria-label="ค้นหาข้อความบนหน้า" icon={SearchIcon} placeholder="ค้นหาข้อความบนหน้า" value={query} onChange={(event: ChangeEvent<HTMLInputElement>) => setQuery(event.currentTarget.value)} clearButton={Boolean(query)} onClear={() => setQuery("")} />
             </Box>
-            <Button mode={onlyChanged ? "default" : "ghost"} tone={onlyChanged ? "primary" : "default"} text={`แก้แล้ว ${changedCount}`} onClick={() => setOnlyChanged(!onlyChanged)} />
+            <Button mode={onlyChanged ? "default" : "ghost"} tone={onlyChanged ? "primary" : "default"} aria-pressed={onlyChanged} text={`ต่างจากค่าเริ่มต้น ${changedCount}`} onClick={() => setOnlyChanged(!onlyChanged)} />
           </Flex>
         </Stack>
       </Card>
 
+      {filtering && !sections.some(({ items }) => items.some(({ key }) => matches(key))) ? <Text size={1} role="status">ไม่พบข้อความที่ตรงกับตัวกรอง ลองเปลี่ยนคำค้นหรือปิดตัวกรอง “ต่างจากค่าเริ่มต้น”</Text> : null}
       {sections.map(({ section, items }) => {
         const visible = items.filter(item => matches(item.key));
         if (filtering && !visible.length) return null;
-        const expanded = filtering || open[section] || section === focusSection;
+        const expanded = Boolean(filtering || open[section] || section === focusSection);
+        const sectionId = `copy-section-${scope}-${scopeLocations.sections.indexOf(section)}`;
         const sectionChanged = items.filter(item => isChanged(item.key)).length;
         return (
           <Card key={section} radius={2} border>
             <Button mode="bleed" width="fill" justify="flex-start" padding={3} icon={expanded ? ChevronDownIcon : ChevronRightIcon}
-              text={`${section} · ${filtering ? visible.length : items.length} ข้อความ${sectionChanged ? ` · แก้แล้ว ${sectionChanged}` : ""}`}
+              aria-expanded={expanded} aria-controls={expanded ? sectionId : undefined}
+              text={`${section} · ${filtering ? visible.length : items.length} ข้อความ${sectionChanged ? ` · ต่างจากค่าเริ่มต้น ${sectionChanged}` : ""}`}
               onClick={() => setOpen({ ...open, [section]: !open[section] })} />
             {expanded ? (
-              <Stack gap={3} padding={3}>
+              <Stack gap={3} padding={3} id={sectionId}>
                 {visible.map(({ key, location }) => (
                   <CopyRow key={key} copyKey={key} location={location} entry={byKey.get(key)} original={defaults[key]} readOnly={Boolean(readOnly)} changed={isChanged(key)}
                     onText={text => patchEntry(key, "text", text)} onReset={() => resetEntry(key)} />
@@ -143,23 +148,27 @@ function CopyRow({ copyKey, location, entry, original, readOnly, changed, onText
 }) {
   const text = entry?.text ?? original;
   const missing = placeholders(original).filter(token => !text.includes(token));
+  const unknown = placeholders(text).filter(token => !placeholders(original).includes(token));
+  const invalidText = text.length > 12000 || /[<\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\uE000]/.test(text);
+  const invalid = !text.trim() || invalidText || missing.length > 0 || unknown.length > 0;
+  const inputId = `copy-input-${entryKey(copyKey)}`;
   return (
     <Card padding={3} radius={2} tone={changed ? "caution" : "default"} border id={`copy-${entryKey(copyKey)}`}>
       <Stack gap={3}>
         <Flex gap={2} align="center" wrap="wrap">
-          <Text size={1} weight="semibold">{location.kind}</Text>
+          <Text size={1} weight="semibold"><label htmlFor={inputId}>{location.kind}</label></Text>
           {!location.visible ? <Badge tone="default">ไม่แสดงบนจอ · ใช้กับโปรแกรมอ่านหน้าจอ</Badge> : null}
-          {changed ? <Badge tone="caution">แก้แล้ว</Badge> : null}
+          {changed ? <Badge tone="caution">ต่างจากค่าเริ่มต้น</Badge> : null}
           <Box flex={1} />
-          <Text size={0} muted title="รหัสข้อความในระบบ">{copyKey}</Text>
+          <details><summary>รหัสอ้างอิงข้อความ</summary><Text size={0} muted>{copyKey}</Text></details>
         </Flex>
-        <TextArea rows={Math.min(8, Math.max(1, Math.ceil(text.length / 70)))} value={text} readOnly={readOnly}
+        <TextArea id={inputId} aria-label={`${location.section} · ${location.kind}`} aria-invalid={invalid} aria-describedby={invalid ? `${inputId}-error` : undefined} rows={Math.min(8, Math.max(1, Math.ceil(text.length / 70)))} value={text} readOnly={readOnly}
           onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onText(event.currentTarget.value)} />
-        {missing.length ? <Text size={1} style={{ color: "var(--card-badge-critical-dot-color, #f03e2f)" }}>ต้องคง {missing.join(" ")} ไว้ ระบบใช้เติมตัวเลขหรือชื่อ</Text> : null}
-        {text !== original ? <Text size={1} muted>ข้อความเดิม: {original}</Text> : null}
+        {invalid ? <Text id={`${inputId}-error`} role="alert" size={1} style={{ color: "var(--card-badge-critical-dot-color, #f03e2f)" }}>{!text.trim() ? "กรุณาใส่ข้อความก่อนเผยแพร่ หรือกดคืนค่าเริ่มต้น" : invalidText ? "ใช้ข้อความธรรมดาไม่เกิน 12,000 ตัวอักษร โดยไม่ใส่ HTML หรืออักขระควบคุม" : missing.length ? `ต้องคง ${missing.join(" ")} ไว้ ระบบใช้เติมตัวเลขหรือชื่อ` : `ไม่รู้จัก ${unknown.join(" ")} กรุณาลบคำในวงเล็บปีกกาที่เพิ่มมา`}</Text> : null}
+        {text !== original ? <Text size={1} muted>ข้อความค่าเริ่มต้น: {original}</Text> : null}
         {changed ? (
           <Flex justify="flex-end">
-            <Button mode="ghost" tone="critical" fontSize={1} padding={2} icon={ResetIcon} text="คืนค่าเดิม" disabled={readOnly} onClick={onReset} />
+            <Button mode="ghost" tone="critical" fontSize={1} padding={2} icon={ResetIcon} text="คืนค่าเริ่มต้น" disabled={readOnly} onClick={onReset} />
           </Flex>
         ) : null}
       </Stack>

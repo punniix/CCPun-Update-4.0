@@ -1,3 +1,4 @@
+import { ownerReviewEditorSourcePredecessor } from "../../qa/v5-owner-review-source-successor.mjs";
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import assert from 'node:assert/strict';
@@ -94,7 +95,7 @@ test('active Admin auth, RBAC, planning, AFPT, daily-job, no-store and analytics
 test('Admin bridge admission reconstructs active568 only from exact reviewed bytes and rejects unknown changes', async () => {
   const { adminCmsBridgePredecessor, adminCmsBridgePins, adminPreviewEditorLinkPredecessor } = await import('../../qa/admin-cms-web-bridge-successor.mjs');
   for (const [file, pin] of Object.entries(adminCmsBridgePins)) {
-    const current = readFileSync(file, 'utf8');
+    const current = ownerReviewEditorSourcePredecessor(file, readFileSync(file, 'utf8'));
     const source = adminPreviewEditorLinkPredecessor(file, current);
     assert.equal(createHash('sha256').update(source).digest('hex'), pin.after, file);
     assert.equal(createHash('sha256').update(adminCmsBridgePredecessor(file, current)).digest('hex'), pin.before, file);
