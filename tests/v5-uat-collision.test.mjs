@@ -1,3 +1,4 @@
+import { ownerReviewVisualSourcePredecessor, visualLocationsPredecessor } from "../qa/v5-owner-review-source-successor.mjs";
 import { aboutToolsLayoutPins, aboutToolsLayoutPredecessor, ownerReviewLocationsPredecessor, ownerReviewStoryV2SourcePredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import { ownerReviewSourcePins, ownerReviewSourcePredecessor, fullCountdownSourcePredecessor, oneRowCountdownSourcePredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import {websiteV5InvestmentCopyPredecessor} from '../qa/website-v5-phase-a-proof.mjs';
@@ -24,7 +25,7 @@ test('Collision CSS successor admits only the complete additive stylesheet and r
 
 test('Owner review source inverses retain every prior byte and reject partial, duplicated or unrelated changes', () => {
   for (const [file, pin] of Object.entries(ownerReviewSourcePins)) {
-    const source = fullCountdownSourcePredecessor(file, readFileSync(file, 'utf8'));
+    const source = fullCountdownSourcePredecessor(file, ownerReviewVisualSourcePredecessor(file, readFileSync(file, 'utf8')));
     assert.equal(sha(source), pin.after, file);
     const prior = ownerReviewSourcePredecessor(file, source);
     assert.equal(sha(prior), pin.before, file);
@@ -103,7 +104,7 @@ test('About and Tools layout inverses preserve the complete prior CSS and reject
 });
 
 test('About helper metadata reorder retains all existing fields and rejects partial or unknown map bytes', () => {
-  const source = readFileSync('lib/content/public-copy-locations.json', 'utf8');
+  const source = visualLocationsPredecessor(readFileSync('lib/content/public-copy-locations.json', 'utf8'));
   assert.equal(sha(source), '7cfa3100a07771cb4e3c946c25a651ad57b7653b76f0c795990273af9eadaa30', 'Exact Story V2 successor map with eight reviewed copy fields');
   const map = JSON.parse(source);
   assert.equal(Object.keys(map).length, 11);

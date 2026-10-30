@@ -63,7 +63,7 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
             <V5CredentialCards className={IS_REVIEW_ENVIRONMENT ? `${styles.credentials} ${styles.staticCredentials}` : styles.credentials} qualification={qualification} licenceCards={licenceCards} compact />
           </div>
           <div className={styles.portrait}>
-            <Image src="/assets/website-v5/pun-cutout-31beef3a.png" alt={text("home.website43Homealt")} fill preload loading="eager" fetchPriority="high" sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1023px) calc(100vw - 64px), (max-width: 1199px) calc(50vw - 56px), (max-width: 1439px) calc(50vw - 104px), 616px" />
+            <Image src="/assets/website-v5/home-hero-white-outline-8e7f5dc2.png" alt={text("home.website43Homealt")} fill preload loading="eager" fetchPriority="high" sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1023px) calc(100vw - 64px), (max-width: 1199px) calc(50vw - 56px), (max-width: 1439px) calc(50vw - 104px), 616px" />
             <div className={styles.portraitBadge} data-home-profile-badge><strong>{displayName}</strong><span>{role}</span></div>
           </div>
         </div>
@@ -100,8 +100,8 @@ export default async function V5Home({ authorProfile = null, copy = {}, faqs = g
         <div className={`${shell.inner} ${styles.about}`}>
           <div className={styles.aboutPortraitFrame}>
             {/* One portrait per theme; the hidden one is display:none and, being lazy, is never fetched. */}
-            <Image className={`${styles.aboutPortrait} ${styles.aboutPortraitDark}`} src="/assets/ccpun-portrait-v5-dark.webp" alt={text("home.website43Homealt8")} width={1200} height={1800} sizes="(max-width: 639px) 72px, 400px" loading="lazy" />
-            <Image className={`${styles.aboutPortrait} ${styles.aboutPortraitLight}`} src="/assets/ccpun-portrait-v5-light.webp" alt={text("home.website43Homealt8")} width={1200} height={1800} sizes="(max-width: 639px) 72px, 400px" loading="lazy" />
+            <Image className={`${styles.aboutPortrait} ${styles.aboutPortraitDark}`} src="/assets/website-v5/home-about-dark-white-outline-70db2c14.png" alt={text("home.website43Homealt8")} width={1248} height={1872} sizes="(max-width: 639px) 72px, 400px" loading="lazy" />
+            <Image className={`${styles.aboutPortrait} ${styles.aboutPortraitLight}`} src="/assets/website-v5/home-about-light-white-outline-6d5daba9.png" alt={text("home.website43Homealt8")} width={1248} height={1872} sizes="(max-width: 639px) 72px, 400px" loading="lazy" />
           </div>
           <div>
             <V5SectionHeading id="home-about" title={text.node("home.h2")} />

@@ -1,7 +1,7 @@
-import { ownerReviewHtmlPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
+import { ownerReviewHtmlPredecessor, visualHtmlPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import { inverseC17OnCurrentUatHtml, c17CurrentUatPins } from '../qa/v5-c17-current-uat-successor.mjs';
 import { inverseWebsiteV5C17Dock } from '../qa/website-v5-c17-render-successor.mjs';
-const inverseC15OnC14Html = (html, key) => inverseC15(inverseC17OnCurrentUatHtml(html, key), key);
+const inverseC15OnC14Html = (html, key) => inverseC15(inverseC17OnCurrentUatHtml(visualHtmlPredecessor(html, key), key), key);
 import { inverseEyebrowHtml, eyebrowHtmlPins } from "../qa/v5-eyebrow-html.mjs";
 import { inverseC15OnC14Html as inverseC15 } from '../qa/v5-c15-c14-merge-successor.mjs';
 import assert from 'node:assert/strict';
@@ -547,7 +547,7 @@ test('C15 default-only inverse rejects edited copy, moved nodes, duplicates and 
 // Integration successor: historical C17/C11/C14/C15 pins are never edited.
 test('C17 on current UAT peels only the full approved render and preserves all historical guards', async () => {
   for (const [index, scope] of [[3,'ci'],[4,'fhc'],[8,'privacy'],[9,'cookies'],[10,'moneyStory']]) {
-    const current = await renderFixture(scope, {});
+    const current = visualHtmlPredecessor(await renderFixture(scope, {}), index);
     assert.equal(digest(current), c17CurrentUatPins[index].after);
     const prior = inverseC17OnCurrentUatHtml(current, index);
     assert.equal(digest(prior), c17CurrentUatPins[index].before);
@@ -648,4 +648,19 @@ test('Owner-reviewed TOC default render restores the exact old article and rejec
     assert.equal(ownerReviewHtmlPredecessor(changed, 'v5Article'), changed);
   }
   assert.equal(ownerReviewHtmlPredecessor(html, 'unowned'), html);
+});
+
+test('Approved CI attribution fallback restores exact prior render and refuses every unknown fragment', async () => {
+  const current = await renderFixture('ci', {});
+  assert.equal(digest(current), '8e231e256904346d23ab65bed84551fc7b491c75a2d1fd674b14b988a1a6c04d');
+  const prior = visualHtmlPredecessor(current, 3);
+  assert.equal(digest(prior), '1395e1e06ca9e9eba33a39e26854bf3add131e80cd14f1f7673d49192800e842');
+  assert.equal(visualHtmlPredecessor(prior, 3), prior);
+  assert.equal(visualHtmlPredecessor(current, 'unowned'), current);
+  const link = current.match(/<a[^>]*href="https:\/\/www\.toryod\.co\/projects\/35d2877e-e97a-45ee-a6df-aefa5e09e2b3-ccpun-s-ci-planning[^>]*>[\s\S]*?<\/a>/)?.[0];
+  assert.ok(link, 'Original attribution href remains rendered');
+  for (const mutant of [current + ' ', current.replace(link, link + link), current.replace(link, ''), current.replace(link, link.replace('www.toryod.co', 'unowned.invalid'))]) {
+    assert.notEqual(mutant, current);
+    assert.equal(visualHtmlPredecessor(mutant, 3), mutant);
+  }
 });

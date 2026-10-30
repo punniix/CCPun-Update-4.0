@@ -131,9 +131,8 @@ export default async function V5CiPlanning({ copy, siteCopy }: { copy?: PublicCo
           <p className={styles.note}>{t.node('ci.landing.description12')}</p>
           <div className={styles.badgeRow}>
             <p className={styles.note} style={{ marginTop: 0 }}>{t.node('ci.landing.description13')}</p>
-            <a href="https://www.toryod.co/projects/35d2877e-e97a-45ee-a6df-aefa5e09e2b3-ccpun-s-ci-planning" target="_blank" rel="noopener" aria-label={t('ci.landing.ariaLabel')}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- TorYod badge is a vendor-hosted SVG that must remain external. */}
-              <img src="https://www.toryod.co/badge/35d2877e-e97a-45ee-a6df-aefa5e09e2b3" alt={t('ci.landing.alt')} width="240" height="54" loading="lazy" decoding="async" />
+            <a className={shell.textLink} href="https://www.toryod.co/projects/35d2877e-e97a-45ee-a6df-aefa5e09e2b3-ccpun-s-ci-planning" target="_blank" rel="noopener" aria-label={t('ci.landing.ariaLabel')}>
+              {t.node('ci.landing.alt')}
             </a>
           </div>
         </div>

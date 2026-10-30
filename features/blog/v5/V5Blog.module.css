@@ -208,3 +208,13 @@
 /* Clearance for the category list heading and the desktop featured-card excerpt only. */
 @media (max-width:479px) { .categoryHero ~ section :global(#category-articles) { display:block; box-sizing:border-box; padding-right:60px; } }
 @media (min-width:1024px) { .featuredLead > div > p, .featuredLead > div > div:has(button) { padding-right:calc(216px - var(--v5-gutter, 80px)); } }
+
+/* Keep the proven Article author framing: 96px desktop and 72px on phones. */
+.authorCard { grid-template-columns: 96px minmax(0, 1fr); row-gap: 8px; align-items: start; }
+.authorCard img { grid-row: 1 / 4; width: 96px; height: 96px; object-position: center top; box-sizing: border-box; border: 1px solid color-mix(in srgb, var(--v5-gold) 40%, transparent); }
+.authorBio, .authorLink { grid-column: 2; }
+@media (max-width: 639px) {
+  .authorCard { grid-template-columns: 72px minmax(0, 1fr); row-gap: 16px; }
+  .authorCard img { grid-row: auto; width: 72px; height: 72px; }
+  .authorBio, .authorLink { grid-column: 1 / -1; }
+}

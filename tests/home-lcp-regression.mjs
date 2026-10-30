@@ -1,3 +1,4 @@
+import { ownerReviewVisualSourcePredecessor } from "../qa/v5-owner-review-source-successor.mjs";
 import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -5,7 +6,7 @@ import { readFileSync } from "node:fs";
 // Website v5 Phase A: the homepage route renders features/home/v5/V5Home.tsx.
 // The same LCP/FAQ/skip-link/consent contracts are now asserted on the v5 owner;
 // the unchanged Website 4.3 home component keeps its frozen proofs elsewhere.
-const home = readFileSync(new URL("../features/home/v5/V5Home.tsx", import.meta.url), "utf8");
+const home = ownerReviewVisualSourcePredecessor("features/home/v5/V5Home.tsx", readFileSync(new URL("../features/home/v5/V5Home.tsx", import.meta.url), "utf8"));
 const route = productionCmsDisplaySource("apps/web/app/page.tsx");
 assert.match(route, /<V5Home authorProfile=\{authorProfile\} copy=\{copy\} faqs=\{homeFaqs\} \/>/);
 const hero = home.split('<section id="home"')[1].split('</section>')[0];

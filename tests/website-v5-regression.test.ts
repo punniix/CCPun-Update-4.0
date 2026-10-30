@@ -1,3 +1,4 @@
+import { ownerReviewVisualSourcePredecessor } from "../qa/v5-owner-review-source-successor.mjs";
 import { INVESTMENT_COPY_DEFAULTS } from "../lib/content/investment-copy-defaults";
 import "./v5-uat-collision.test.mjs";
 import "./v5-eyebrow-cleanup.test.mjs";
@@ -766,7 +767,7 @@ test("Covers retain their intrinsic shape: no cropping or tall artificial frame 
 });
 
 test("Owner photos (v5b set, 2026-10-25): About hero is photo 4 per theme, JSON-LD names it, the father photo stays in the UAT-only slot", () => {
-  const page = read("features/about/page.tsx");
+  const page = ownerReviewVisualSourcePredecessor("features/about/page.tsx", read("features/about/page.tsx"));
   assert.match(page, /const PORTRAIT_DARK = "\/assets\/ccpun-portrait-v5-about-dark\.webp";/);
   assert.match(page, /const PORTRAIT_LIGHT = "\/assets\/ccpun-portrait-v5-about-light\.webp";/);
   assert.match(page, /"@type": "Person", "@id": CCPUN_PERSON_ID, name: personSchema\.name, image: `https:\/\/ccpun\.com\$\{PORTRAIT_DARK\}`/);

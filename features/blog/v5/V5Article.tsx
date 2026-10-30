@@ -54,7 +54,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
     bio: managed ? article.author?.profileBio?.trim() || text("blog.dEFAULTAUTHORBIOText") : text("blog.dEFAULTAUTHORBIOText"),
     ctaLabel: article.author?.profileCtaLabel ?? text("blog.authorText"),
     ctaUrl: article.author?.profileCtaUrl?.startsWith("#") ? `/${article.author.profileCtaUrl}` : article.author?.profileCtaUrl ?? "/about/",
-    avatar: article.author?.profileAvatar ?? { src: "/assets/ccpun-avatar-v5-256.png", alt: text("blog.baseAuthorNameText"), width: 256, height: 256 },
+    avatar: article.author?.profileAvatar ?? { src: "/assets/ccpun.webp", alt: text("blog.baseAuthorNameText"), width: 1200, height: 1800 },
   };
 
   const topic = getArticleSemanticTopic({ articleSlug: article.slug, semanticTopic: article.semanticTopic, categoryTitle: article.category, categorySlug: article.categorySlug, tags: article.tags });
@@ -157,7 +157,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
           <section className={shell.section}>
             <div className={`${shell.inner} ${shell.narrow}`}>
               <div className={styles.authorCard}>
-                <Image src={author.avatar.src} alt={author.avatar.alt} width={author.avatar.width} height={author.avatar.height} sizes="88px" loading="lazy" />
+                <Image src={author.avatar.src} alt={author.avatar.alt} width={author.avatar.width} height={author.avatar.height} sizes="(max-width: 639px) 72px, 96px" loading="lazy" />
                 <div><p className={styles.authorName}>{author.name}</p><p className={styles.authorRole}>{author.role}</p></div>
                 <p className={styles.authorBio}>{author.bio}</p>
                 {isLineOaContactHref(author.ctaUrl)

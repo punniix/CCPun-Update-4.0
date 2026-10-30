@@ -1,3 +1,5 @@
+import { visualLocationPins, visualLocationsPredecessor } from "../qa/v5-owner-review-source-successor.mjs";
+import { visualSourcePins, ownerReviewVisualSourcePredecessor } from "../qa/v5-owner-review-source-successor.mjs";
 import { editorSourcePins, ownerReviewEditorSourcePredecessor } from "../qa/v5-owner-review-source-successor.mjs";
 import { ownerReviewStaticCredentialsPredecessor, staticCredentialSourcePins } from "../qa/v5-owner-review-source-successor.mjs";
 import { ownerReviewAboutWordsPredecessor, ownerReviewLocationsPredecessor } from "../qa/v5-owner-review-source-successor.mjs";
@@ -375,7 +377,7 @@ test('Review Home uses compact registry links while About retains full facts and
 });
 
 test('About eight-key metadata and word markup admit exact reviewed bytes only', () => {
-  const source = readFileSync('lib/content/public-copy-locations.json', 'utf8');
+  const source = visualLocationsPredecessor(readFileSync('lib/content/public-copy-locations.json', 'utf8'));
   assert.equal(digest(source), '7cfa3100a07771cb4e3c946c25a651ad57b7653b76f0c795990273af9eadaa30');
   assert.equal(digest(ownerReviewLocationsPredecessor(source)), '41ac751407cc2c2d5556db517d40ba7243363b81d02ac56eed73ae345ab96bc0');
   const missing = JSON.parse(source); delete missing.about.entries['about.storyV2.verify.back'];
@@ -391,7 +393,7 @@ test('About eight-key metadata and word markup admit exact reviewed bytes only',
 
 test('Static credential admission restores only the reviewed caller/layout bytes and rejects unknown, partial or duplicate changes', () => {
   for (const [file, pin] of Object.entries(staticCredentialSourcePins)) {
-    const source = readFileSync(file, 'utf8');
+    const source = ownerReviewVisualSourcePredecessor(file, readFileSync(file, 'utf8'));
     assert.equal(digest(source), pin.after, file);
     assert.equal(digest(ownerReviewStaticCredentialsPredecessor(file, source)), pin.before, file);
     const [current, previous] = pin.edits[0];
@@ -541,4 +543,87 @@ test("Editor successor admits only complete reviewed label and actual-key target
     for (const mutant of [source + " ", source.replace(/\S/, "X"), source.replace(current, previous), source.replace(current, current + current)]) assert.equal(ownerReviewEditorSourcePredecessor(file, mutant), mutant);
     assert.equal(ownerReviewEditorSourcePredecessor("unowned.ts", source), source);
   }
+});
+
+test('Native visual successor restores exact prior source and refuses unknown, partial or duplicate edits', () => {
+  for (const [file, pin] of Object.entries(visualSourcePins)) {
+    const current = readFileSync(file, 'utf8');
+    assert.equal(digest(current), pin.after, file);
+    assert.equal(digest(ownerReviewVisualSourcePredecessor(file, current)), pin.before, file);
+    const [fragment, previous] = pin.edits[0];
+    for (const mutant of [current + ' ', current.replace(/\S/, 'X'), current.replace(fragment, previous), current.replace(fragment, fragment + fragment)]) {
+      assert.notEqual(mutant, current);
+      assert.equal(ownerReviewVisualSourcePredecessor(file, mutant), mutant);
+    }
+    assert.equal(ownerReviewVisualSourcePredecessor('unowned.tsx', current), current);
+  }
+});
+
+test('CI visible-link metadata preserves every other map byte and rejects unknown or partial changes', () => {
+  const current = readFileSync('lib/content/public-copy-locations.json', 'utf8');
+  assert.equal(digest(current), visualLocationPins.after);
+  const prior = visualLocationsPredecessor(current);
+  assert.equal(digest(prior), visualLocationPins.before);
+  assert.equal(visualLocationsPredecessor(prior), prior);
+  const partial = JSON.parse(current); partial.ci.entries['ci.landing.alt'].visible = false;
+  const unrelated = JSON.parse(current); unrelated.home.entries['home.p'].kind += 'changed';
+  for (const mutant of [current + ' ', JSON.stringify(partial) + '\n', JSON.stringify(unrelated) + '\n', current.replace('ci.landing.alt', 'ci.landing.unknown')]) {
+    assert.notEqual(mutant, current);
+    assert.equal(visualLocationsPredecessor(mutant), mutant);
+  }
+});
+
+test('Current approved white-outline portraits retain exact RGBA assets, consumers and eager responsive Home hero', () => {
+  const assets = [
+  [
+    "home-hero-white-outline-8e7f5dc2.png",
+    "8e7f5dc2d107b6b381cc13d41eefbca71317d832f71ee6b377883e454e5dcde8",
+    1088,
+    1632
+  ],
+  [
+    "home-about-light-white-outline-6d5daba9.png",
+    "6d5daba9928c5bc9002e50ccbf63eb2a41aa1197f1ef774dfc2e230d0f7cc920",
+    1248,
+    1872
+  ],
+  [
+    "home-about-dark-white-outline-70db2c14.png",
+    "70db2c14bcc83fd005ddb47604877a23e37036b1804a067f8b4437b4b0f9c7fe",
+    1248,
+    1872
+  ],
+  [
+    "about-light-white-outline-d013c999.png",
+    "d013c999affcef96c6905945c991337b08dbbf96de0feefcadfe94f4dc94ddad",
+    1248,
+    1872
+  ],
+  [
+    "about-dark-white-outline-821c292b.png",
+    "821c292bb143981466cbe40e64870503f041220c3f6f3360e0c0bad395f4d272",
+    1248,
+    1872
+  ]
+];
+  const home = readFileSync('features/home/v5/V5Home.tsx', 'utf8');
+  const about = readFileSync('features/about/page.tsx', 'utf8');
+  for (const [file, hash, width, height] of assets) {
+    const bytes = readFileSync('public/assets/website-v5/' + file);
+    assert.equal(digest(bytes), hash, file);
+    assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+    assert.equal(bytes.readUInt32BE(16), width);
+    assert.equal(bytes.readUInt32BE(20), height);
+    assert.equal(bytes[25], 6, 'RGBA portrait retains alpha');
+    assert.ok((file.startsWith('about-') ? about : home).includes('/assets/website-v5/' + file), file);
+  }
+  const hero = home.split('<section id="home"')[1].split('</section>')[0];
+  assert.ok(hero.includes('/assets/website-v5/home-hero-white-outline-8e7f5dc2.png'));
+  assert.equal((hero.match(/<Image\b/g) ?? []).length, 1);
+  assert.match(hero, /loading="eager"/);
+  assert.match(hero, /fetchPriority="high"/);
+  assert.match(hero, /\bpreload\b/);
+  assert.match(hero, /sizes="\(max-width: 767px\) calc\(100vw - 40px\), \(max-width: 1023px\) calc\(100vw - 64px\), \(max-width: 1199px\) calc\(50vw - 56px\), \(max-width: 1439px\) calc\(50vw - 104px\), 616px"/);
+  assert.doesNotMatch(hero, /loading="lazy"/);
+  assert.match(readFileSync('features/about/About.module.css', 'utf8'), /\.portrait \{ object-fit: contain; \}/);
 });

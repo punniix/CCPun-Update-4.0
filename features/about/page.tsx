@@ -30,8 +30,8 @@ const URL = "https://ccpun.com/about/";
 // Title reuses the approved About heading (home.eyebrow2) and the site Person name.
 const TITLE = `รู้จักที่ปรึกษาทางการเงิน CCPun | ${personSchema.name} (${personSchema.alternateName[0]})`;
 const DESCRIPTION = personSchema.description;
-const PORTRAIT_DARK = "/assets/ccpun-portrait-v5-about-dark.webp";
-const PORTRAIT_LIGHT = "/assets/ccpun-portrait-v5-about-light.webp";
+const PORTRAIT_DARK = "/assets/website-v5/about-dark-white-outline-821c292b.png";
+const PORTRAIT_LIGHT = "/assets/website-v5/about-light-white-outline-d013c999.png";
 // The existing father-trial strings remain UAT-only and keep their original approval status.
 type AboutText = ReturnType<typeof publicCopyText>;
 
@@ -151,8 +151,8 @@ export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: Public
             <div className={styles.portraitFrame}>
               {/* Owner-approved portrait (photo 4, v5b set, 2026-10-25), art-directed per theme. Next's theme-image
                   pattern: both stay lazy with high fetch priority, so only the visible theme's file is fetched. */}
-              <Image className={`${styles.portrait} ${styles.portraitDark}`} src={PORTRAIT_DARK} alt={home("home.website43Homealt8")} width={1200} height={1800} sizes="(max-width: 899px) calc(100vw - 40px), 440px" fetchPriority="high" />
-              <Image className={`${styles.portrait} ${styles.portraitLight}`} src={PORTRAIT_LIGHT} alt={home("home.website43Homealt8")} width={1200} height={1800} sizes="(max-width: 899px) calc(100vw - 40px), 440px" fetchPriority="high" />
+              <Image className={`${styles.portrait} ${styles.portraitDark}`} src={PORTRAIT_DARK} alt={home("home.website43Homealt8")} width={1248} height={1872} sizes="(max-width: 899px) calc(100vw - 40px), 440px" fetchPriority="high" />
+              <Image className={`${styles.portrait} ${styles.portraitLight}`} src={PORTRAIT_LIGHT} alt={home("home.website43Homealt8")} width={1248} height={1872} sizes="(max-width: 899px) calc(100vw - 40px), 440px" fetchPriority="high" />
             </div>
           </div>
         </div>
