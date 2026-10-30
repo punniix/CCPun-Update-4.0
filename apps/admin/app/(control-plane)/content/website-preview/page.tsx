@@ -14,7 +14,7 @@ import { renderToolsHubPage } from "@/features/tools-hub/page";
 import { PublicCopyProvider } from "@/components/ui/PublicCopyProvider";
 import { getPublicCopyPreview } from "@/lib/admin/public-copy-preview";
 import { getPrimaryAuthorPreviewProfile } from "@/lib/content/sanity";
-import { PUBLIC_COPY_SCOPES, publicCopyDocumentId, isPublicCopyScopeAvailable, type PublicCopyScope } from "@/lib/content/public-copy-registry";
+import { PUBLIC_COPY_SCOPES, isPublicCopyScopeAvailable, type PublicCopyScope } from "@/lib/content/public-copy-registry";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "ตัวอย่างฉบับร่างเว็บไซต์", robots: { index: false, follow: false } };
@@ -46,7 +46,7 @@ export default async function WebsiteCopyPreview({ searchParams }: { searchParam
       <nav aria-label="เลือกหน้าตัวอย่าง" className="mt-3 flex flex-wrap gap-3">{Object.entries(PUBLIC_COPY_SCOPES).filter(([value]) => isPublicCopyScopeAvailable(value, dataset)).map(([value, config]) => <Link key={value} href={`/content/website-preview/${value}/`} aria-current={scope === value ? "page" : undefined} className="inline-flex min-h-11 items-center underline">{config.label}</Link>)}</nav>
       <Link href="/content/website-preview/author-home/" className="inline-flex min-h-11 items-center underline">แก้ชื่อและคุณวุฒิผู้เขียน</Link>
       {scope !== "site" && seo ? <Link href={`/content/website-preview/seo-${scope}/`} className="inline-flex min-h-11 items-center underline">แก้ SEO พร้อมดูหน้าเว็บไซต์</Link> : null}
-      <Link href={`/studio/intent/edit/id=${publicCopyDocumentId(scope)};type=publicPageCopy`} className="inline-flex min-h-11 items-center underline">แก้ข้อความใน Sanity</Link>
+      <Link href={`/studio/structure/public-pages;copy-${scope}`} className="inline-flex min-h-11 items-center underline">แก้ข้อความใน Sanity</Link>
       {seo ? <dl className="mt-3 space-y-2 text-sm"><div><dt>SEO Title</dt><dd>{seo.seoTitle}</dd></div><div><dt>Meta Description</dt><dd>{seo.seoDescription}</dd></div><div><dt>OG Title</dt><dd>{seo.ogTitle}</dd></div><div><dt>OG Description</dt><dd>{seo.ogDescription}</dd></div></dl> : null}
     </aside>
     <PublicCopyProvider values={{ ...site, ...home, ...copy }}>{content}</PublicCopyProvider>

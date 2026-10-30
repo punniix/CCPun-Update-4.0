@@ -3,6 +3,14 @@
 export const ABOUT_COPY_DEFAULTS = {
 // Owner-approved Story V2 — UAT-only display; all original 4 headings and 34 paragraphs
   // remain independent editable entries on the existing About publicPageCopy document.
+  "about.storyV2.photoAlt.scbs": "ภาพการแข่งขัน SCBS U-Invest",
+  "about.storyV2.photoAlt.phillip": "โปสเตอร์สัมมนาของ บล.ฟิลลิป",
+  "about.storyV2.photoAlt.bitkub": "ภาพจากช่วงทำงานที่ Bitkub",
+  "about.storyV2.verify.tfpa": "ตรวจสอบกับ TFPA",
+  "about.storyV2.verify.sec": "ตรวจสอบกับ ก.ล.ต.",
+  "about.storyV2.verify.oic": "ตรวจสอบกับ คปภ.",
+  "about.storyV2.verify.back": "กลับด้านหน้า",
+  "about.storyV2.verify.help": "เปิดเว็บไซต์หน่วยงาน แล้วค้นหาด้วยชื่อหรือเลขที่แสดงบนการ์ด",
   "about.storyV2.ctaLabel": "คุยกับปั้นทาง LINE",
   "about.storyV2.heroIntro": "วันนี้ ผมอยากช่วยให้คนไทยเข้าใจเรื่องการเงิน และมีแผนที่เหมาะกับชีวิตของตัวเอง",
   "about.storyV2.c1.heading": "ทำไมผมถึงมาทำงานวางแผนการเงิน",

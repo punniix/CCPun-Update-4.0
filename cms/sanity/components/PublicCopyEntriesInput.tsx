@@ -43,10 +43,12 @@ export default function PublicCopyEntriesInput(props: ArrayOfObjectsInputProps) 
     const grouped = new Map<string, Array<{ key: string; location: Location }>>(scopeLocations.sections.map(section => [section, []]));
     for (const [key, location] of Object.entries(scopeLocations.entries)) {
       if (!Object.hasOwn(defaults, key)) continue;
+      // Keep persisted trial copy valid, but never offer retired About text as current-page edits.
+      if (scope === "about" && key.startsWith("about.father.") && key !== "about.father.photoAlt") continue;
       grouped.get(location.section)?.push({ key, location });
     }
     return [...grouped.entries()].map(([section, items]) => ({ section, items: items.sort((a, b) => a.location.order - b.location.order) })).filter(group => group.items.length);
-  }, [scopeLocations, defaults]);
+  }, [scopeLocations, defaults, scope]);
 
   // A click on the page in "ตัวอย่างเว็บไซต์" focuses entries[_key==…].text:
   // open that text's section and bring its row into view.
@@ -78,7 +80,7 @@ export default function PublicCopyEntriesInput(props: ArrayOfObjectsInputProps) 
     return text.toLowerCase().includes(needle) || defaults[key].toLowerCase().includes(needle) || key.toLowerCase().includes(needle);
   };
   const filtering = Boolean(needle) || onlyChanged;
-  const changedCount = Object.keys(defaults).filter(isChanged).length;
+  const changedCount = sections.flatMap(({ items }) => items).filter(({ key }) => isChanged(key)).length;
 
   // Every write targets the entry by _key; an entry missing from an older
   // document is created from the approved default first.

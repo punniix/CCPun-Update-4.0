@@ -357,6 +357,7 @@ export const adminCmsBridgePins = Object.freeze({
   }
 });
 export function adminCmsBridgePredecessor(file, source) {
+  source = adminPreviewEditorLinkPredecessor(file, source);
   const pin = Object.hasOwn(adminCmsBridgePins, file) ? adminCmsBridgePins[file] : null;
   if (!pin || typeof source !== 'string' || sha(source) !== pin.after) return source;
   for (const [offset, current, prior] of [...pin.edits].reverse()) {
@@ -364,5 +365,14 @@ export function adminCmsBridgePredecessor(file, source) {
     source = source.slice(0, offset) + prior + source.slice(offset + current.length);
   }
   assert.equal(sha(source), pin.before, 'every active Admin568 predecessor byte retained');
+  return source;
+}
+
+// Exact Admin-only editor link correction; persisted IDs and all prior bridge pins stay intact.
+export function adminPreviewEditorLinkPredecessor(file, source) {
+  if (file !== "apps/admin/app/(control-plane)/content/website-preview/page.tsx" || typeof source !== "string" || sha(source) !== "d853db357c1a33046a66e2c6c3ad92c31bdb3c436dcae0de90ef93d05abd6bf1") return source;
+  source = source.replace('PUBLIC_COPY_SCOPES, isPublicCopyScopeAvailable', 'PUBLIC_COPY_SCOPES, publicCopyDocumentId, isPublicCopyScopeAvailable')
+    .replace('href={`/studio/structure/public-pages;copy-${scope}`}', 'href={`/studio/intent/edit/id=${publicCopyDocumentId(scope)};type=publicPageCopy`}');
+  assert.equal(sha(source), "cb0673fabda0ba4f415beecb70c5bfcae0836c22201a12b7a2beedc6d60357ea", "Exact preceding Admin preview source");
   return source;
 }

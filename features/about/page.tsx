@@ -14,7 +14,7 @@ import shell from "@/components/layout/v5/V5.module.css";
 import { V5Breadcrumbs, v5Label } from "@/components/layout/v5/V5Primitives";
 import { v5AdvisorProfile, v5Partners } from "@/components/layout/v5/advisor-profile";
 import V5CredentialCards from "@/components/layout/v5/V5CredentialCards";
-import OwnerStoryV2 from "./OwnerStoryV2";
+import OwnerStoryV2, { keepWords } from "./OwnerStoryV2";
 import { V5_TOOLS_HUB } from "@/components/layout/v5/constants";
 import styles from "./About.module.css";
 import flipStyles from "@/components/layout/v5/V5LicenceFlip.module.css";
@@ -99,6 +99,7 @@ export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: Public
     homeCopy ?? getPublicCopy("home"), siteCopy ?? getPublicCopy("site"), copy ?? getPublicCopy("about"),
   ]);
   const text = publicCopyText(pageValues);
+  const aboutWords = (value: ReactNode) => IS_REVIEW_ENVIRONMENT ? keepWords(value) : value;
   const home = publicCopyText(homeValues);
   const site = publicCopyText(siteValues);
   const { displayName, role, qualification, licenceCards } = v5AdvisorProfile(authorProfile, home);
@@ -142,9 +143,9 @@ export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: Public
           <V5Breadcrumbs label={site("site.nav.mainLabel")} items={[{ href: "/", label: text("about.breadcrumb.home") }, { label: aboutLabel }]} />
           <div className={styles.heroGrid}>
             <div>
-              <h1 id="about-title" className={shell.h1}>{home.node("home.eyebrow2")}</h1>
-              <p className={styles.identity}><strong>{displayName}</strong><span>{role}</span></p>
-              {IS_REVIEW_ENVIRONMENT ? <p className={styles.ownerHeroIntro}>{text.node("about.storyV2.heroIntro")}</p> : null}
+              <h1 id="about-title" className={shell.h1}>{aboutWords(home.node("home.eyebrow2"))}</h1>
+              <p className={styles.identity}><strong>{aboutWords(displayName)}</strong><span>{aboutWords(role)}</span></p>
+              {IS_REVIEW_ENVIRONMENT ? <p className={styles.ownerHeroIntro}>{aboutWords(text.node("about.storyV2.heroIntro"))}</p> : null}
               {!IS_REVIEW_ENVIRONMENT ? <V5CredentialCards className={styles.credentials} qualification={qualification} licenceCards={licenceCards} /> : null}
             </div>
             <div className={styles.portraitFrame}>
@@ -166,13 +167,13 @@ export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: Public
       ) : (
         <section className={shell.section} aria-labelledby="about-story">
           <div className={`${shell.inner} ${styles.split}`}>
-            <h2 id="about-story" className={shell.h2}>{home.node("home.h2")}</h2>
+            <h2 id="about-story" className={shell.h2}>{aboutWords(home.node("home.h2"))}</h2>
             <div className={styles.story}>
               <OwnerCopySlot slot="about-start-years" note="ปีที่เริ่มงานการเงินและการลงทุน และปีที่เริ่มเป็นที่ปรึกษา (รอข้อมูลจากเจ้าของ)" />
-              <p>{home.node("home.p")}</p>
+              <p>{aboutWords(home.node("home.p"))}</p>
               <FatherStory text={text} />
-              <p>{home.node("home.p2")}</p>
-              <p>{home.node("home.p3")}</p>
+              <p>{aboutWords(home.node("home.p2"))}</p>
+              <p>{aboutWords(home.node("home.p3"))}</p>
             </div>
           </div>
         </section>
@@ -180,12 +181,12 @@ export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: Public
 
       <section className={shell.sectionAlt} aria-labelledby="about-partners">
         <div className={shell.inner}>
-          <h2 id="about-partners" className={shell.h2}>{home.node("home.partnerLabel")}</h2>
+          <h2 id="about-partners" className={shell.h2}>{aboutWords(home.node("home.partnerLabel"))}</h2>
           <ul className={styles.partners}>
             {partners.map((partner) => (
               <li className={styles.partner} key={partner.name}>
                 <Image src={partner.src} alt={partner.name} width={partner.width} height={partner.height} sizes="120px" loading="lazy" />
-                <strong>{partner.name}</strong><span>{partner.role}</span>
+                <strong>{aboutWords(partner.name)}</strong><span>{aboutWords(partner.role)}</span>
               </li>
             ))}
           </ul>
@@ -194,14 +195,14 @@ export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: Public
 
       <section className={shell.section} aria-labelledby="about-reviews">
         <div className={shell.inner}>
-          <h2 id="about-reviews" className={shell.h2}>{home.node("home.website43Hometitle2")}</h2>
+          <h2 id="about-reviews" className={shell.h2}>{aboutWords(home.node("home.website43Hometitle2"))}</h2>
           <div className={styles.quotes}>
-            <figure className={styles.quote}><blockquote>{home.node("home.blockquote")}</blockquote><figcaption>{home.node("home.cite")}</figcaption></figure>
-            <figure className={styles.quote}><blockquote>{home.node("home.blockquote2")}</blockquote><figcaption>{home.node("home.cite2")}</figcaption></figure>
+            <figure className={styles.quote}><blockquote>{aboutWords(home.node("home.blockquote"))}</blockquote><figcaption>{aboutWords(home.node("home.cite"))}</figcaption></figure>
+            <figure className={styles.quote}><blockquote>{aboutWords(home.node("home.blockquote2"))}</blockquote><figcaption>{aboutWords(home.node("home.cite2"))}</figcaption></figure>
           </div>
           <div className={styles.next}>
             <Link className={shell.textLink} href="/blog/">{v5Label(home("home.toolCtaAction"))}</Link>
-            <Link className={shell.textLink} href={V5_TOOLS_HUB.href}>{text.node("about.next.tools")}</Link>
+            <Link className={shell.textLink} href={V5_TOOLS_HUB.href}>{aboutWords(text.node("about.next.tools"))}</Link>
           </div>
         </div>
       </section>

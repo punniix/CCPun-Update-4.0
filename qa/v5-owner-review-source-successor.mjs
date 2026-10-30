@@ -272,6 +272,16 @@ export function ownerReviewHtmlPredecessor(html, key) {
 
 // Exact generated metadata successor: move the five reviewed entries back; never copy a whole map.
 export function ownerReviewLocationsPredecessor(source) {
+  // Exactly eight About-only copy additions; preserve every historical pin and other scope.
+  if (sha(source) === "0faebca850664af8aa5feb64eb988c7d78293524b04a129ce8d08c72f8b80631") {
+    const locations = JSON.parse(source);
+    for (const key of ["about.storyV2.photoAlt.scbs", "about.storyV2.photoAlt.phillip", "about.storyV2.photoAlt.bitkub", "about.storyV2.verify.tfpa", "about.storyV2.verify.sec", "about.storyV2.verify.oic", "about.storyV2.verify.back", "about.storyV2.verify.help"]) delete locations.about.entries[key];
+    Object.values(locations.about.entries).forEach((entry, order) => { entry.order = order; });
+    locations.about.entries["about.father.photoAlt"].section = "บทเรียนที่คุณพ่อสอน · ฉบับทดลอง UAT";
+    locations.about.sections = locations.about.sections.filter(section => section !== "คุณวุฒิและใบอนุญาต");
+    source = JSON.stringify(locations) + "\n";
+    assert.equal(sha(source), "e4420a73bf940ee3b6260e53f90bf034fd64c254f93d2539c71a4b90220f987b", "Exact preceding About metadata; no other scope changed");
+  }
   source = cmsCopyLocationsPredecessor(source);
   if (sha(source) !== 'f1f110371ce02eb8dfb9e20360b71795d2c55e105c1603c5d95d1f637f6a6e79') return source;
   const locations = JSON.parse(source);
@@ -326,4 +336,19 @@ export function oneRowCountdownSourcePredecessor(file, source) {
   const prior = source.replace(current, "  .splitDigits .timer { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0; }\n");
   assert.equal(sha(prior), 'bdf0ab886e7c3076913299ab605db68f9e11abd9838482ce26ea5149c9983fda', 'Only mobile numeral sizing and spacing change; every earlier byte stays frozen');
   return prior;
+}
+
+// Admit only the exact About word-markup and descendant-selector corrections.
+export function ownerReviewAboutWordsPredecessor(file, source) {
+  if (file === "features/about/page.tsx" && sha(source) === "f1540c85d551a708b02254e56383a4f4b67571264afb21e3bae0b958014ee9c0") {
+    source = source.replace('import OwnerStoryV2, { keepWords } from "./OwnerStoryV2";', 'import OwnerStoryV2 from "./OwnerStoryV2";')
+      .replace('  const aboutWords = (value: ReactNode) => IS_REVIEW_ENVIRONMENT ? keepWords(value) : value;\n', '')
+      .replace(/aboutWords\(((?:home|text)\.node\("[^"]+"\)|displayName|role|partner\.name|partner\.role)\)/g, '$1');
+    assert.equal(sha(source), "82c6d9416b4c3c633e90fc2c463dd4cfdd25ec39e1125a8590165f7c1162e463", "Exact preceding About renderer");
+  }
+  if (file === "features/about/About.module.css" && sha(source) === "cf9c85e787b5e5ae7f0a696f4ca428002c8fa7478737c77605b0c64e69424fe4") {
+    source = source.replace('.credentials > li:last-child:has(button)', '.credentials > li:last-child:has(> button)');
+    assert.equal(sha(source), "dd4c912f5ca4f0f22c1b983f70f1f3e60cd550447c498c3073712db83951ce58", "Exact preceding About CSS; LINE reserve retained");
+  }
+  return source;
 }

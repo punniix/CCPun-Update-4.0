@@ -33,10 +33,18 @@ export function isV5CardFlippable(back: readonly V5FlipLine[], note: string | nu
   return Boolean(note) || back.some((line) => !line.repeatsFront && line.value.trim() !== "");
 }
 
-export default function V5LicenceFlip({ term, detail, hint, back, note = null }: { term: string; detail: string; hint: string; back: readonly V5FlipLine[]; note?: string | null }) {
+// About-only word protection; default Home cards retain their original markup.
+function keepTerm(value: string) {
+  return value.split(/(เครื่องมือ|การลงทุน|การเงิน|รับผิดชอบ|เตรียมตัว|วางแผน)/g)
+    .map((part, index) => index % 2 ? <span className={styles.keep} key={index}>{part}</span> : part);
+}
+
+export type V5CardVerification = { href: string; label: string; backLabel: string };
+
+export default function V5LicenceFlip({ term, detail, hint, back, note = null, verification }: { term: string; detail: string; hint: string; back: readonly V5FlipLine[]; note?: string | null; verification?: V5CardVerification }) {
   const [flipped, setFlipped] = useState(false);
 
-  if (!isV5CardFlippable(back, note)) {
+  if (!isV5CardFlippable(back, note) && !verification) {
     return (
       <span className={styles.face}>
         <span className={styles.term}>{term}</span>
@@ -45,16 +53,17 @@ export default function V5LicenceFlip({ term, detail, hint, back, note = null }:
     );
   }
 
-  return (
+  const card = (
     <>
       <button type="button" className={styles.card} aria-pressed={flipped} onClick={() => setFlipped((value) => !value)}>
         <span className={styles.inner}>
           <span className={`${styles.face} ${styles.front}`}>
-            <span className={styles.term}>{term}</span>
+            <span className={styles.term}>{verification ? keepTerm(term) : term}</span>
             {detail ? <span className={styles.number}>{detail}</span> : null}
             <span className={styles.hint}><TurnIcon />{hint}</span>
           </span>
           <span className={`${styles.face} ${styles.back}`}>
+            {verification ? <span className={styles.term}>{keepTerm(term)}</span> : null}
             {back.map((line) => (
               <span className={styles.line} key={line.label} aria-hidden={line.repeatsFront ? true : undefined}>
                 <span className={styles.label}>{line.label}</span>
@@ -62,6 +71,7 @@ export default function V5LicenceFlip({ term, detail, hint, back, note = null }:
               </span>
             ))}
             {note ? <span className={styles.verify}>{note}</span> : null}
+            {verification ? <span className={styles.verifyReturn}>{verification.backLabel}</span> : null}
           </span>
         </span>
       </button>
@@ -69,4 +79,10 @@ export default function V5LicenceFlip({ term, detail, hint, back, note = null }:
       <noscript><style>{`.${styles.card}:is(:hover,:focus-visible) .${styles.inner}{transform:rotateY(180deg)}.${styles.card}:is(:hover,:focus-visible) .${styles.back}{opacity:1;transition-delay:0s}.${styles.card}:is(:hover,:focus-visible) .${styles.front}{opacity:0;transition-delay:var(--v5-motion-slow)}`}</style></noscript>
     </>
   );
+  // Keep the native flip button and link as siblings: links are never nested in a button.
+  return verification ? <div className={styles.verifiedCard}>
+    {card}
+    <a className={styles.verifyLink} href={verification.href} target="_blank" rel="noopener noreferrer" hidden={!flipped}>{verification.label}</a>
+    <noscript><a href={verification.href} target="_blank" rel="noopener noreferrer">{verification.label}</a></noscript>
+  </div> : card;
 }

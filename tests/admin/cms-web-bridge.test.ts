@@ -1,3 +1,5 @@
+import { createElement, type ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
@@ -90,12 +92,13 @@ test('active Admin auth, RBAC, planning, AFPT, daily-job, no-store and analytics
 });
 
 test('Admin bridge admission reconstructs active568 only from exact reviewed bytes and rejects unknown changes', async () => {
-  const { adminCmsBridgePredecessor, adminCmsBridgePins } = await import('../../qa/admin-cms-web-bridge-successor.mjs');
+  const { adminCmsBridgePredecessor, adminCmsBridgePins, adminPreviewEditorLinkPredecessor } = await import('../../qa/admin-cms-web-bridge-successor.mjs');
   for (const [file, pin] of Object.entries(adminCmsBridgePins)) {
-    const source = readFileSync(file, 'utf8');
+    const current = readFileSync(file, 'utf8');
+    const source = adminPreviewEditorLinkPredecessor(file, current);
     assert.equal(createHash('sha256').update(source).digest('hex'), pin.after, file);
-    assert.equal(createHash('sha256').update(adminCmsBridgePredecessor(file, source)).digest('hex'), pin.before, file);
-    for (const changed of [source + '\n', source.replace(/\S/, 'X'), source.replace('isPublicCopyScopeAvailable', 'unguardedScope')]) {
+    assert.equal(createHash('sha256').update(adminCmsBridgePredecessor(file, current)).digest('hex'), pin.before, file);
+    for (const changed of [current + '\n', current.replace(/\S/, 'X'), current.replace('isPublicCopyScopeAvailable', 'unguardedScope')]) {
       if (changed === source) continue;
       assert.equal(adminCmsBridgePredecessor(file, changed), changed);
     }
@@ -138,4 +141,32 @@ test('Admin preview location metadata keeps all eleven scope keys and rejects lo
   assert.throws(() => validate(unknown));
   const malformed = structuredClone(locations); malformed.toolsHub.entries['toolsHub.hero.title'].visible = 'true';
   assert.throws(() => validate(malformed));
+});
+
+
+test('actual private preview links every allowed copy scope to its existing Studio structure pane', async () => {
+  const body = () => createElement("div", null, "preview-content");
+  const mocks = new Map<string, unknown>([
+    ["@/features/home/v5/V5Home", { __esModule: true, default: body }],
+    ["@/components/ui/PublicCopyProvider", { PublicCopyProvider: ({ children }: { children?: ReactNode }) => children }],
+    ["@/lib/admin/public-copy-preview", { getPublicCopyPreview: async () => ({ copy: {}, site: {}, home: {}, dataset: "uat", seo: null }) }],
+    ["@/lib/content/sanity", { getPrimaryAuthorPreviewProfile: async () => null }],
+  ]);
+  for (const [path, name] of [
+    ["@/features/ci-planning/page", "renderCiPlanningPage"], ["@/features/financial-health-check/page", "renderFinancialHealthCheckPage"],
+    ["@/features/blog/pages/BlogArchivePage", "renderBlogPage"], ["@/features/legal/pages/PrivacyPage", "renderPrivacyPage"],
+    ["@/features/legal/pages/CookiePolicyPage", "renderCookiePolicyPage"], ["@/features/money-story/page", "renderMoneyStoryPage"],
+    ["@/features/investment-allocation/page", "renderInvestmentAllocationContent"], ["@/features/about/page", "renderAboutPage"], ["@/features/tools-hub/page", "renderToolsHubPage"],
+  ]) mocks.set(path, { [name]: body });
+  const Preview = loadFixtureModule("apps/admin/app/(control-plane)/content/website-preview/page.tsx", { mocks }).default;
+  for (const scope of Object.keys(registry.PUBLIC_COPY_SCOPES)) {
+    const html = renderToStaticMarkup(await Preview({ searchParams: Promise.resolve({ scope }) }));
+    assert.ok(html.includes(`href="/studio/structure/public-pages;copy-${scope}"`), scope);
+    assert.ok(!html.includes(`href="/studio/intent/edit/id=publicPageCopy-${scope}-th`));
+  }
+  await assert.rejects(Preview({ searchParams: Promise.resolve({ scope: "../../invalid" }) }), /fixture-not-found/);
+  const structure = readFileSync("cms/sanity/config/structure.ts", "utf8");
+  assert.ok(structure.includes('S.listItem().id("public-pages")'));
+  assert.ok(structure.includes('S.listItem().id(`copy-${scope}`)'));
+  assert.ok(structure.includes('.documentId(publicCopyDocumentId(scope as keyof typeof PUBLIC_COPY_SCOPES))'));
 });
