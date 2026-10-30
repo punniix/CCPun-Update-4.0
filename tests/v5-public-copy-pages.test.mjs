@@ -1,3 +1,4 @@
+import { ownerReviewAboutWordsPredecessor, ownerReviewLocationsPredecessor } from "../qa/v5-owner-review-source-successor.mjs";
 import { ownerReviewHtmlPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import { aboutToolsLayoutPins, aboutToolsLayoutPredecessor } from '../qa/v5-owner-review-source-successor.mjs';
 import assert from 'node:assert/strict';
@@ -33,6 +34,7 @@ const ownerV2SourcePatches = [
   ]
 ];
 function ownerStoryV2SourcePredecessor(file, source) {
+  source = ownerReviewAboutWordsPredecessor(file, source);
   if (file !== 'features/about/page.tsx' || digest(source) !== '82c6d9416b4c3c633e90fc2c463dd4cfdd25ec39e1125a8590165f7c1162e463') return source;
   for (const [newText, oldText] of ownerV2SourcePatches) {
     assert.equal(source.split(newText).length, 2, 'Only one reviewed source edit');
@@ -54,7 +56,7 @@ function fixtureOptions({ review = true, investment = true, edits = {}, sources 
     // The unchanged shared shell is tested independently. These checks execute the actual owned page composition.
     ['@/components/layout/v5/V5Page', { __esModule: true, default: ({ children }) => React.createElement('div', { 'data-shared-shell': true }, children) }],
   ]);
-  for (const file of ['features/about/page.tsx', 'features/tools-hub/page.tsx', 'components/layout/v5/V5Primitives.tsx', 'components/layout/v5/V5CredentialCards.tsx', 'components/layout/v5/V5LicenceFlip.tsx', 'components/layout/v5/V5ToolParts.tsx', 'components/layout/v5/advisor-profile.ts']) {
+  for (const file of ['features/about/OwnerStoryV2.tsx', 'features/about/page.tsx', 'features/tools-hub/page.tsx', 'components/layout/v5/V5Primitives.tsx', 'components/layout/v5/V5CredentialCards.tsx', 'components/layout/v5/V5LicenceFlip.tsx', 'components/layout/v5/V5ToolParts.tsx', 'components/layout/v5/advisor-profile.ts']) {
     const source = sources.get(file) ?? readFileSync(file, 'utf8');
     for (const [, id] of source.matchAll(/from ["']([^"']+\.(?:css|svg))["']/g)) mocks.set(id, id.endsWith('.css') ? css : { __esModule: true, default: { src: id, width: 1000, height: 400 } });
   }
@@ -172,8 +174,8 @@ test('new copy editor groups cover every field once in actual page order', () =>
   }
   assert.equal(locations.about.entries['about.father.photoAlt'].visible, false);
   assert.equal(locations.toolsHub.entries['toolsHub.breadcrumb.label'].visible, false);
-  assert.equal(Object.keys(defaults('about')).length, 55);
-  assert.equal(Object.keys(defaults('about')).filter(key => key.startsWith('about.storyV2.')).length, 40);
+  assert.equal(Object.keys(defaults('about')).length, 63);
+  assert.equal(Object.keys(defaults('about')).filter(key => key.startsWith('about.storyV2.')).length, 48);
   assert.equal(Object.keys(defaults('toolsHub')).length, 9);
 });
 
@@ -210,8 +212,9 @@ test('About and Tools layout inverses preserve the complete prior CSS and reject
     if (file === 'features/about/About.module.css') {
       const marker = '\n/* Owner-approved four-chapter story: FigCraft Responsive v2';
       assert.equal(currentSource.split(marker).length, 2);
-      assert.equal(digest(currentSource), 'dd4c912f5ca4f0f22c1b983f70f1f3e60cd550447c498c3073712db83951ce58', 'exact reviewed new CSS');
-      source = currentSource.slice(0, currentSource.indexOf(marker));
+      assert.equal(digest(ownerReviewAboutWordsPredecessor(file, currentSource)), 'dd4c912f5ca4f0f22c1b983f70f1f3e60cd550447c498c3073712db83951ce58', 'exact reviewed CSS successor');
+      const precedingCss = ownerReviewAboutWordsPredecessor(file, currentSource);
+      source = precedingCss.slice(0, precedingCss.indexOf(marker));
       assert.equal(digest(source), pin.after, 'Old CSS restored byte-for-byte');
       assert.notEqual(digest(currentSource + ' '), digest(currentSource));
     }
@@ -245,7 +248,7 @@ test('Owner Story V2: exact approved text, assets, UAT isolation and preserved h
   assert.equal(digest(expected.join('\n\n')),
     '5a1cf1314423b9bde42143c6b7614b843b59f80f4ec2d833fcade74d4fa34b5f', 'All approved owner biography characters preserved');
   const locations = JSON.parse(readFileSync('lib/content/public-copy-locations.json', 'utf8'));
-  assert.equal(Object.keys(locations.about.entries).length, 55);
+  assert.equal(Object.keys(locations.about.entries).length, 63);
   for (const key of Object.keys(defaults('about'))) assert.ok(locations.about.entries[key], key);
   const html = await renderPage('about', { review: true });
   const { JSDOM } = require('jsdom');
@@ -267,4 +270,85 @@ test('Owner Story V2: exact approved text, assets, UAT isolation and preserved h
   const production = await renderPage('about', { review: false });
   assert.ok(!production.includes('data-owner-story-v2'), 'New story is never visible on Production');
   assert.equal(digest(ownerReviewHtmlPredecessor(production, 'about:false:false')), ORIGINAL_847['about:false:false']);
+});
+
+
+test('About editor hides retired trial fields, retains current defaults and counts only editable changes', () => {
+  const ts = require('typescript');
+  const { JSDOM } = require('jsdom');
+  let scope = 'about';
+  const box = ({ children, id }) => React.createElement('div', { id }, children);
+  const mocks = new Map([
+    ['../../../lib/content/public-copy-registry', registry],
+    ['../../../lib/content/public-copy-locations.json', JSON.parse(readFileSync('lib/content/public-copy-locations.json', 'utf8'))],
+    ['sanity', { useFormValue: () => scope, set() {}, setIfMissing() {}, insert() {}, unset() {} }],
+    ['@sanity/ui', Object.fromEntries(['Badge', 'Box', 'Button', 'Card', 'Flex', 'Stack', 'Text', 'TextArea', 'TextInput'].map(name => [name,
+      name === 'Button' ? ({ text }) => React.createElement('button', { 'data-label': text }) : name === 'TextArea' ? ({ value }) => React.createElement('textarea', { defaultValue: value }) : box]))],
+  ]);
+  for (const icon of ['ChevronDown', 'ChevronRight', 'Reset', 'Search']) mocks.set('@sanity/icons/' + icon, { [icon + 'Icon']: () => null });
+  // Match the app's native Map iteration; the legacy fixture loader defaults to ES5.
+  const compiled = ts.transpileModule(readFileSync('cms/sanity/components/PublicCopyEntriesInput.tsx', 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText;
+  const editorModule = { exports: {} };
+  new Function('require', 'module', 'exports', compiled)(id => mocks.get(id) ?? require(id), editorModule, editorModule.exports);
+  const Editor = editorModule.exports.default;
+  const render = (value = [], focusPath) => new JSDOM(renderToStaticMarkup(React.createElement(Editor, { value, focusPath, onChange() {}, renderDefault: () => null }))).window.document;
+  for (const name of Object.keys(registry.PUBLIC_COPY_SCOPES)) {
+    scope = name;
+    const doc = render();
+    const count = [...doc.querySelectorAll('[data-label]')].reduce((sum, button) => sum + Number(button.dataset.label.match(/ · (\d+) ข้อความ/)?.[1] ?? 0), 0);
+    assert.equal(count, Object.keys(defaults(name)).length - (name === 'about' ? 12 : 0), name);
+  }
+  scope = 'about';
+  const legacy = { _key: 'about-father-heading', key: 'about.father.heading', text: 'ข้อความเก่าที่เคยแก้ไว้' };
+  assert.ok(render([legacy]).querySelector('[data-label="แก้แล้ว 0"]'));
+  const current = { _key: 'about-storyV2-c1-heading', key: 'about.storyV2.c1.heading', text: 'หัวข้อทดสอบ' };
+  assert.ok(render([legacy, current]).querySelector('[data-label="แก้แล้ว 1"]'));
+  const retired = Object.keys(defaults('about')).filter(key => key.startsWith('about.father.') && key !== 'about.father.photoAlt');
+  assert.equal(retired.length, 12);
+  for (const key of retired) assert.equal(render([], [{ _key: key.replaceAll('.', '-') }, 'text']).getElementById('copy-' + key.replaceAll('.', '-')), null, key);
+  assert.ok(render([], [{ _key: 'about-father-photoAlt' }, 'text']).getElementById('copy-about-father-photoAlt'));
+});
+
+test('About words and photo descriptions retain editable copy; verification is opt-in with sibling links', async () => {
+  const { JSDOM } = require('jsdom');
+  const html = await renderPage('about', { review: true });
+  const doc = new JSDOM(html).window.document;
+  for (const word of ['เครื่องมือ', 'การลงทุน', 'การเงิน', 'รับผิดชอบ', 'เตรียมตัว', 'วางแผน']) assert.ok([...doc.querySelectorAll('.keep')].some(node => node.textContent.includes(word)), word);
+  const cards = [...doc.querySelectorAll('.verifiedCard')];
+  assert.equal(cards.length, 4);
+  const afpt = loadFixtureModule('components/layout/v5/licence-flip-copy.ts').V5_AFPT_CARD;
+  const afptButton = cards[0].querySelector('button');
+  assert.equal(afptButton.getAttribute('aria-label'), null, 'Natural accessible name preserves all credential facts');
+  for (const fact of [afpt.term, afpt.detail, ...afpt.back.map(line => line.value)]) assert.ok(afptButton.textContent.includes(fact), fact);
+  assert.ok([...cards[0].querySelectorAll('.back .line')].every(line => !line.hasAttribute('aria-hidden')));
+  assert.deepEqual(cards.map(card => card.querySelector(':scope > a.verifyLink').getAttribute('href')), [
+    'https://www.tfpa.or.th/', 'https://oiceservice.oic.or.th/licenseagency/license.php', 'https://market.sec.or.th/LicenseCheck/Search', 'https://oiceservice.oic.or.th/licenseagency/license.php',
+  ]);
+  for (const card of cards) {
+    const link = card.querySelector(':scope > a.verifyLink');
+    assert.equal(card.querySelector('button a'), null);
+    assert.ok(link.hidden);
+    assert.equal(link.target, '_blank');
+    assert.match(link.rel, /noopener/);
+    assert.match(card.querySelector('.verifyReturn').textContent, /กลับด้านหน้า/);
+  }
+  assert.equal(doc.querySelectorAll('.verifyHelp').length, 1);
+  assert.ok(!doc.querySelector('article[data-owner-story-v2]').textContent.includes('UAT: รอข้อความวิธีตรวจสอบ'));
+  const edits = { 'about.storyV2.photoAlt.scbs': 'ภาพทดสอบหนึ่ง', 'about.storyV2.photoAlt.phillip': 'ภาพทดสอบสอง', 'about.storyV2.photoAlt.bitkub': 'ภาพทดสอบสาม' };
+  const edited = new JSDOM(await renderPage('about', { review: true, edits: { about: edits } })).window.document;
+  for (const [suffix, key] of [['owner-scbs-u-invest.webp', 'scbs'], ['owner-phillip-seminar.webp', 'phillip'], ['owner-bitkub.webp', 'bitkub']]) assert.equal(edited.querySelector(`img[src*="${suffix}"]`).alt, edits[`about.storyV2.photoAlt.${key}`]);
+});
+
+test('About eight-key metadata and word markup admit exact reviewed bytes only', () => {
+  const source = readFileSync('lib/content/public-copy-locations.json', 'utf8');
+  assert.equal(digest(source), '7cfa3100a07771cb4e3c946c25a651ad57b7653b76f0c795990273af9eadaa30');
+  assert.equal(digest(ownerReviewLocationsPredecessor(source)), '41ac751407cc2c2d5556db517d40ba7243363b81d02ac56eed73ae345ab96bc0');
+  const missing = JSON.parse(source); delete missing.about.entries['about.storyV2.verify.back'];
+  const otherScope = JSON.parse(source); otherScope.home.entries['home.p'].kind += 'changed';
+  for (const mutant of [source + ' ', source.replace('about.storyV2.verify.help', 'about.storyV2.verify.unknown'), JSON.stringify(missing) + '\n', JSON.stringify(otherScope) + '\n', source.replace('{', '{"unknown":{},')]) assert.equal(ownerReviewLocationsPredecessor(mutant), mutant, 'Unknown or partial metadata is never admitted');
+  for (const [file, previous] of [['features/about/page.tsx', '82c6d9416b4c3c633e90fc2c463dd4cfdd25ec39e1125a8590165f7c1162e463'], ['features/about/About.module.css', 'dd4c912f5ca4f0f22c1b983f70f1f3e60cd550447c498c3073712db83951ce58']]) {
+    const current = readFileSync(file, 'utf8');
+    assert.equal(digest(ownerReviewAboutWordsPredecessor(file, current)), previous);
+    for (const mutant of [current + ' ', current.replace(/\S/, 'X')]) assert.equal(ownerReviewAboutWordsPredecessor(file, mutant), mutant);
+  }
 });

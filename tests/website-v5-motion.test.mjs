@@ -395,3 +395,28 @@ test('C8 panel closes on its own animationend or token fallback, cancels on reop
     dom.window.close();
   });
 });
+
+
+test('About verification links enter focus flow only on the back; the button returns to its front', async () => {
+  const { createRoot } = require('react-dom/client');
+  await withDom(async dom => {
+    const root = createRoot(dom.window.document.getElementById('app'));
+    const props = { term: 'ผู้วางแผนการลงทุน', detail: '106654', hint: copy.V5_LICENCE_FLIP_HINT, back: [], verification: { href: 'https://market.sec.or.th/LicenseCheck/Search', label: 'ตรวจสอบกับ ก.ล.ต.', backLabel: 'กลับด้านหน้า' } };
+    await React.act(async () => root.render(React.createElement(Flip.default, props)));
+    const button = dom.window.document.querySelector('button');
+    const link = dom.window.document.querySelector('.verifiedCard > a.verifyLink');
+    assert.equal(button.querySelector('a'), null);
+    assert.equal(link.hidden, true);
+    await React.act(async () => button.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
+    assert.equal(button.getAttribute('aria-pressed'), 'true');
+    assert.equal(link.hidden, false);
+    assert.equal(button.getAttribute('aria-label'), null, 'Accessible facts are not replaced by an action-only name');
+    assert.ok(button.textContent.includes('106654'));
+    assert.ok(button.textContent.includes('กลับด้านหน้า'));
+    link.focus(); assert.equal(dom.window.document.activeElement, link);
+    await React.act(async () => button.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
+    assert.equal(link.hidden, true);
+    assert.equal(button.getAttribute('aria-pressed'), 'false');
+    await React.act(async () => root.unmount());
+  });
+});

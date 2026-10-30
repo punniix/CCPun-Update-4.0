@@ -53,3 +53,15 @@
   .card[aria-pressed="true"] .front { opacity: 0; }
   .card[aria-pressed="true"] .back { opacity: 1; }
 }
+
+/* About opts into public verification; the default Home card remains unchanged. */
+.verifiedCard { position: relative; min-width: 0; height: 100%; }
+.verifiedCard > .card { min-height: 160px; height: 100%; }
+.verifiedCard .front { display: flex; flex-direction: column; align-items: flex-start; }
+.verifiedCard .front > .hint { align-self: flex-start; margin-top: auto; padding-top: 8px; }
+.verifiedCard .back { position: relative; padding-bottom: 108px; }
+.verifyLink { position: absolute; inset-inline: 16px; bottom: 44px; display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px; border-radius: var(--v5-radius-button); background: var(--v5-gold); color: var(--v5-on-gold); font-size: var(--v5-text-meta); text-align: center; text-decoration: none; }
+.verifyLink[hidden] { display: none; }
+.verifyLink:focus-visible { outline: 3px solid var(--v5-text); outline-offset: 3px; }
+.verifyReturn { position: absolute; inset-inline: 16px; bottom: 12px; color: var(--v5-gold-text); font-size: var(--v5-text-meta); line-height: 1.5; }
+.verifyHelp { margin: 0; color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.6; }

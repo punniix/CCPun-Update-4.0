@@ -104,10 +104,10 @@ test('About and Tools layout inverses preserve the complete prior CSS and reject
 
 test('About helper metadata reorder retains all existing fields and rejects partial or unknown map bytes', () => {
   const source = readFileSync('lib/content/public-copy-locations.json', 'utf8');
-  assert.equal(sha(source), '272e0188c1a6201076dcf38560574669320d85e209d74579b4c99244d4e0634f', 'Exact 40-field Story V2 map');
+  assert.equal(sha(source), '7cfa3100a07771cb4e3c946c25a651ad57b7653b76f0c795990273af9eadaa30', 'Exact Story V2 successor map with eight reviewed copy fields');
   const map = JSON.parse(source);
   assert.equal(Object.keys(map).length, 11);
-  assert.equal(Object.values(map).reduce((n, scope) => n + Object.keys(scope.entries).length, 0), 1815);
+  assert.equal(Object.values(map).reduce((n, scope) => n + Object.keys(scope.entries).length, 0), 1823);
   assert.equal(sha(ownerReviewLocationsPredecessor(source)), '41ac751407cc2c2d5556db517d40ba7243363b81d02ac56eed73ae345ab96bc0');
   const partial = JSON.parse(source); partial.home.entries['home.p6'].order = 81;
   const missing = JSON.parse(source); delete missing.home.entries['home.p6'];

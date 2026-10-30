@@ -34,7 +34,7 @@ async function render(review: boolean) {
     if (id === "next/image") return { __esModule: true, default: (props: Record<string, unknown>) => React.createElement("img", props) };
     if (id === "next/link") return { __esModule: true, default: (props: Record<string, unknown>) => React.createElement("a", props) };
     if (id === "./father-story-copy") return copy;
-    if (id === "./OwnerStoryV2") return { __esModule: true, default: ({ text }: { text: (key: string) => string }) => React.createElement("article", { "data-owner-story-v2": "approved-20261029", "data-first-heading": text("about.storyV2.c1.heading") }) };
+    if (id === "./OwnerStoryV2") return { __esModule: true, keepWords: (value: unknown) => value, default: ({ text }: { text: (key: string) => string }) => React.createElement("article", { "data-owner-story-v2": "approved-20261029", "data-first-heading": text("about.storyV2.c1.heading") }) };
     if (id === "@/lib/deployment-environment") return { IS_REVIEW_ENVIRONMENT: actualReview };
     if (id === "@/lib/content/public-copy") return { getPublicCopy: async () => ({}) };
     if (id === "@/lib/content/public-copy-registry") return { publicCopyText: () => text };
