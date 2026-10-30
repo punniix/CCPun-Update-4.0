@@ -1,5 +1,5 @@
 import { eyebrowPredecessor } from "../qa/v5-eyebrow-proof.mjs";
-// Website v5 motion round (owner-approved ideas #1, #2, #4; UAT prototype only).
+// Website v5 motion contracts; flip assertions below cover the retained non-review compatibility renderer.
 // Contracts: transform/opacity only, reduced motion shows the final state, no-JS keeps full content,
 // flip cards are native buttons with aria-pressed, counted numbers expose the final value at once.
 import test from 'node:test';
@@ -397,7 +397,7 @@ test('C8 panel closes on its own animationend or token fallback, cancels on reop
 });
 
 
-test('About verification links enter focus flow only on the back; the button returns to its front', async () => {
+test('The retained legacy flip renderer keeps its historical keyboard behavior; Review uses static credentials instead', async () => {
   const { createRoot } = require('react-dom/client');
   await withDom(async dom => {
     const root = createRoot(dom.window.document.getElementById('app'));

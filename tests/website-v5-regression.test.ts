@@ -571,12 +571,33 @@ test("UX: v5 spacing sits on the 4px scale, headings step up, short grids adapt 
   const spacing = /(?<![-\w])(?:margin|padding|gap|row-gap|column-gap|top|right|bottom|left|inset)(?:-[a-z-]+)?\s*:\s*([^;{}]+)/g;
   // Native Home EC7 uses these five exact declarations; every other declaration keeps the 4px rule.
   const approvedHomeSpacing = new Set(["margin-top: 10px", "padding: 8px 14px", "padding: 10px 0 10px 32px", "top: 10px", "gap: 10px"]);
+  // Exact saved native compact badge geometry, not a general spacing exemption.
+  const compactSpacingOffsets = (file: string, source: string): Set<number> => {
+    const offsets = new Set<number>();
+    if (file !== "components/layout/v5/V5LicenceFlip.module.css" || createHash("sha256").update(source).digest("hex") !== "621fbb724e0b151be3fc09706d0ecd08d0cbe6db19bb27419135d00f2563d7d7") return offsets;
+    for (const [selector, declaration] of [["compactCard", "padding: 10px 14px"], ["compactCard > strong", "gap: 6px"]]) {
+      const blocks = [...source.matchAll(new RegExp(`^\\.${selector} \\{[^}]*\\}`, "gm"))];
+      assert.equal(blocks.length, 1, `one native base selector: ${selector}`);
+      const block = blocks[0];
+      assert.equal(block[0].split(declaration).length, 2, `one native declaration: ${declaration}`);
+      offsets.add(block.index! + block[0].indexOf(declaration));
+    }
+    assert.equal(offsets.size, 2);
+    return offsets;
+  };
+  const compactFile = "components/layout/v5/V5LicenceFlip.module.css", compactCss = read(compactFile);
+  assert.equal(compactSpacingOffsets(compactFile, compactCss).size, 2);
+  for (const mutant of [compactCss + " ", compactCss.replace("padding: 10px 14px", "padding: 10px 16px"), compactCss.replace("gap: 6px", "gap: 7px"), compactCss.replace(".compactCard > strong", ".otherCard > strong"), compactCss + "\n.compactCard { padding: 10px 14px; }\n"]) assert.equal(compactSpacingOffsets(compactFile, mutant).size, 0);
+  assert.equal(compactSpacingOffsets("unowned.css", compactCss).size, 0);
   for (const file of sheets) {
     const source = read(file);
+    const compactOffsets = compactSpacingOffsets(file, source);
     if (file === "features/home/v5/V5Home.module.css") {
       for (const declaration of approvedHomeSpacing) assert.equal([...source.matchAll(spacing)].filter(([actual]) => actual.trim() === declaration).length, 1, `one approved native Home declaration: ${declaration}`);
     }
-    for (const [declaration, value] of source.matchAll(spacing)) {
+    for (const match of source.matchAll(spacing)) {
+      const [declaration, value] = match;
+      if (compactOffsets.has(match.index!)) continue;
       if (file === "features/home/v5/V5Home.module.css" && approvedHomeSpacing.has(declaration.trim())) continue;
       for (const [, px] of value.matchAll(/(\d+(?:\.\d+)?)px/g)) {
         assert.ok(Number(px) <= 1 || Number(px) % 4 === 0, `${file}: spacing ${px}px is off the 4px scale (${value.trim()})`);

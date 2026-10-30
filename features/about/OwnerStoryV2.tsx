@@ -90,10 +90,9 @@ export default function OwnerStoryV2({ text, qualification, licenceCards }: {
   licenceCards: readonly Credential[];
 }) {
   const [university, father, career, today] = CHAPTERS;
-  const backLabel = text("about.storyV2.verify.back");
-  const tfpa = { href: "https://www.tfpa.or.th/", label: text("about.storyV2.verify.tfpa"), backLabel };
-  const sec = { href: "https://market.sec.or.th/LicenseCheck/Search", label: text("about.storyV2.verify.sec"), backLabel };
-  const oic = { href: "https://oiceservice.oic.or.th/licenseagency/license.php", label: text("about.storyV2.verify.oic"), backLabel };
+  const tfpa = { href: "https://www.tfpa.or.th/", label: text("about.storyV2.verify.tfpa") };
+  const sec = { href: "https://market.sec.or.th/LicenseCheck/Search", label: text("about.storyV2.verify.sec") };
+  const oic = { href: "https://oiceservice.oic.or.th/licenseagency/license.php", label: text("about.storyV2.verify.oic") };
   return <article className={styles.ownerStoryV2} data-owner-story-v2="approved-20261029">
     <section className={styles.ownerStoryChapter} aria-labelledby="about-owner-story-one">
       <h2 id="about-owner-story-one">{keepWords(text.node(university.heading))}</h2>
