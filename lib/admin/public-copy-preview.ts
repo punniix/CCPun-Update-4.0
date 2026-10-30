@@ -28,7 +28,7 @@ function withEditTargets(scope: PublicCopyScope, values: Record<string, string>,
     const entryKey = typeof persistedKey === "string" && persistedKey ? persistedKey : key.replaceAll(".", "-");
     const path = `entries[_key==${JSON.stringify(entryKey)}].text`;
     const href = `/studio/intent/edit/id=${id};type=publicPageCopy;path=${encodeURIComponent(path)}`;
-    return [key, encodeCopyValue(stegaCombine(text, { origin: "sanity.io", href }), style)];
+    return [key, encodeCopyValue(stegaCombine(text, { origin: "sanity.io", href, baseUrl: "/studio", id, type: "publicPageCopy", path }), style)];
   }));
 }
 
