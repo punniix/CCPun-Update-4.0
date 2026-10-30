@@ -8,6 +8,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 import { WEB_REDIRECTS } from '../lib/runtime/web-build-config.mjs';
+import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 
 const { NextResponse } = createRequire(import.meta.url)('next/server');
 const baselineSha = '1843dbc11a1cd400f89a32a333516ee2e0a53223';
@@ -264,10 +265,10 @@ test('Production Web build inlines the GA4 identity and GTM semantic event contr
   for (const [key, value] of [['NEXT_PUBLIC_GA_ID', 'G-OTHER0000'], ['NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED', 'false']]) {
     assert.throws(() => webConfigEnv({ ...hostingerProductionLive, [key]: value }), new RegExp(`PRODUCTION_WEB_PUBLIC_ANALYTICS_CONFLICT: ${key}`), `${key} conflict must fail the build`);
   }
-  // Every other lane keeps analytics off by design and gains no tracking identity.
+  // Other or mismatched lanes gain no tracking identity; the explicit UAT contract is checked separately.
   for (const overrides of [
     { CCPUN_ENABLE_PRODUCTION_ANALYTICS: '0', CCPUN_RELEASE_STAGE: 'candidate', CCPUN_UAT_MODE: '1' },
-    { CCPUN_APP_ENV: 'web-uat', NEXT_PUBLIC_CCPUN_APP_ENV: 'web-uat', CCPUN_ENABLE_PRODUCTION_ANALYTICS: '0', CCPUN_UAT_MODE: '1', NEXT_PUBLIC_SANITY_PROJECT_ID: 'ccb9lnw5', NEXT_PUBLIC_SANITY_DATASET: 'uat' },
+    { CCPUN_APP_ENV: 'web-uat', NEXT_PUBLIC_CCPUN_APP_ENV: 'web-uat', CCPUN_ENABLE_PRODUCTION_ANALYTICS: '0', CCPUN_UAT_MODE: '0', NEXT_PUBLIC_SANITY_PROJECT_ID: 'ccb9lnw5', NEXT_PUBLIC_SANITY_DATASET: 'uat' },
     { CCPUN_DEPLOYMENT_ROLE: 'admin' },
     { CCPUN_APP_ENV: 'development', CCPUN_DEPLOYMENT_PROVIDER: 'local' },
   ]) {
@@ -280,4 +281,100 @@ test('Production Web build inlines the GA4 identity and GTM semantic event contr
   assert.match(read('features/analytics/components/ClientWidgets.tsx'), /\{gaId && <GoogleAnalytics gaId=\{gaId\} \/>\}/);
   assert.match(read('lib/analytics.ts'), /process\.env\.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED !== 'true'/);
   assert.match(read('features/analytics/components/GoogleAnalytics.tsx'), /trackEvent\('line_oa_click'/);
+});
+
+
+test('only the fully matched Hostinger Web UAT lane mounts its isolated Google IDs; Production and off gates stay unchanged',async()=>{
+  const uat={CCPUN_DEPLOYMENT_PROVIDER:'hostinger',CCPUN_DEPLOYMENT_ROLE:'web',CCPUN_APP_ENV:'web-uat',NEXT_PUBLIC_CCPUN_APP_ENV:'web-uat',NEXT_PUBLIC_SANITY_PROJECT_ID:'ccb9lnw5',NEXT_PUBLIC_SANITY_DATASET:'uat',CCPUN_UAT_MODE:'1',CCPUN_ENABLE_PRODUCTION_ANALYTICS:'0',NEXT_PUBLIC_GA_ID:'G-5BMX2SKJLZ',NEXT_PUBLIC_META_PIXEL_ID:'123456789012345'};
+  async function actualProps(variables){
+    const globals={process:{env:variables}};
+    const runtime=loadFixtureModule('apps/web/runtime-environment.ts',{globals});
+    const widget=()=>null;
+    const layout=loadFixtureModule('apps/web/app/layout.tsx',{globals,mocks:new Map([
+      ['../runtime-environment',runtime],
+      ['next/font/google',{Kanit:options=>({variable:options.variable})}],
+      ['@/lib/content/public-copy',{getPublicCopy:async()=>({})}],
+      ['@/lib/content/sanity',{getPrimaryAuthorProfile:async()=>null}],
+      ['@/lib/seo/structured-data/site-schema',{buildCcpunSchemaGraph:()=>({})}],
+      ['@/features/analytics/components/ClientWidgets',{__esModule:true,default:widget}],
+    ])});
+    const tree=await layout.default({children:null});
+    const find=node=>Array.isArray(node)?node.map(find).find(Boolean):node&&typeof node==='object'?(node.type===widget?node.props:find(node.props?.children)):undefined;
+    const props=find(tree);assert.ok(props,'actual root layout must compose its existing widgets');
+    return{runtime,props};
+  }
+  const valid=await actualProps(uat);
+  assert.equal(valid.runtime.UAT_WEB_GOOGLE_ANALYTICS_ENABLED,true);
+  assert.equal(valid.runtime.PRODUCTION_WEB_ANALYTICS_ENABLED,false,'never spoof the Production flag');
+  assert.equal(valid.runtime.shouldBlockWebIndexing(),true,'UAT tracking does not enable indexing');
+  assert.deepEqual(valid.props,{gaId:'G-RQ5C651M5M',gtmId:'GTM-N4S93T5T',metaPixelId:''},'inherited Production IDs cannot cross into UAT');
+  const prod=await actualProps({...uat,CCPUN_APP_ENV:'production',NEXT_PUBLIC_CCPUN_APP_ENV:'production',NEXT_PUBLIC_SANITY_PROJECT_ID:'kyfxgjnq',NEXT_PUBLIC_SANITY_DATASET:'production',CCPUN_UAT_MODE:'0',CCPUN_ENABLE_PRODUCTION_ANALYTICS:'1'});
+  assert.equal(prod.runtime.UAT_WEB_GOOGLE_ANALYTICS_ENABLED,false);
+  assert.deepEqual(prod.props,{gaId:'G-5BMX2SKJLZ',gtmId:'GTM-5DKMGSK3',metaPixelId:'123456789012345'},'all existing Production widget inputs are unchanged');
+  for(const patch of [
+    {CCPUN_APP_ENV:'unknown'},
+    {CCPUN_DEPLOYMENT_PROVIDER:'local'},
+    {CCPUN_DEPLOYMENT_ROLE:'admin'},
+    {NEXT_PUBLIC_CCPUN_APP_ENV:'production'},
+    {NEXT_PUBLIC_SANITY_PROJECT_ID:'kyfxgjnq',NEXT_PUBLIC_SANITY_DATASET:'production'},
+    {CCPUN_UAT_MODE:'0'},
+    {CCPUN_ENABLE_PRODUCTION_ANALYTICS:'1'},
+    {VERCEL_PROJECT_ID:'retired-provider'},
+    {CCPUN_APP_ENV:'development',NEXT_PUBLIC_CCPUN_APP_ENV:'development',CCPUN_DEPLOYMENT_PROVIDER:'local'},
+  ]){
+    const denied=await actualProps({...uat,...patch});
+    assert.equal(denied.runtime.UAT_WEB_GOOGLE_ANALYTICS_ENABLED,false,JSON.stringify(patch));
+    assert.deepEqual(denied.props,{gaId:'',gtmId:'',metaPixelId:''},'mismatched or undeployed lanes fail closed: '+JSON.stringify(patch));
+  }
+  const prodOff=await actualProps({...uat,CCPUN_APP_ENV:'production',NEXT_PUBLIC_CCPUN_APP_ENV:'production',NEXT_PUBLIC_SANITY_PROJECT_ID:'kyfxgjnq',NEXT_PUBLIC_SANITY_DATASET:'production',CCPUN_UAT_MODE:'0'});
+  assert.deepEqual(prodOff.props,{gaId:'',gtmId:'',metaPixelId:''},'Production disabled remains disabled');
+});
+
+
+test('the matched UAT build supplies semantic mode and its own GA default without any provider mutation',()=>{
+  const uat={CCPUN_DEPLOYMENT_PROVIDER:'hostinger',CCPUN_DEPLOYMENT_ROLE:'web',CCPUN_APP_ENV:'web-uat',NEXT_PUBLIC_CCPUN_APP_ENV:'web-uat',NEXT_PUBLIC_SANITY_PROJECT_ID:'ccb9lnw5',NEXT_PUBLIC_SANITY_DATASET:'uat',CCPUN_UAT_MODE:'1',CCPUN_ENABLE_PRODUCTION_ANALYTICS:'0'};
+  const expected={NEXT_PUBLIC_CCPUN_APP_ENV:'web-uat',NEXT_PUBLIC_GA_ID:'G-RQ5C651M5M',NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED:'true'};
+  assert.deepEqual(webConfigEnv(uat),{env:expected,warnings:[]});
+  assert.deepEqual(webConfigEnv({...uat,NEXT_PUBLIC_GA_ID:'G-RQ5C651M5M',NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED:'true'}),{env:expected,warnings:[]});
+  for(const [key,value]of [['NEXT_PUBLIC_GA_ID','G-5BMX2SKJLZ'],['NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED','false']])assert.throws(()=>webConfigEnv({...uat,[key]:value}),new RegExp('UAT_WEB_PUBLIC_ANALYTICS_CONFLICT: '+key));
+  for(const patch of [
+    {CCPUN_APP_ENV:'unknown'}, {CCPUN_DEPLOYMENT_PROVIDER:'local'}, {CCPUN_DEPLOYMENT_PROVIDER:'HOSTINGER'},
+    {CCPUN_DEPLOYMENT_ROLE:'admin'}, {CCPUN_DEPLOYMENT_ROLE:'WEB'}, {NEXT_PUBLIC_CCPUN_APP_ENV:'production'},
+    {NEXT_PUBLIC_SANITY_PROJECT_ID:'kyfxgjnq',NEXT_PUBLIC_SANITY_DATASET:'production'},
+    {CCPUN_UAT_MODE:'0'}, {CCPUN_ENABLE_PRODUCTION_ANALYTICS:'1'},
+    {VERCEL_PROJECT_ID:'retired-provider'}, {VERCEL_ENV:'preview'}, {WORKFLOW_TARGET_WORLD:'@workflow/world-vercel'},
+    {CCPUN_APP_ENV:'development',NEXT_PUBLIC_CCPUN_APP_ENV:'development',CCPUN_DEPLOYMENT_PROVIDER:'local'},
+  ]){
+    const variables={...uat,...patch},config=webConfigEnv(variables).env;
+    const runtime=loadFixtureModule('apps/web/runtime-environment.ts',{globals:{process:{env:variables}}});
+    assert.equal(runtime.UAT_WEB_GOOGLE_ANALYTICS_ENABLED,false,JSON.stringify(patch));
+    assert.equal(config.NEXT_PUBLIC_GA_ID,undefined,JSON.stringify(patch));
+    assert.equal(config.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED,undefined,JSON.stringify(patch));
+  }
+});
+
+
+test('the isolated UAT layout source admission preserves its complete predecessor and denies mixed IDs or Meta changes',async()=>{
+  const {assertProductionCmsOwner,uatGoogleMountLayoutPredecessor,v5ProductionSourceSuccessors,cmsSha}=await import('../qa/production-cms-source-proof.mjs');
+  const file='apps/web/app/layout.tsx',source=read(file);
+  assertProductionCmsOwner(file,source);
+  const predecessor=uatGoogleMountLayoutPredecessor(source);
+  assert.equal(cmsSha(predecessor),v5ProductionSourceSuccessors[file].after,'original v5 current-source pin unchanged');
+  for(const mutant of [predecessor,source.replace('G-RQ5C651M5M','G-5BMX2SKJLZ'),source.replace('GTM-N4S93T5T','GTM-5DKMGSK3'),source.replace('metaPixelId={META_PIXEL_ID}','metaPixelId={UAT_GOOGLE_GA_ID || META_PIXEL_ID}'),source+'\n// unrelated']){
+    assert.notEqual(mutant,source);assert.throws(()=>assertProductionCmsOwner(file,mutant));
+  }
+});
+
+
+test('the UAT config admission rejects partial changes, Production drift and unknown owners',async()=>{
+  const {hasReviewedV5Successor,reviewedV5PredecessorDigest}=await import('../qa/phase2-source-proof.mjs');
+  const file='apps/web/next.config.ts',source=read(file);
+  const before='d4cf8aa0725fdf58263e3f68776db192fa39bfa1e7578b8cb7f715a7e5face9f';
+  assert.equal(reviewedV5PredecessorDigest(file,source,before),before);
+  for(const mutant of [source.replace('    ...resolveUatWebPublicAnalytics(),\n',''),source.replace('G-RQ5C651M5M','G-5BMX2SKJLZ'),source.replace('G-5BMX2SKJLZ','G-CHANGED'),source+'\n// unrelated']){
+    assert.notEqual(mutant,source);assert.throws(()=>reviewedV5PredecessorDigest(file,mutant,before));
+  }
+  assert.throws(()=>reviewedV5PredecessorDigest(file,source,'0'.repeat(64)));
+  assert.equal(hasReviewedV5Successor('unknown/config.ts'),false);
+  assert.throws(()=>reviewedV5PredecessorDigest('unknown/config.ts',source,before));
 });

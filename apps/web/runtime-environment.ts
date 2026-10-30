@@ -36,6 +36,15 @@ export const PRODUCTION_WEB_ANALYTICS_ENABLED =
   WEB_ENVIRONMENT === "production" &&
   process.env.CCPUN_ENABLE_PRODUCTION_ANALYTICS === "1";
 
+// UAT may mount only its own Google container. This never enables Production analytics or Meta.
+export const UAT_WEB_GOOGLE_ANALYTICS_ENABLED =
+  WEB_DEPLOYMENT_CONTRACT_VALID &&
+  WEB_DEPLOYMENT_IDENTITY.valid &&
+  WEB_DEPLOYMENT_IDENTITY.provider === "hostinger" &&
+  WEB_DEPLOYMENT_IDENTITY.role === "web" &&
+  WEB_DEPLOYMENT_IDENTITY.environment === "web-uat" &&
+  WEB_ENVIRONMENT === "web-uat";
+
 export function isWebSanityLaneAllowed(
   projectId: string | undefined,
   dataset: string | undefined,

@@ -1,4 +1,5 @@
 import { productionCmsDisplaySource } from './production-cms-source-proof.mjs';
+import { loadFixtureModule } from './phase1-fixture-loader.mjs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -13,6 +14,8 @@ const VIEWPORTS = [
   ['desktop-1440', 1440, 1000, false], ['desktop-1920', 1920, 1080, false],
 ].map(([name, width, height, mobile]) => ({ name, width, height, mobile }));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const { resultChatHref } = loadFixtureModule('lib/line/chat-panel.ts');
+const FHC_RESULT_CHAT_HREF = resultChatHref('fhc');
 
 class CDP {
   constructor(url) { this.url = url; this.id = 1; this.pending = new Map(); this.listeners = new Map(); }
@@ -153,7 +156,7 @@ async function calculate(client, values) {
     body: document.body.innerText,
     title: document.querySelector('#life-result-title')?.innerText || '',
     overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
-    cta: (()=>{const a=[...document.querySelectorAll('a')].find(x=>x.textContent?.includes('คุยกับ CCPun ทาง LINE OA')); return a?{href:a.href,target:a.target,rel:a.rel,height:a.getBoundingClientRect().height}:null})(),
+    cta: (()=>{const a=document.querySelector('section[aria-labelledby="life-result-title"] [data-v5-chat-link]'); return a?{href:a.href,target:a.target,rel:a.rel,height:a.getBoundingClientRect().height,dialog:a.getAttribute('aria-haspopup')}:null})(),
     download: (()=>{const b=[...document.querySelectorAll('button')].find(x=>x.textContent?.includes('บันทึกภาพสรุป')); return b?{describedBy:b.getAttribute('aria-describedby'),height:b.getBoundingClientRect().height}:null})()
   }))()`);
 }
@@ -204,7 +207,10 @@ async function staticChecks(section) {
   assertion(section, 'FHC event calls do not attach value object', !/trackEvent\([^\n]+(?:householdMonthly|debt|education|existingLifeCoverage|liquidAssets)/.test(life));
   assertion(section, 'result has estimate and insurance-not-deposit disclosure', life.includes('ไม่ใช่คำแนะนำเฉพาะบุคคล') && life.includes('ประกันไม่ใช่เงินฝาก'));
   assertion(section, 'result does not promise sufficiency', life.includes('ไม่รับรองว่าจำนวนเงินนี้จะเพียงพอในทุกกรณี'));
-  assertion(section, 'LINE CTA has safe new-tab relation', life.includes('target="_blank"') && life.includes('rel="noreferrer"'));
+  const activeLife = await readFile('features/financial-health-check/components/LifeCoverageWizard.tsx', 'utf8');
+  const chatLink = await readFile('components/layout/v5/V5ChatLink.tsx', 'utf8');
+  assertion(section, 'LINE CTA has safe new-tab relation', activeLife.includes('<V5ChatLink href={resultChatHref("fhc")} resultTool="fhc"') && chatLink.includes('target="_blank"') && chatLink.includes('rel="noopener noreferrer"'));
+  assertion(section, 'LINE result prefill contains only approved tool intent', FHC_RESULT_CHAT_HREF.startsWith('https://line.me/R/oaMessage/%40ccpun/?') && !/householdMonthly|existingLifeCoverage|3[, ]?650[, ]?000|30[, ]?000|200[, ]?000|50[, ]?000|100[, ]?000|3[, ]?600[, ]?000|250[, ]?000/.test(decodeURIComponent(FHC_RESULT_CHAT_HREF)));
   if (process.env.CLOUD_HTML_PATH && process.env.CLOUD_HEADERS_PATH && process.env.CLOUD_ROBOTS_PATH) {
     const [html, headers, robots] = await Promise.all([
       readFile(process.env.CLOUD_HTML_PATH, 'utf8'),
@@ -314,7 +320,26 @@ async function main() {
     assertion(report.browserAssertions, 'known formula browser result = 3,650,000', known.title.includes('3,650,000 บาท'), known.title);
     assertion(report.browserAssertions, 'result contains all breakdown rows', known.body.includes('3,600,000 บาท') && known.body.includes('250,000 บาท') && known.body.includes('200,000 บาท'));
     assertion(report.browserAssertions, 'result has no overflow', !known.overflow);
-    assertion(report.browserAssertions, 'LINE CTA contract is safe', known.cta?.href === 'https://lin.ee/tqLCs4f' && known.cta?.target === '_blank' && known.cta?.rel.includes('noreferrer') && known.cta?.height >= 44, JSON.stringify(known.cta));
+    assertion(report.browserAssertions, 'LINE CTA contract is safe', known.cta?.href === FHC_RESULT_CHAT_HREF && known.cta?.target === '_blank' && known.cta?.rel.split(/\s+/).includes('noopener') && known.cta?.rel.split(/\s+/).includes('noreferrer') && known.cta?.height >= 44 && known.cta?.dialog === 'dialog', JSON.stringify(known.cta));
+    // A trusted primary click must enhance the safe no-JS anchor into the real result panel.
+    const ctaPoint = await evaluate(client, `(() => { const a=document.querySelector('section[aria-labelledby="life-result-title"] [data-v5-chat-link]'); if(!a)return null; a.scrollIntoView({block:'center',behavior:'instant'});const r=a.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}; })()`);
+    if (!ctaPoint) throw new Error('Result LINE anchor missing');
+    await client.send('Input.dispatchMouseEvent', {type:'mousePressed',button:'left',clickCount:1,...ctaPoint});
+    await client.send('Input.dispatchMouseEvent', {type:'mouseReleased',button:'left',clickCount:1,...ctaPoint});
+    let panel;
+    const panelDeadline = Date.now() + 5000;
+    do {
+      panel = await evaluate(client, `(() => {const d=document.querySelector('#v5-chat-panel[role="dialog"][data-chat-state="open"]');return d?{modal:d.getAttribute('aria-modal'),labelled:!!document.getElementById(d.getAttribute('aria-labelledby')),focused:d.contains(document.activeElement),topics:[...d.querySelectorAll('a[data-chat-topic]')].map(a=>({href:a.href,target:a.target,rel:a.rel,height:a.getBoundingClientRect().height}))}:null})()`);
+      if (panel?.focused && panel?.topics?.length) break;
+      await sleep(50);
+    } while (Date.now() < panelDeadline);
+    assertion(report.browserAssertions, 'result LINE opens the accessible focused chat panel', panel?.modal === 'true' && panel?.labelled && panel?.focused, JSON.stringify(panel));
+    assertion(report.browserAssertions, 'panel LINE topics retain official safe links and never financial answers', panel?.topics?.length > 0 && panel.topics.every(a => a.href.startsWith('https://line.me/R/oaMessage/%40ccpun/?') && a.target === '_blank' && a.rel.split(/\s+/).includes('noopener') && a.rel.split(/\s+/).includes('noreferrer') && a.height >= 44 && !/householdMonthly|existingLifeCoverage|3[, ]?650[, ]?000|30[, ]?000|200[, ]?000|50[, ]?000|100[, ]?000|3[, ]?600[, ]?000|250[, ]?000/.test(decodeURIComponent(a.href))), JSON.stringify(panel?.topics));
+    await client.send('Input.dispatchKeyEvent', {type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+    await client.send('Input.dispatchKeyEvent', {type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+    await sleep(250);
+    const panelClosed = await evaluate(client, `!document.querySelector('#v5-chat-panel') && document.activeElement === document.querySelector('section[aria-labelledby="life-result-title"] [data-v5-chat-link]')`);
+    assertion(report.browserAssertions, 'Escape closes LINE panel and restores result CTA focus', panelClosed);
     assertion(report.browserAssertions, 'download control is present and described', known.download?.describedBy?.includes('fhc-image-privacy') && known.download?.height >= 44, JSON.stringify(known.download));
     report.screenshots.push(await screenshot(client, 'result-desktop-1440', 'main section[aria-labelledby="life-result-title"]'));
 

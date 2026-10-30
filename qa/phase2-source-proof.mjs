@@ -10,6 +10,7 @@ const sha = source => createHash('sha256').update(source).digest('hex');
 // Explicit v5 successors: the existing consent/event layer and one reviewed game stylesheet.
 // Historical manifests stay unchanged; a partial or unrelated source cannot enter this bridge.
 const reviewedV5Successors = {
+  'apps/web/next.config.ts': ['d4cf8aa0725fdf58263e3f68776db192fa39bfa1e7578b8cb7f715a7e5face9f', '28f066c8bc89415d8292c10ef68809620d0144837740dd63731fee7c71d9e98e'],
   'lib/content/category-registry-sanity.ts': ['6e16064dd7c82072f843bb9c3c92b363054769e4e2fe376d1253916cc0d5bba4', 'f8950cb210499b59698237c4af1272c429813864199d24a2b209c0b121a96577'],
   'lib/content/category-registry.ts': ['7c6925e218f4e419948255580f5cbff3d058e136a819b53f1db90c6125ce1f14', 'fecdaf000ddb456a8c2f886d9fbb8873945bc25019cb0d3baa35ee0c9c1353de'],
   'lib/analytics.ts': ['4176646b29ae2614cc044fef35d9be7cdffe8cfb303c8519f86fe71c148cd90f', 'e1d290d31c5d7d8af1f038ef3796795e7df3cf8f479e1018c4699fbdcc30eb38'],

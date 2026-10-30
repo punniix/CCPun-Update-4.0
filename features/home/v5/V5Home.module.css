@@ -1,7 +1,7 @@
 /* Approved Home only (native EC7, 2026-10-29). Shared shell tokens and other pages remain owned by their existing components. */
 .hero { background: var(--v5-bg); padding-block: 16px 32px; }
 .heroGrid { display: grid; gap: 16px; }
-.heroCopy { min-width: 0; padding-inline-end: 60px; }
+.heroCopy { min-width: 0; }
 .heroTitle { font-size: 34px; line-height: 1.3; overflow-wrap: anywhere; }
 .heroTitle em { font-style: normal; color: var(--v5-gold-text); }
 .heroBody { margin-top: 10px; color: var(--v5-muted); font-size: 16px; line-height: 1.7; max-width: 620px; }
@@ -150,13 +150,11 @@
 }
 @media (prefers-reduced-motion: reduce) { .credentials, .partners, .quotes, .latestTrack { scroll-behavior: auto; scroll-snap-type: none; } }
 
-/* Home reading and full card hit regions clear the unchanged fixed LINE corner.
-   The portrait/arch stay at their approved geometry; only measured text/control containers reserve this strip. */
-.homeSection > div { padding-inline-end: max(var(--v5-gutter), 80px); }
-.countdownFrame { padding-inline-end: max(0px, calc(80px - var(--v5-gutter))); background: var(--v5-bg-alt); }
+/* Native sections keep equal shell gutters. LINE clearance stays on bounded controls below. */
+.homeSection > div { padding-inline: var(--v5-gutter); }
+.countdownFrame { background: var(--v5-bg-alt); }
 @media (min-width: 1024px) {
-  .homeSection > div { padding-inline-end: max(var(--v5-gutter), 248px); }
-  .countdownFrame { padding-inline-end: max(0px, calc(248px - var(--v5-gutter))); background: var(--v5-bg); }
+  .countdownFrame { background: var(--v5-bg); }
 }
 @media (max-width: 359px) {
   .guideCard.guideCard > img, .latestCard.latestCard > img { width: 72px; }

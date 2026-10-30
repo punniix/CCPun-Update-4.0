@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import postcss from "postcss";
 
 const home = readFileSync(new URL('../features/home/v5/V5Home.tsx',import.meta.url),'utf8');
 const route = readFileSync(new URL('../apps/web/app/page.tsx',import.meta.url),'utf8');
@@ -36,4 +37,20 @@ assert.doesNotMatch(home, /\/preview\//);
 const shared = readFileSync(new URL("../components/layout/v5/V5Footer.tsx", import.meta.url), "utf8");
 assert.match(shared, /import CookieSettingsButton from "@\/components\/layout\/CookieSettingsButton"/);
 assert.match(shared, /<CookieSettingsButton\b/, "Home must preserve consent reopening in the responsive footer variants");
+// Inspect every breakpoint, so a later broad right reserve cannot silently shrink a section.
+const homeStyles = postcss.parse(css);
+for (const selector of ['.heroCopy', '.homeSection > div', '.countdownFrame']) {
+  homeStyles.walkRules(rule => {
+    if (!rule.selectors.includes(selector)) return;
+    rule.walkDecls(declaration => {
+      if (/^padding-(?:right|inline-end)$/.test(declaration.prop)) {
+        assert.equal(declaration.value, '0', `${selector} must not reserve one whole side`);
+      }
+      if (declaration.prop === 'padding-inline') assert.equal(declaration.value, 'var(--v5-gutter)');
+    });
+  });
+}
+assert.match(css, /\.homeSection > div \{ padding-inline: var\(--v5-gutter\); \}/);
+assert.match(css, /@media \(min-width: 1360px\)/, 'four readable cards still start only at the approved width');
+assert.match(css, /\.startHereCard:last-child \.pairedGuide \{ max-width: calc\(100% - max\(0px, 248px - var\(--v5-gutter\)\)\); \}/, 'bounded LINE clearance stays on the last interactive control');
 console.log("PASS: approved Home responsive LCP and FAQ composition contract");
