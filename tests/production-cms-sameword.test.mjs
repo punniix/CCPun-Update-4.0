@@ -37,7 +37,7 @@ function assertPreviewValues(actual, scope, expected) {
   for (const [key, value] of Object.entries(actual)) {
     assert.equal(copyText.cleanCopyText(value), expected[key], key + ': same wording once edit markers are removed');
     const path = `entries[_key=="${key.replaceAll('.', '-')}"].text`;
-    assert.deepEqual(editTarget(value), { origin: 'sanity.io', href: `/studio/intent/edit/id=${registry.publicCopyDocumentId(scope)};type=publicPageCopy;path=${encodeURIComponent(path)}` });
+    assert.deepEqual(editTarget(value), { origin: 'sanity.io', href: `/studio/intent/edit/id=${registry.publicCopyDocumentId(scope)};type=publicPageCopy;path=${encodeURIComponent(path)}`, baseUrl: '/studio', id: registry.publicCopyDocumentId(scope), type: 'publicPageCopy', path });
   }
 }
 const syntheticArticles = Array.from({length: 8}, (_, i) => ({id:`fixture-${i}`, slug:`fixture-${i}`, title:`บทความ ${i}`, excerpt:`รายละเอียด ${i}`, category:'การเงินส่วนบุคคล', categorySlug:'personal-finance', status:'published', publishedAt:'2026-10-01T00:00:00Z', updatedAt:'2026-10-02T00:00:00Z', tags:[], body:[]}));

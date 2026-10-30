@@ -504,11 +504,31 @@ test('Actual authenticated copy preview targets persisted entry _key and falls b
     const encoded = value.slice(value.indexOf(digits[0].repeat(4)) + 4);
     const bytes = [];
     for (let i = 0; i < encoded.length; i += 4) bytes.push(digits.indexOf(encoded[i]) * 64 + digits.indexOf(encoded[i + 1]) * 16 + digits.indexOf(encoded[i + 2]) * 4 + digits.indexOf(encoded[i + 3]));
-    return decodeURIComponent(JSON.parse(new TextDecoder().decode(Uint8Array.from(bytes))).href);
+    return JSON.parse(new TextDecoder().decode(Uint8Array.from(bytes)));
   };
-  assert.ok(target(copy[key]).includes(`entries[_key=="${actualKey}"].text`));
+  assert.ok(decodeURIComponent(target(copy[key]).href).includes(`entries[_key=="${actualKey}"].text`));
   const missing = 'about.storyV2.c2.heading';
-  assert.ok(target(copy[missing]).includes(`entries[_key=="${missing.replaceAll('.', '-')}"].text`));
+  assert.ok(decodeURIComponent(target(copy[missing]).href).includes(`entries[_key=="${missing.replaceAll('.', '-')}"].text`));
+  const visualRequire = createRequire(createRequire(require.resolve('next-sanity/package.json')).resolve('@sanity/visual-editing'));
+  const { decodeSanityNodeData } = visualRequire('@sanity/visual-editing-csm');
+  const { studioPath } = visualRequire('@sanity/client/csm');
+  for (const [copyKey, persistedKey] of [[key, actualKey], [missing, missing.replaceAll('.', '-')]]) {
+    const metadata = target(copy[copyKey]);
+    const decoded = decodeSanityNodeData(metadata);
+    assert.equal(decoded.baseUrl, '/studio');
+    assert.equal(decoded.id, registry.publicCopyDocumentId('about'));
+    assert.equal(decoded.type, 'publicPageCopy');
+    assert.equal(decoded.perspective, 'drafts');
+    assert.deepEqual(studioPath.fromString(decoded.path), ['entries', { _key: persistedKey }, 'text']);
+    const legacy = decodeSanityNodeData({ origin: metadata.origin, href: metadata.href });
+    assert.equal('id' in legacy, false, 'A blue legacy overlay alone cannot focus the Studio editor');
+    for (const required of ['baseUrl', 'id', 'path']) {
+      const incomplete = { ...metadata };
+      delete incomplete[required];
+      const rejected = decodeSanityNodeData(incomplete);
+      assert.equal(Boolean(rejected?.id && rejected?.path), false, `Missing ${required} cannot produce a native focus target`);
+    }
+  }
   assert.equal(registry.PUBLIC_COPY_SCOPES.about.label, 'รู้จักปั้น');
 });
 

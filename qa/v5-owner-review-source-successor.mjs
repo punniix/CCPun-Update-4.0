@@ -480,8 +480,12 @@ export const editorSourcePins = Object.freeze({
   },
   "lib/admin/public-copy-preview.ts": {
     "before": "8107a83728ea3037bd01c2945e957e69b26c27caa2b41d37e1ef25471fe97494",
-    "after": "43ade5a6edc432fc9d16380aaea13b644d8e82ccc7d42cd7c33251f5d8f394cc",
+    "after": "68dd7a6e5263cd32e51f770f705a714dd65bab4beb04d41c76dd737a4d590be1",
     "edits": [
+      [
+        "    return [key, encodeCopyValue(stegaCombine(text, { origin: \"sanity.io\", href, baseUrl: \"/studio\", id, type: \"publicPageCopy\", path }), style)];",
+        "    return [key, encodeCopyValue(stegaCombine(text, { origin: \"sanity.io\", href }), style)];"
+      ],
       [
         "function withEditTargets(scope: PublicCopyScope, values: Record<string, string>, entries: Array<{ key: string; _key: string }> = []) {",
         "function withEditTargets(scope: PublicCopyScope, values: Record<string, string>) {"
