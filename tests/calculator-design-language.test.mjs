@@ -86,6 +86,20 @@ test('1024–1280px FHC and CI readers never exceed their two-column tracks', ()
   assert.equal(base['.asideCard']['overflow-wrap'], 'anywhere');
 });
 
+test('narrow desktop titles keep Thai words intact in 7:5 tool hero layout', () => {
+  const css = postcss.parse(readFileSync('components/layout/v5/V5Tool.module.css', 'utf8'));
+  let rule;
+  css.walkAtRules('media', media => {
+    if (media.params === '(min-width: 1024px) and (max-width: 1399px)') {
+      media.walkRules(item => { if (item.selector === '.heroTitle') rule = item; });
+    }
+  });
+  assert.ok(rule, 'narrow desktop applies a scoped title typography floor');
+  const properties = Object.fromEntries(rule.nodes.filter(node => node.type === 'decl').map(node => [node.prop, node.value]));
+  assert.equal(properties['font-size'], 'clamp(34px, 3.5vw, 42px)');
+  assert.equal(properties['overflow-wrap'], 'break-word');
+});
+
 test('FHC and CI result states keep the same Production Website 4.3 visual language', () => {
   assert.match(fhcWizard, /ccpun-calculator-result/);
   assert.match(fhcWizard, /ccpun-calculator-result-lead/);
