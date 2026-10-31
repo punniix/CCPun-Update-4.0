@@ -287,7 +287,9 @@ export function ciPlanningConcurrentReadPredecessor(source) {
   assert.equal(cmsSha(source), '6bdc2925143bda8a2d2d687e69312faa737e2b25618bce6e67f7a4bd28a7462a', 'unchanged reviewed CI route and SEO owner');
   return source;
 }
+import { ciResultLazyPredecessor } from './ci-result-splitting-proof.mjs';
 export function assertProductionCmsOwner(file, source = read(file)) {
+  if (file === 'features/ci-planning/components/CIWizard.tsx') source = ciResultLazyPredecessor(file, source);
   if (file === 'sanity.config.ts' && cmsSha(source) === 'fcd2a0a5fca8ff3aea117a30881bf9a0036236b76d48163039178bd279492d20') {
     const title = 'const studioTitle = isProductionCms ? "Website5 · เว็บไซต์จริง" : "CCPun Website UAT CMS";';
     assert.equal(source.split(title).length, 2, 'one exact Production-only human Studio title change');

@@ -3,7 +3,7 @@ import { usePublicCopy } from '@/components/ui/PublicCopyProvider';
 import { CI_COPY_DEFAULTS } from '@/lib/content/tool-copy-defaults';
 
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
 import HumanCalculatorCard from '@/components/ui/HumanCalculatorCard';
 import { trackEvent } from '@/lib/analytics';
@@ -11,9 +11,13 @@ import { calculateCI } from '@/features/ci-planning/calculator/calculator';
 import { CI_ASSESSMENT_VERSION, INITIAL_CI_FORM_DATA } from '@/features/ci-planning/calculator/constants';
 import { validateCIStep } from '@/features/ci-planning/calculator/schemas';
 import type { CIFormData, CIResult } from '@/features/ci-planning/calculator/types';
-import CIResultView from './result/CIResult';
 import StepExistingCI from './steps/StepExistingCI';
 import StepExpenses from './steps/StepExpenses';
+
+// Result-only UI stays out of the initial wizard bundle; begin fetching once a
+// visitor actually interacts with the form, before they complete both steps.
+const loadCIResultView = () => import('./result/CIResult');
+const CIResultView = lazy(loadCIResultView);
 
 const TOTAL_STEPS = 2;
 const STEP_SECTION_KEYS: Array<'expenses' | 'existingCI'> = ['expenses', 'existingCI'];
@@ -69,6 +73,7 @@ const CALCULATION_RANGE_ERROR = t("ci.wizard.validation.calculationRange");
   const trackStart = useCallback(() => {
     if (hasStartedRef.current) return;
     hasStartedRef.current = true;
+    void loadCIResultView();
     hasCompletedRef.current = false;
     startedAtRef.current = Date.now();
     trackEvent('ci_calculator_start', { tool_name: 'ci_planning', cta_location: 'ci_calculator', calculator_version: CI_ASSESSMENT_VERSION });
@@ -137,7 +142,7 @@ const CALCULATION_RANGE_ERROR = t("ci.wizard.validation.calculationRange");
     startedAtRef.current = null;
   };
 
-  if (result) return <CIResultView result={result} onEditData={handleEditData} onReset={handleReset} />;
+  if (result) return <Suspense fallback={null}><CIResultView result={result} onEditData={handleEditData} onReset={handleReset} /></Suspense>;
 
   const stepProps = { data: formData, updateData, errors };
   const footer = <div className="flex items-center gap-3">
