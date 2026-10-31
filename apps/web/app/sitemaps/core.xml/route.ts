@@ -6,7 +6,6 @@ export function GET() {
   return xmlResponse(
     renderUrlSet([
       { loc: "https://ccpun.com/" },
-      { loc: "https://ccpun.com/about/" },
       { loc: "https://ccpun.com/privacy/" },
     ]),
   );

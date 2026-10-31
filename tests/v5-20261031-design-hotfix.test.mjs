@@ -113,7 +113,3 @@ test("Current local article images use original files on index cards and article
   assert.match(read("components/layout/v5/V5Primitives.tsx"), /unoptimized=\{article\.image\.src\.startsWith\("\/assets\/blog-migration\/"\)\}/);
   assert.match(article,/unoptimized=\{article\.featuredImage\.src\.startsWith\("\/assets\/blog-migration\/"\)\}/);
 });
-
-test("Core sitemap now includes the live About page", () => {
-  assert.match(read("apps/web/app/sitemaps/core.xml/route.ts"),/loc: "https:\/\/ccpun\.com\/about\/"/);
-});
