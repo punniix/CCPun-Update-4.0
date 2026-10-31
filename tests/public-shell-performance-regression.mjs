@@ -116,15 +116,15 @@ assert.doesNotMatch(
   /defineLive|next-sanity\/live|VisualEditing/,
   'Public server fetch implementation must stay free of preview client tooling',
 );
-assert.match(
+assert.doesNotMatch(
   clientWidgets,
-  /metaPixelId && isMetaPixelSurface && <MetaPixel pixelId=\{metaPixelId\} \/>/,
-  'Meta Pixel bundle must stay off Home, Blog, legal, and other non-paid-tool routes',
+  /MetaPixel|isMetaPixelSurface/,
+  'The retired Meta Pixel must never mount on any public page, while GA4/GTM remain unchanged',
 );
 assert.match(
   clientWidgets,
-  /pathname === '\/ci-planning'[\s\S]*pathname === '\/tools\/financial-health-check'/,
-  'Meta Pixel route gate must retain both paid tool surfaces',
+  /<CookieConsent \/>/,
+  'The same cookie-consent UI remains mounted after Meta Pixel is retired',
 );
 assert.match(
   clientWidgets,
