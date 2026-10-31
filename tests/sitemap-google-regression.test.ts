@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { reviewedCoreSitemapBaseline, CORE_ROUTE, CORE_BASELINE_SHA } from "../qa/seo-core-sitemap-review.mjs";
 import { readPhase1Source } from "../qa/read-phase1-source.mjs";
 import type { SanityClient } from "sanity";
 import { articlePublishBlock, buildPublishedArticleDocument, hasMeaningfulArticleContentChange, publishApprovedArticle, type PublishableArticle } from "../cms/sanity/policy/article-publication";
@@ -133,6 +134,23 @@ for (const appRoot of ["", "apps/web/"]) test(`keeps ${appRoot || "legacy "}util
 });
 
 
+test("new sitemap admissions preserve the historical route owner and reject drift", () => {
+  const source = readSource(CORE_ROUTE);
+  assert.equal(reviewedCoreSitemapBaseline(CORE_ROUTE, source), CORE_BASELINE_SHA);
+  for (const changed of [
+    source.replace('https://ccpun.com/about/', 'https://ccpun.com/admin/'),
+    source.replace('https://ccpun.com/tools/', 'https://ccpun.com/cookie-policy/'),
+    source.replace('https://ccpun.com/play/money-story/', 'https://ccpun.com/play/not-approved/'),
+    source.replace('https://ccpun.com/privacy/', 'https://ccpun.com/deleted/'),
+    source.replace('export const dynamic = "force-static"', 'export const dynamic = "force-dynamic"'),
+    source + "\n// unreviewed edit\n",
+  ]) {
+    assert.notEqual(source, changed);
+    assert.throws(() => reviewedCoreSitemapBaseline(CORE_ROUTE, changed));
+  }
+  assert.throws(() => reviewedCoreSitemapBaseline("apps/admin/app/sitemaps/core.xml/route.ts", source));
+});
+
 test("active Web core sitemap and private error headers enforce the search boundary", async () => {
   const { GET } = await import("../apps/web/app/sitemaps/core.xml/route");
   const { default: webConfig } = await import("../apps/web/next.config");
@@ -148,7 +166,7 @@ test("active Web core sitemap and private error headers enforce the search bound
 test("preserves static sitemap XML responses for legacy and canonical Web routes", async () => {
   const routeSpecs = [
     ["sitemap.xml/route", ["https://ccpun.com/sitemaps/core.xml", "https://ccpun.com/sitemaps/tools.xml", "https://ccpun.com/sitemaps/blog.xml"]],
-    ["sitemaps/core.xml/route", ["https://ccpun.com/", "https://ccpun.com/privacy/"]],
+    ["sitemaps/core.xml/route", ["https://ccpun.com/", "https://ccpun.com/about/", "https://ccpun.com/tools/", "https://ccpun.com/play/money-story/", "https://ccpun.com/privacy/"]],
     ["sitemaps/tools.xml/route", ["https://ccpun.com/ci-planning/", "https://ccpun.com/tools/financial-health-check/"]],
   ] as const;
   const legacyIndex = await import("../app/sitemap.xml/route");

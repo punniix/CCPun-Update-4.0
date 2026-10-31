@@ -37,6 +37,23 @@ assertStatus(core.response.status, 200, '/sitemaps/core.xml');
 assert.ok(!core.text.includes('<lastmod>'), 'core sitemap must omit unverifiable hard-coded lastmod values');
 assert.ok(!core.text.includes('<loc>https://ccpun.com/blog/</loc>'), 'blog root must be owned by the dynamic blog sitemap');
 
+const approvedCore = [
+  'https://ccpun.com/',
+  'https://ccpun.com/about/',
+  'https://ccpun.com/tools/',
+  'https://ccpun.com/play/money-story/',
+  'https://ccpun.com/privacy/',
+];
+assert.deepEqual(extractLocations(core.text), approvedCore, 'only the five approved static canonicals belong in Core Sitemap');
+for (const target of approvedCore) {
+  const pathname = new URL(target).pathname;
+  const page = await request(pathname);
+  assertStatus(page.response.status, 200, pathname);
+  assert.ok(page.text.includes(`href="${target}"`), `${pathname} must use its own canonical URL`);
+  assert.ok(!/<meta[^>]+name="robots"[^>]+content="noindex/.test(page.text), `${pathname} must be indexable`);
+}
+
+
 const tools = await request('/sitemaps/tools.xml');
 assertStatus(tools.response.status, 200, '/sitemaps/tools.xml');
 assert.ok(!tools.text.includes('<lastmod>'), 'tools sitemap must omit unverifiable hard-coded lastmod values');
