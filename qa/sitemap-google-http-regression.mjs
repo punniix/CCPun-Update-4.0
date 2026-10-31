@@ -54,7 +54,11 @@ for (const target of ['https://ccpun.com/', 'https://ccpun.com/privacy/']) {
   const page = await request(pathname);
   assertStatus(page.response.status, 200, pathname);
   assert.ok(page.text.includes(`href="${target}"`), `${pathname} must use its own canonical URL`);
-  assert.ok(!/<meta[^>]+name="robots"[^>]+content="noindex/.test(page.text), `${pathname} must be indexable`);
+  // Local read-only Production dev intentionally injects noindex; require
+  // indexability only when this HTTP gate targets the actual Production host.
+  if (new URL(ORIGIN).hostname === 'ccpun.com') {
+    assert.ok(!/<meta[^>]+name="robots"[^>]+content="noindex/.test(page.text), `${pathname} must be indexable on Production`);
+  }
 }
 
 
