@@ -33,13 +33,13 @@ function withDom(fetchImpl) {
 }
 const settle = () => new Promise(resolve => setTimeout(resolve, 120));
 
-test('one constant hides views below 50 everywhere; hearts show from the first one', () => {
-  assert.equal(VIEW_COUNT_DISPLAY_MIN, 50);
+test('all confirmed views including low counts render; unknown hearts stay distinct from known zero', () => {
+  assert.equal(VIEW_COUNT_DISPLAY_MIN, 1);
   assert.equal(CARD_METRICS_BATCH_MAX, 24);
-  assert.deepEqual([null, undefined, 0, 49].map(displayedViews), [null, null, null, null]);
+  assert.deepEqual([null, undefined, 0, 1, 49].map(displayedViews), [null, null, null, "1", "49"]);
   assert.equal(displayedViews(50), '50');
   assert.equal(displayedViews(12345), '12,345');
-  assert.deepEqual([null, undefined, 0, -1, 1.5].map(displayedHearts), [null, null, null, null, null]);
+  assert.deepEqual([null, undefined, 0, -1, 1.5].map(displayedHearts), [null, null, "0", null, null]);
   assert.equal(displayedHearts(1), '1');
   for (const file of ['features/blog/v5/V5ArticleCardEngagement.tsx', 'features/blog/v5/V5ArticleEngagementMeta.tsx']) {
     const source = read(file);
@@ -66,7 +66,7 @@ test('card date: explicit optimisation shows อัปเดต, otherwise เ�
   assert.doesNotMatch(read('components/layout/v5/article-card-data.ts').slice(0, read('components/layout/v5/article-card-data.ts').indexOf('export function newestFirst')), /article\.updatedAt/);
 });
 
-test('card list batches visible cards (max 24 per request), hides small view counts and keeps hearts server-confirmed', async () => {
+test('card list batches visible cards (max 24 per request), shows small view counts and keeps hearts server-confirmed', async () => {
   const requests = [];
   let rejectHeart = false;
   const { dom, restore } = withDom(async (url, init = {}) => {
@@ -96,12 +96,13 @@ test('card list batches visible cards (max 24 per request), hides small view cou
     const cards = [...dom.window.document.querySelectorAll('button[aria-pressed]')];
     assert.equal(cards.length, 30);
     const text = index => cards[index].parentElement.textContent;
-    assert.doesNotMatch(text(0), /49|เปิดอ่าน/, 'views below 50 stay hidden');
+    assert.match(text(0), /49/, 'confirmed low view totals are visible');
     assert.match(text(0), /ถูกใจ 3 ครั้ง/, 'hearts show from 1 with a screen-reader label');
     assert.match(text(2), /1,200/);
     assert.equal(cards[2].parentElement.querySelector('.views').getAttribute('aria-label'), 'เปิดอ่านที่บันทึกได้ 1,200 ครั้ง');
-    assert.equal(cards[0].parentElement.querySelector('.views').getAttribute('aria-label'), null);
-    assert.doesNotMatch(text(1), /ถูกใจ \d/, 'no heart count when there are none yet');
+    assert.equal(cards[0].parentElement.querySelector('.views').getAttribute('aria-label'), 'เปิดอ่านที่บันทึกได้ 49 ครั้ง');
+    assert.match(text(1), /—/, 'unknown historical heart totals are visibly distinguished from zero');
+    assert.equal(cards[1].querySelector('.heartCount').getAttribute('title'), 'ยังไม่มีข้อมูลยอดหัวใจย้อนหลังที่ยืนยันได้');
     assert.equal(cards[2].getAttribute('aria-label'), 'ถูกใจบทความ: บทความ card-2');
     assert.ok(cards[2].getAttribute('aria-describedby'));
     await React.act(async () => { cards[2].click(); await settle(); });
@@ -128,7 +129,7 @@ test('card markup reserves its slots before counts load; malformed batch answers
   assert.deepEqual(parseCardMetrics({ available: true, items: { a: { views: -1, hearts: 1 }, b: { views: '9', hearts: 1 }, c: { views: 60, hearts: null } } }), { c: { views: 60, hearts: null } });
 });
 
-test('article header shows views (from 50) and a heart beside the reading time using the page provider', async () => {
+test('article header shows all confirmed views and a heart beside the reading time using the page provider', async () => {
   const requests = [];
   let metrics = { available: true, views: 49, shares: 0, hearts: 2, liked: false, activatedAt: '2026-10-19T00:00:00Z' };
   const { dom, restore } = withDom(async (url, init = {}) => {
@@ -147,7 +148,7 @@ test('article header shows views (from 50) and a heart beside the reading time u
       await settle();
     });
     const box = dom.window.document.querySelector('.articleMetrics');
-    assert.doesNotMatch(box.textContent, /49|เปิดอ่าน/);
+    assert.match(box.textContent, /49/);
     assert.match(box.textContent, /ถูกใจ 2 ครั้ง/);
     const heart = box.querySelector('button');
     await React.act(async () => { heart.click(); await settle(); });

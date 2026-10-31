@@ -98,6 +98,7 @@ function CardControls({ articleId, title }: { articleId: string; title: string }
   const confirmed = metrics.available;
   const views = displayedViews(confirmed && metrics.views !== null ? metrics.views : batch?.views);
   const hearts = displayedHearts(confirmed ? metrics.hearts : batch?.hearts);
+  const heartsUnknown = (confirmed || batch !== null) && hearts === null;
   // The list read is cookieless, so `liked` is only known after this visitor's own heart action.
   // Hearts are set-not-toggle on the server, so a repeat "like" never double counts.
   const liked = confirmed && metrics.liked;
@@ -106,13 +107,13 @@ function CardControls({ articleId, title }: { articleId: string; title: string }
       <span className={styles.views} role={views ? "img" : undefined} aria-label={views ? text("blog.dynamic1").replaceAll("{0}", views) : undefined}>
         {views && <><Eye aria-hidden="true" size={16} /><span aria-hidden="true">{views}</span></>}
       </span>
-      <button type="button" className={styles.heart} disabled={heartPending} aria-pressed={liked} aria-describedby={hearts ? describedBy : undefined}
+      <button type="button" className={styles.heart} disabled={heartPending} aria-pressed={liked} aria-describedby={hearts !== null || heartsUnknown ? describedBy : undefined}
         aria-label={`${liked ? text("blog.articleCardEngagementControlsText") : text("blog.articleCardEngagementControlsText2")}: ${title}`}
         onClick={async () => { setError(false); if (!await record("heart", !liked)) setError(true); }}>
         <Heart aria-hidden="true" size={18} fill={liked ? "currentColor" : "none"} />
-        <span className={styles.heartCount} aria-hidden="true">{hearts ?? ""}</span>
+        <span className={styles.heartCount} aria-hidden="true" title={heartsUnknown ? "ยังไม่มีข้อมูลยอดหัวใจย้อนหลังที่ยืนยันได้" : undefined}>{hearts ?? (heartsUnknown ? "—" : "")}</span>
       </button>
-      {hearts && <span id={describedBy} className={styles.srOnly}>{text("blog.engagement.hearts").replaceAll("{0}", hearts)}</span>}
+      {(hearts !== null || heartsUnknown) && <span id={describedBy} className={styles.srOnly}>{heartsUnknown ? "ยังไม่มีข้อมูลยอดหัวใจย้อนหลังที่ยืนยันได้" : text("blog.engagement.hearts").replaceAll("{0}", hearts!)}</span>}
       {error && <p className={styles.error} role="status">{text.node("blog.error")}</p>}
     </div>
   );
