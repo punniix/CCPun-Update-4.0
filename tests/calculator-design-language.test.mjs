@@ -70,6 +70,22 @@ test('native desktop calculators keep the 1280px shell and usable split without 
   assert.match(nativeCss,/\.faq details p \{ padding: 0 20px 20px/);
   assert.match(card,/max-w-\[48rem\]/,'shared standalone calculator bound remains intact');
 });
+test('1024–1280px FHC and CI readers never exceed their two-column tracks', () => {
+  const stylesheet = postcss.parse(readFileSync('components/layout/v5/V5Tool.module.css', 'utf8'));
+  const base = {};
+  stylesheet.walkRules(rule => {
+    if (rule.parent.type === 'root' && ['.heroTitle', '.calcAside', '.asideCard'].includes(rule.selector)) {
+      base[rule.selector] = Object.fromEntries(rule.nodes.filter(node => node.type === 'decl').map(node => [node.prop, node.value]));
+    }
+  });
+  assert.equal(base['.heroTitle']['min-width'], '0');
+  assert.equal(base['.heroTitle']['overflow-wrap'], 'anywhere');
+  assert.equal(base['.calcAside']['grid-template-columns'], 'minmax(0, 1fr)');
+  assert.equal(base['.calcAside']['min-width'], '0');
+  assert.equal(base['.asideCard']['min-width'], '0');
+  assert.equal(base['.asideCard']['overflow-wrap'], 'anywhere');
+});
+
 test('FHC and CI result states keep the same Production Website 4.3 visual language', () => {
   assert.match(fhcWizard, /ccpun-calculator-result/);
   assert.match(fhcWizard, /ccpun-calculator-result-lead/);

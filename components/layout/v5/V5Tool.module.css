@@ -12,7 +12,8 @@
   .heroAside .heroLead:first-child { margin-top: 0; }
   .heroAside > div { margin-top: 24px; }
 }
-.heroTitle { font-size: clamp(30px, 6vw, 48px); line-height: 1.3; max-width: 900px; }
+/* Narrow desktop grids (1024–1280px): keep long Thai headings inside their assigned track. */
+.heroTitle { font-size: clamp(30px, 6vw, 48px); line-height: 1.3; max-width: 900px; min-width: 0; overflow-wrap: anywhere; }
 .heroTitle span { color: var(--v5-gold-text); }
 .heroSubtitle { font-size: clamp(20px, 3vw, 28px); line-height: 1.4; margin-top: 12px; }
 /* 17px on phones (design QA 2026-10-25): easier Thai reading, and on short heroes such as /tools/ the
@@ -47,9 +48,10 @@
 .calcGrid { display: grid; gap: 20px; align-items: start; }
 @media (min-width: 1024px) { .calcGrid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 32px; } }
 .calcGridSolo { max-width: 780px; }
-.calcAside { display: grid; gap: 12px; }
+.calcAside { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; gap: 12px; }
 @media (min-width: 1024px) { .calcAside { position: sticky; top: 100px; } }
-.asideCard { padding: 20px 24px; border-radius: var(--v5-radius); background: var(--v5-card-alt); border: 1px solid var(--v5-border-soft); }
+/* A grid item's min-content Thai width must not push explanatory cards off-screen. */
+.asideCard { min-width: 0; overflow-wrap: anywhere; padding: 20px 24px; border-radius: var(--v5-radius); background: var(--v5-card-alt); border: 1px solid var(--v5-border-soft); }
 .asideCard h3 { font-size: 17px; }
 .asideCard p { color: var(--v5-muted); font-size: 15px; line-height: 1.7; margin-top: 8px; }
 
