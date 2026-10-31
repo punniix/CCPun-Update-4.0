@@ -37,6 +37,31 @@ assertStatus(core.response.status, 200, '/sitemaps/core.xml');
 assert.ok(!core.text.includes('<lastmod>'), 'core sitemap must omit unverifiable hard-coded lastmod values');
 assert.ok(!core.text.includes('<loc>https://ccpun.com/blog/</loc>'), 'blog root must be owned by the dynamic blog sitemap');
 
+const approvedCore = [
+  'https://ccpun.com/',
+  'https://ccpun.com/about/',
+  'https://ccpun.com/tools/',
+  'https://ccpun.com/play/money-story/',
+  'https://ccpun.com/privacy/',
+];
+assert.deepEqual(extractLocations(core.text), approvedCore, 'only the five approved static canonicals belong in Core Sitemap');
+// This CI server runs the legacy root app, which does not mount all apps/web
+// routes (/about/, /tools/). Their actual responses and self-canonicals are
+// accepted separately on the pinned Hostinger Web UAT deployment.
+// Keep HTML-level checks for the two pages this local runtime actually serves.
+for (const target of ['https://ccpun.com/', 'https://ccpun.com/privacy/']) {
+  const pathname = new URL(target).pathname;
+  const page = await request(pathname);
+  assertStatus(page.response.status, 200, pathname);
+  assert.ok(page.text.includes(`href="${target}"`), `${pathname} must use its own canonical URL`);
+  // Local read-only Production dev intentionally injects noindex; require
+  // indexability only when this HTTP gate targets the actual Production host.
+  if (new URL(ORIGIN).hostname === 'ccpun.com') {
+    assert.ok(!/<meta[^>]+name="robots"[^>]+content="noindex/.test(page.text), `${pathname} must be indexable on Production`);
+  }
+}
+
+
 const tools = await request('/sitemaps/tools.xml');
 assertStatus(tools.response.status, 200, '/sitemaps/tools.xml');
 assert.ok(!tools.text.includes('<lastmod>'), 'tools sitemap must omit unverifiable hard-coded lastmod values');

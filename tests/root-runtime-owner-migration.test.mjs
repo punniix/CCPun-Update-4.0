@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 import { createHash } from 'node:crypto';
+import { reviewedCoreSitemapBaseline, CORE_ROUTE } from '../qa/seo-core-sitemap-review.mjs';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
@@ -33,7 +34,8 @@ test('seven duplicate public routes retain frozen canonical bodies, export ident
         canonicalSource = canonicalSource.replace(insertion, '');
       }
     }
-    if(!cmsSource) assert.equal(createHash('sha256').update(canonicalSource).digest('hex'), reviewed?.candidateSha256 ?? productionProof.protected[canonical], canonical);
+    if(!cmsSource) assert.equal(canonical === CORE_ROUTE ? reviewedCoreSitemapBaseline(canonical, canonicalSource, productionProof.protected[canonical])
+      : createHash('sha256').update(canonicalSource).digest('hex'), reviewed?.candidateSha256 ?? productionProof.protected[canonical], canonical);
     const dynamic = read(canonical).match(/^export const dynamic = (.+);$/m)?.[1];
     const owner = '@/' + canonical.replace(/\.[^.]+$/, '');
     const metadataExport = canonical.endsWith('/privacy/page.tsx') || canonical.endsWith('/cookie-policy/page.tsx') || canonical.endsWith('/not-found.tsx') ? 'generateMetadata' : 'metadata';
