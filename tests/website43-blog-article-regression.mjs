@@ -386,7 +386,29 @@ execFileSync(process.execPath, ['--test', fileURLToPath(new URL('./health-happy-
  const source=readFileSync('features/blog/v5/V5Blog.module.css','utf8');const groups=[];postcss.parse(source).walkAtRules('media',m=>{if(m.params==='(min-width: 768px) and (max-width: 1023px)')groups.push(m);});
  const props=selector=>{let value;for(const media of groups)media.walkRules(rule=>{if(rule.selector===selector)value=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(d=>[d.prop,d.value]));});assert.ok(value,selector);return value;};
  assert.equal(props('.categoryHero .chipRow > ul')['flex-wrap'],'wrap');assert.equal(props('.introCopy')['line-height'],'1.75');assert.equal(props('.categoryCard h3')['font-size'],'22px');assert.equal(props('.categoryCard p')['-webkit-line-clamp'],'unset');
+ const fullCover = '.categoryGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .categoryCard';
+ assert.equal(props(fullCover)['grid-template-columns'], '45% minmax(0, 1fr)', 'the 820px image gets a full-height column');
+ const media = props(fullCover + ' > :is(img, span[aria-hidden])');
+ assert.equal(media.height, '100%');assert.equal(media['object-fit'], 'contain', 'preserve the full cover lettering and embedded logo');
+ assert.equal(media['align-self'], 'stretch');
  assert.equal(props('.tocAside').display,'none');assert.equal(props('.tocMobileSheet').display,'block');assert.equal(props('.tocTrigger')['min-height'],'48px');assert.equal(props('.tocSheet')['max-width'],'640px');assert.equal(props('.metaDates')['flex-basis'],'100%');assert.equal(props('.metaRow > .shareSlot')['flex-basis'],'100%');
  for(const media of groups)media.walkRules(rule=>assert.doesNotMatch(rule.selector,/dialog\[open\]|dialog:not|dialog\[aria-hidden/,'CSS never forces a closed/inert dialog visible'));
  const controller=readFileSync('features/blog/v5/V5ArticleMobileToc.tsx','utf8');assert.match(controller,/showModal/);assert.match(controller,/<dialog[^>]+onClose=\{closed\}/);assert.doesNotMatch(controller,/onCancel=.*preventDefault/);
+}
+
+// The native 390 Light/Dark category cards require clearance after the swipeable category chips.
+{
+ const source = readFileSync('features/blog/v5/V5Blog.module.css', 'utf8');
+ let mobile;
+ postcss.parse(source).walkAtRules('media', rule => {
+  if (rule.params === '(max-width: 639px)' && rule.nodes.some(node => node.type === 'rule' && node.selector === '.relatedCategories')) mobile = rule;
+ });
+ assert.ok(mobile, 'category phone spacing and category navigation stay scoped');
+ const properties = {};
+ mobile.walkRules(rule => {
+  properties[rule.selector] = Object.fromEntries(rule.nodes.filter(node => node.type === 'decl').map(d => [d.prop, d.value]));
+ });
+ assert.equal(properties['.relatedCategories']['padding-bottom'], '56px');
+ assert.equal(properties['.relatedCategories nav']['overflow-x'], 'auto');
+ assert.equal(properties['.relatedCategories nav > ul']['flex-wrap'], 'nowrap');
 }
