@@ -71,6 +71,18 @@ jobs:
             --overwrite
           test -s "${{ steps.identity.outputs.backup_file }}"
 
+      # Save a private, 7-day source archive before any external Google Drive
+      # API call. A Drive 404/403 must never discard the only full export.
+      - name: Keep short-lived emergency copy in GitHub Actions
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ${{ steps.identity.outputs.snapshot_id }}
+          path: |
+            ${{ steps.identity.outputs.backup_file }}
+            ${{ steps.identity.outputs.backup_stats_file }}
+          retention-days: 7
+          if-no-files-found: error
+
       - name: Upload archive and manifest to CCPun Google Drive
         id: upload
         env:
@@ -81,17 +93,6 @@ jobs:
           BACKUP_GIT_SHA: ${{ github.sha }}
           BACKUP_TYPE: Full Sanity production dataset export
         run: node scripts/backup/upload-sanity-backup-to-drive.mjs
-
-      - name: Keep short-lived emergency copy in GitHub Actions
-        uses: actions/upload-artifact@v7.0.1
-        with:
-          name: ${{ steps.identity.outputs.snapshot_id }}
-          path: |
-            ${{ steps.identity.outputs.backup_file }}
-            ${{ steps.identity.outputs.backup_file }}.manifest.json
-            ${{ steps.identity.outputs.backup_stats_file }}
-          retention-days: 7
-          if-no-files-found: error
 
       - name: Backup summary
         run: |
