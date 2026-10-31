@@ -118,7 +118,6 @@ export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: Public
               </li>
             ))}
           </ul>
-          <p className={styles.nativeNote}>{aboutWords(text.node("about.partners.disclosure"))}</p>
         </div>
       </section>
 
@@ -129,7 +128,6 @@ export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: Public
             <figure className={styles.quote}><blockquote>{aboutWords(home.node("home.blockquote"))}</blockquote><figcaption>{aboutWords(home.node("home.cite"))}</figcaption></figure>
             <figure className={styles.quote}><blockquote>{aboutWords(home.node("home.blockquote2"))}</blockquote><figcaption>{aboutWords(home.node("home.cite2"))}</figcaption></figure>
           </div>
-          <p className={styles.nativeNote}>{aboutWords(text.node("about.reviews.permission"))}</p>
         </div>
       </section>
 

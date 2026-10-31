@@ -105,7 +105,7 @@ assert.equal(declared(tabletChrome,'.themeSegments','display'),'inline-grid');
 assert.equal(declared(tabletChrome,'.menuButton','display'),'none');
 assert.equal(declared(tabletChrome,'.footerGrid','grid-template-columns'),'repeat(3, minmax(0, 1fr))');
 assert.equal(declared(tabletChrome,'.footerMark','font-size'),'96px');
-const outline=homeStyles.nodes.at(-1);assert.equal(outline.params,'(max-width: 767px)');
+const outline=[...homeStyles.nodes].reverse().find(node=>node.type==='atrule'&&node.params==='(max-width: 767px)');assert.ok(outline);
 const outlineRule=outline.nodes.find(n=>n.type==='rule');assert.equal(outlineRule.selector,'.portrait img');
 assert.deepEqual(outlineRule.nodes.map(d=>d.prop),['filter','clip-path']);
 assert.equal((outlineRule.nodes[0].value.match(/drop-shadow/g)??[]).length,4);

@@ -359,3 +359,31 @@
   .readingGrid ~ :global(section) :global(article) > div { min-width: 0; padding: 24px; }
   .readingGrid ~ :global(section) :global(article) h3 { font-family: var(--v5-font); font-size: 22px; font-weight: 600; line-height: 1.4; }
 }
+
+/* 2026-10-31 owner Safari QA: edge-to-edge featured photo height in horizontal cards.
+   Keep original image URL, alt, width and image semantics; never insert blank media bands. */
+@media (min-width: 768px) {
+  .nativeBlog .featuredGrid article { align-items: stretch; }
+  .nativeBlog .featuredGrid article > img,
+  .nativeBlog .featuredGrid article > span[aria-hidden] {
+    align-self: stretch;
+    height: auto;
+    aspect-ratio: auto;
+    object-fit: cover;
+    object-position: center;
+    border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius);
+  }
+}
+
+/* The tablet native :is(img, [aria-hidden]) selector also includes an attribute,
+   so match its specificity to prevent 820px image letterboxing. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .nativeBlog .featuredGrid article > :is(img, span[aria-hidden]) {
+    align-self: stretch;
+    height: auto;
+    aspect-ratio: auto;
+    object-fit: cover;
+    object-position: center;
+    border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius);
+  }
+}

@@ -117,7 +117,10 @@ function nativeRenderPredecessor(index, html, article = false) {
     });
     assert.equal(heroes, 1, 'inverse confined to the original Home hero');
   }
-  const current = article ? v5ArticleRenderedSuccessors[index] : v5RenderedSuccessors[index];
+  // Owner-approved 31 Oct Safari review: Home has no Start Here section at any breakpoint.
+  // Historical v5 goldens above remain frozen; the exact successor digest still rejects drift.
+  const ownerSafariHome = { 1: 'f143af81c4cddfb64657e49ce97f491dffe846975877107c60548a2df58865c9', 2: '214263603336972b9217812d97c113b9a21632eff9ba5b54c7c04071db95a6a4' };
+  const current = article ? v5ArticleRenderedSuccessors[index] : ownerSafariHome[index] ?? v5RenderedSuccessors[index];
   assert.equal(digest(html),current,'exact reviewed native markup '+(article?'article:':'page:')+index);
   return article ? articleBaseline[index] : baseline[index];
 }

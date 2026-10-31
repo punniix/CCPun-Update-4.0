@@ -274,3 +274,15 @@
 @media (max-width: 767px) {
   .portrait img { filter: drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff); clip-path: inset(-4px -4px 0); }
 }
+
+/* Owner Safari iPad/phone: make the pale-gold SVG strokes legible on every viewport.
+   Dark circular backing matches the FigCraft partner/brand palette; no SVG asset edits. */
+.painIcon { display: grid; place-items: center; box-sizing: border-box; width: 48px; height: 48px; padding: 12px; background: #352727; border-radius: 50%; }
+.painIcon img { display: block; width: 24px; height: 24px; filter: none; opacity: 1; }
+@media (min-width: 768px) {
+  .painIcon { box-sizing: border-box; width: 56px; height: 56px; padding: 16px; background: #352727; }
+}
+
+/* The tablet light-theme token rule has higher specificity than .painIcon. */
+:global(html[data-theme="light"]) .painIcon,
+:global(html[data-theme="dark"]) .painIcon { background: #352727; }

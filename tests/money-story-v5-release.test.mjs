@@ -47,7 +47,11 @@ test('the real Money Story owner renders v5 in Production with existing copy key
  assert.equal(doc.querySelector('main').dataset.current,'/play/money-story/');assert.equal(doc.querySelector('h1').textContent,'Owner game title');assert.ok(doc.body.textContent.includes('Owner explanation'));
  assert.equal(doc.querySelector('[data-game-seed]').dataset.gameSeed,'false');assert.equal(doc.querySelector('[data-pyramid]').dataset.pyramid,'/blog/personal-finance/financial-pyramid/');
  assert.equal(api.metadata.alternates.canonical,'https://ccpun.com/play/money-story/');assert.deepEqual(api.metadata.robots,{index:true,follow:true});
- const home=read('features/home/v5/V5Home.tsx');assert.match(home,/situation: "home.startHere.pyramid.situation", paired: "home.startHere.pyramid.paired"[^\n]+pairedHref: "\/play\/money-story\/"/);assert.match(home,/situation: "home.startHere.tax.situation"[^\n]+pairedHref: "\/tools\/financial-health-check\/"/);
+ const home=read('features/home/v5/V5Home.tsx');
+ assert.doesNotMatch(home,/data-uat-section="home-learning"/,'owner removed Start Here section on every device');
+ assert.doesNotMatch(home,/startHere\.map\(/,'do not render the removed four-step section');
+ assert.match(read('components/layout/v5/constants.ts'),/\/play\/money-story\//,'Money Story remains available in the shared tool link list');
+ assert.match(read('components/layout/v5/V5Footer.tsx'),/V5_TOOL_LINKS\.map\(/,'the footer still renders all shared tool links');
 });
 
 test('the presentation port retains all 11 original Money Story engine/config/character/event/type/sidebar files byte-for-byte',()=>{
