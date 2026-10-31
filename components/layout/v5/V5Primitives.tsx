@@ -64,7 +64,7 @@ export function V5ArticleCard({ article, headingLevel = 3, sizes = v5CardGridSiz
   return (
     <article className={`${styles.articleCard} ${horizontal ? styles.articleCardHorizontal : ""} ${className ?? ""}`}>
       {article.image
-        ? <V5SharedTransition part="cover" articleId={article.id}><Image className={styles.articleCardImage} src={article.image.src} alt="" width={article.image.width} height={article.image.height} sizes={sizes} {...(priority ? { preload: true, loading: "eager" as const, fetchPriority: "high" as const } : { loading: "lazy" as const })} /></V5SharedTransition>
+        ? <V5SharedTransition part="cover" articleId={article.id}><Image className={styles.articleCardImage} src={article.image.src} alt="" width={article.image.width} height={article.image.height} sizes={sizes} unoptimized={article.image.src.startsWith("/assets/blog-migration/")} {...(priority ? { preload: true, loading: "eager" as const, fetchPriority: "high" as const } : { loading: "lazy" as const })} /></V5SharedTransition>
         : <span className={styles.articleCardImage} aria-hidden="true" />}
       <div className={styles.articleCardBody}>
         <span className={styles.articleCardTopic}>{article.topic}</span>

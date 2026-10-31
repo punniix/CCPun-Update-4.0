@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, type MouseEvent, type ReactNode } from "react";
 import styles from "./V5Blog.module.css";
 
-export default function V5ArticleMobileToc({ label, countLabel, closeLabel, children }: {
+export default function V5ArticleMobileToc({ label, closeLabel, children }: {
   label: ReactNode; countLabel: string; closeLabel: string; children: ReactNode;
 }) {
   const id = useId();
@@ -52,7 +52,7 @@ export default function V5ArticleMobileToc({ label, countLabel, closeLabel, chil
         overflow.current = document.body.style.overflow;
         document.body.style.overflow = "hidden";
       }}>
-      <span>{label} · {countLabel}</span><span aria-hidden="true">⌄</span>
+      <span>{label}</span><span aria-hidden="true">⌄</span>
     </button>
     <dialog ref={dialog} id={id} className={styles.tocSheet} aria-labelledby={`${id}-title`} onClose={closed} onClick={clicked}>
       <div>

@@ -144,7 +144,7 @@ export default async function V5Article({ article, relatedArticles = [], allArti
             </aside>}
             <div>
               {article.featuredImage && <figure className={styles.feature}>
-                <V5SharedTransition part="cover" articleId={article.id}><Image src={article.featuredImage.src} alt={article.featuredImage.alt} width={article.featuredImage.width} height={article.featuredImage.height} sizes="(max-width: 767px) calc(100vw - 40px), 720px" preload loading="eager" fetchPriority="high"/></V5SharedTransition>
+                <V5SharedTransition part="cover" articleId={article.id}><Image src={article.featuredImage.src} alt={article.slug === "aia-health-happy-describe" && article.featuredImage.src.startsWith("/assets/blog-migration/") ? "หน้าปก AIA Health Happy สีชมพู พร้อมข้อความแต่ละแผนเหมาะกับใคร และภาพที่ปรึกษา CCPun" : article.slug === "financial-pyramid" && article.featuredImage.src.startsWith("/assets/blog-migration/") ? "ภาพพีระมิดการเงินสีทองบนพื้นน้ำเงิน พร้อมข้อความก่อนลงทุนต้องทำอะไรก่อน และภาพที่ปรึกษา CCPun" : article.featuredImage.alt} width={article.featuredImage.width} height={article.featuredImage.height} sizes="(max-width: 767px) calc(100vw - 40px), 720px" unoptimized={article.featuredImage.src.startsWith("/assets/blog-migration/")} preload loading="eager" fetchPriority="high"/></V5SharedTransition>
                 {article.featuredImage.caption && <figcaption>{article.featuredImage.caption}</figcaption>}
               </figure>}
               {tocGroups.length > 0 && (<V5ArticleMobileToc label={text.node("blog.website43Articlearialabel2")} countLabel={text("blog.toc.count").replaceAll("{0}", String(headings.length))} closeLabel={text("blog.toc.close")}><Toc groups={tocGroups}/></V5ArticleMobileToc>)}
