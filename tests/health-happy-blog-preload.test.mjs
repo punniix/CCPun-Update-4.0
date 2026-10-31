@@ -108,7 +108,7 @@ test('Home tablet countdown retains full copy, eight split tiles, four labelled 
   for(const className of ['brandAia','brandName','headline','date'])assert.match(html,new RegExp('class="'+className+'"[^>]*>[^<]+'));
   const marker='\n/* Home tablet card keeps full-width copy/timer;';
   assert.equal(cmsSha(css.slice(0,css.indexOf(marker))),'05b5e5726c6227036dbf0a18b63cc8a05420a51ec32464be4e0b713c9647e14c','original countdown CSS and every other breakpoint/placement remain byte-exact');
-  let rules;postcss.parse(css).walkAtRules('media',media=>{if(media.nodes.some(n=>n.type==='rule'&&n.selector==='.splitDigits[data-campaign-placement="home"] .frame')){assert.equal(rules,undefined);rules=media;}});
+  let rules;postcss.parse(css).walkAtRules('media',media=>{if(media.params==='(min-width: 768px) and (max-width: 1023px)' && media.nodes.some(n=>n.type==='rule'&&n.selector==='.splitDigits[data-campaign-placement="home"] .frame')){assert.ok(!rules,'only one Home tablet frame block');rules=media;}});
   assert.ok(rules,'one exact Home tablet variant');
   assert.equal(rules.params,'(min-width: 768px) and (max-width: 1023px)');
   const props={};rules.walkRules(rule=>{assert.ok(rule.selector.startsWith('.splitDigits[data-campaign-placement="home"]'));props[rule.selector]=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(d=>[d.prop,d.value]));});
