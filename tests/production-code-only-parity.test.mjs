@@ -9,7 +9,7 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 import { productionBaselineSource } from '../qa/phase1-source-proof.mjs';
 import { adminPhase1PredecessorDigest } from '../qa/admin-phase1-quick-wins-proof.mjs';
-import { assertPhase2MoneyComposition, assertReviewedUxOwners, reviewedArticleCardProjection } from '../qa/phase2-source-proof.mjs';
+import { assertPhase2MoneyComposition, assertReviewedUxOwners, reviewedArticleCardProjection, hasReviewedV5Successor, reviewedV5PredecessorDigest } from '../qa/phase2-source-proof.mjs';
 import { assertNativeProviderRetirement, assertReviewedWebUatBuildProfile } from '../qa/phase3-native-provider-proof.mjs';
 
 const root = resolve(import.meta.dirname, '..');
@@ -144,6 +144,7 @@ test('reviewed UX release preserves original Production canonical/tracking/SEO/a
     else if (['apps/admin/app/api/internal/line/bridge-health/route.ts', 'apps/admin/app/api/internal/line/ingest-event/route.ts'].includes(file)) assert.equal(assertPhase3AdminNativeBoundaries(file, digest), true);
     else if (file === 'lib/runtime/deployment-lanes.mjs') assert.equal(assertReviewedWebUatBuildProfile(digest), true, file);
     else if (Object.hasOwn(proof.reviewedUxOwners, file)) assert.equal(proof.reviewedUxOwners[file].baselineSha256, digest, file);
+    else if (hasReviewedV5Successor(file)) reviewedV5PredecessorDigest(file, read(file), digest);
     else assert.equal(adminPhase1PredecessorDigest(file, productionBaselineSource(file)), digest, file);
   }
   for (const file of ['features/investment-allocation', 'apps/web/app/tools/investment-allocation', 'apps/web/app/api/investment-allocation']) {
@@ -175,7 +176,14 @@ test('reviewed LINE and Google route admissions reject unrelated changes, unknow
 
 test('404 button admission rejects changed width, copy and duplicate style insertions', () => {
   const file = 'apps/web/app/not-found.tsx', source = read(file), digest = proof.protected[file];
-  for (const changed of [source.replace('min(292px, 100%)', 'min(293px, 100%)'), source.replace('1 1 124px', '1 1 125px'), source.replace("flexWrap: 'wrap'", "flexWrap: 'nowrap'"), source.replace('site.extra.blogRecovery','site.extra.primaryButton'), source + "\n style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}"]) {
+  for (const changed of [
+    source.replace("style={{ justifyContent: 'center' }}", "style={{ justifyContent: 'center', width: 'min(293px, 100%)' }}"),
+    source.replace('className={shell.buttonRow}', 'className={shell.chips}'),
+    source.replace("justifyContent: 'center'", "justifyContent: 'flex-start'"),
+    source.replace('site.extra.blogRecovery','site.extra.primaryButton'),
+    source + "\n style={{ flexDirection: 'row', flexWrap: 'wrap', width: 'min(292px, 100%)', gap: '12px', justifyContent: 'center', marginInline: 'auto' }}",
+  ]) {
+    assert.notEqual(changed, source, 'each mutation targets a current v5 recovery owner');
     assert.throws(() => assertReviewed404Button(digest, changed));
   }
 });
@@ -204,4 +212,16 @@ test('reviewed UI owner admission rejects unknown owners, baseline tampering and
   const baselineDrift = structuredClone(proof); baselineDrift.reviewedUxOwners[reviewedUiOwners[0]].baselineSha256 = '0'.repeat(64);
   assert.throws(() => assertReviewedUxOwners(baselineDrift, reviewedUiOwners));
   assert.throws(() => assertReviewedUxOwners(proof, reviewedUiOwners, file => read(file) + '\n/* unreviewed runtime mutation */'));
+});
+
+
+test('reviewed v5 successors reject unknown owners, changed historical pins, partial and unrelated edits', () => {
+  for (const file of ['lib/analytics.ts', 'features/analytics/components/GoogleAnalytics.tsx', 'features/money-story/MoneyStory.module.css']) {
+    const previous = proof.reviewedUxOwners[file].candidateSha256;
+    assert.ok(hasReviewedV5Successor(file));
+    assert.equal(reviewedV5PredecessorDigest(file, read(file), previous), previous);
+    for (const changed of [read(file) + '\n/* unrelated */', read(file).slice(0, -1), '']) assert.throws(() => reviewedV5PredecessorDigest(file, changed, previous));
+    assert.throws(() => reviewedV5PredecessorDigest(file, read(file), '0'.repeat(64)));
+  }
+  assert.throws(() => reviewedV5PredecessorDigest('unknown.ts', '', '0'.repeat(64)));
 });

@@ -91,6 +91,8 @@ const nextConfig: NextConfig = {
     ],
   },
   images: {
+    // Private preview assets require the signed browser session; avoid an unauthenticated optimizer fetch.
+    unoptimized: true,
     formats: ["image/avif", "image/webp"],
     qualities: [75, 90],
     deviceSizes: [640, 768, 1080, 1280, 1920],

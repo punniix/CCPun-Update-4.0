@@ -136,3 +136,102 @@
 @media (max-width:680px) { .sideRight { grid-template-columns: 1fr; } .coverageList { grid-template-columns: 1fr; } .balanceSummary small { font-size: 14px; } .balanceSummary strong { font-size: 16px; } }
 
 @media (prefers-reduced-motion:reduce){.primary,.secondary,.choice,.recoveryChoice,.danger{transform:none!important}}
+
+/* C5: the v5 light theme supplies the same surfaces and text as the surrounding page. */
+:global(html[data-theme="light"]) .root .side { background:var(--v5-card-alt); }
+:global(html[data-theme="light"]) .root :is(.card,.resultSnapshot) { background:var(--v5-card); }
+:global(html[data-theme="light"]) .root :is(.meterDetail small,.goalFormula) { color:var(--v5-muted); }
+:global(html[data-theme="light"]) .root .danger { color:var(--v5-text); }
+:global(html[data-theme="light"]) .root :is(.primary,.secondary,.danger,.undoButton):disabled { opacity:1; color:var(--v5-muted); background:var(--v5-surface); border-color:var(--v5-border); }
+:global(html:not([data-theme="light"])) .root :is(.startActions .primary,.undoButton):disabled { opacity:.85; }
+
+/* The game caption floor applies to both themes without changing larger type. */
+.root { --ms-type-caption:14px; }
+.root :is(small,.changeCharacterButton,.undoButton,.seed,.category,.sensitive,.characterPickCopy em,.meterHeader span:last-child,.meterDetail span,.goalJourneyHeader span,.goalMilestoneLine,.decisionList strong,.timeline li,.emptyResultNote,.recoveryExhausted) { font-size:14px; }
+.root .mobileSwipeHint { font-size:14px!important; }
+
+/* Owner-approved dock clearance: selection controls only; gameplay geometry is unchanged. */
+@media (max-width:479px) {
+  .start > .characterPicker { display:grid; grid-template-columns:minmax(0,1fr); margin:22px 60px 0 0; padding:0 0 10px; overflow:visible; scroll-snap-type:none; }
+  .start > .characterPicker > .characterPickCard { flex:none; width:100%; }
+  .start > .mobileSwipeHint { display:none!important; }
+}
+@media (min-width:681px) and (max-width:1023px) { .start > .characterPicker { margin-right:calc(52px - var(--v5-gutter, 32px)); } }
+@media (min-width:1024px) { .start > .characterPicker { margin-left:auto; margin-right:calc(224px - var(--v5-gutter, 80px)); } }
+
+@media (min-width:480px) and (max-width:680px) { .start > .startActions { padding-right:44px; } }
+
+/* Approved portrait tablet character picker; every original character and game state stays single-owner. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :global(section):has(.start) { padding-block: 64px; }
+  .shell:has(> .start) { min-height: 0; border: 0; background: transparent; overflow: visible; }
+  .start { padding: 0; text-align: left; }
+  .startIcon { display: none; }
+  .start h2 { font-size: 28px; font-weight: 500; line-height: 1.4; }
+  .start p { max-width: none; margin: 12px 0 0; font-size: 18px; line-height: 1.75; }
+  .start > .characterPicker { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; max-width: none; margin: 32px 0 0; padding: 0; }
+  .characterPickCard { grid-template-columns: 72px minmax(0, 1fr); gap: 4px 10px; min-height: 180px; padding: 16px; border-radius: 24px; background: var(--v5-card); }
+  .characterPickCopy strong { font-size: 22px; font-weight: 600; line-height: 1.35; }
+  .characterPickCopy > span { font-size: 16px; line-height: 1.7; }
+  .start .characterPickCopy em, .start .characterPickCopy small { font-size: 18px; line-height: 1.75; }
+  .startActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: start; gap: 12px; max-width: 520px; margin-top: 32px; }
+  .startActions .primary, .startActions .secondary { min-width: 0; min-height: 56px; font-size: 18px; }
+}
+
+/* Approved native active/recovery game: actual profile/main/status siblings, without moving data or controls. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .shell:has(> .game) { min-height: 0; border: 0; background: transparent; overflow: visible; }
+  .game { display: grid; grid-template-columns: minmax(0, 1fr) 248px; gap: 24px; align-items: start; }
+  .sideLeft { grid-column: 1 / -1; grid-row: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 24px; padding: 20px; border: 1px solid var(--ms-border); border-radius: 24px; background: var(--v5-card); }
+  .characterTop { grid-column: 1; grid-row: 1 / span 2; grid-template-columns: 88px minmax(0, 1fr); }
+  .characterName { font-size: 24px; font-weight: 500; line-height: 1.5; }
+  .characterRole { font-size: 16px; line-height: 1.7; }
+  .sideLeft .story, .sideLeft .trait { grid-column: 2; display: block; margin: 0; font-size: 18px; line-height: 1.75; }
+  .sideLeft .goalText { grid-column: 1 / -1; margin: 0; font-size: 18px; line-height: 1.75; }
+  .sideLeft .changeCharacterButton { grid-column: 1 / -1; justify-self: start; width: auto; min-height: 44px; margin-top: 8px; font-size: 16px; line-height: 1.7; }
+  .center { grid-column: 1; grid-row: 2; padding: 0; }
+  .center .card { padding: 20px; }
+  .center .eventTitle { font-size: 28px; font-weight: 500; line-height: 1.4; }
+  .center .eventText, .center .choice, .center .recoveryChoice { font-size: 18px; line-height: 1.75; }
+  .center .choice, .center .recoveryChoice { min-height: 44px; padding: 20px; }
+  .center .choice .choiceImpact, .center .recoveryChoice span { font-size: 18px; line-height: 1.75; }
+  .center .primary, .center .secondary, .center .danger { min-height: 44px; font-size: 16px; line-height: 1.7; }
+  .center .balanceSummary small { font-size: 16px; line-height: 1.7; }
+  .center .balanceSummary strong { font-size: 18px; line-height: 1.7; }
+
+  .center .undoButton { min-height: 44px; font-size: 16px; line-height: 1.7; }
+  .sideRight { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 20px; border: 1px solid var(--ms-border); border-radius: 24px; background: var(--v5-card); font-size: 16px; line-height: 1.7; }
+  .root .sideLeft, .root .sideRight { background: var(--v5-card); }
+  .sideRight .sidebarHeading h3, .sideRight .meterHeader span:last-child,
+  .sideRight .coverageTitle span, .sideRight .coverageTitle strong, .sideRight .coverageMissing span,
+  .sideRight .goalReserveNote small { font-size: 16px; line-height: 1.7; }
+  .sideRight .sidebarSection { padding-block: 12px; min-width: 0; }
+  .sideRight .sidebarSection:first-child { padding-top: 0; }
+  .sideRight .sidebarSection:last-child { grid-column: auto; padding-bottom: 0; }
+  .sideRight .meterHeader, .sideRight .meterDetail, .sideRight .meterDetail span, .sideRight .meterDetail small,
+  .sideRight .goalNext, .sideRight .goalFormula, .sideRight .coverageItem small, .sideRight .coverageMissing, .sideRight .coverageMissing small { font-size: 16px; line-height: 1.7; }
+}
+
+/* Approved portrait endings retain the separate real result, all history/actions and the full LINE explanation. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .shell:has(> .result) { min-height: 0; background: var(--v5-card); overflow: visible; }
+  .result { padding: 24px; font-size: 18px; line-height: 1.75; }
+  .resultHero h2 { font-size: 32px; line-height: 1.4; }
+  .resultHero p, .resultLead { font-size: 18px; line-height: 1.75; }
+  .root .resultSnapshot { padding: 16px; border-radius: 16px; background: var(--v5-card); }
+  .resultSnapshot h3, .resultGrid h3, .lineCard h3 { font-size: 22px; line-height: 1.5; }
+  .resultNumbers { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .numberBox { min-height: 88px; padding: 12px; border-radius: 12px; background: var(--v5-bg-alt); }
+  .result .numberBox small, .result .numberBox span { font-size: 16px; line-height: 1.7; }
+  .numberBox strong { font-size: 22px; line-height: 1.4; }
+  .resultCompare { font-size: 18px; line-height: 1.75; }
+  .resultGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+  .root .resultGrid .card { padding: 16px; border-radius: 16px; background: var(--v5-card); }
+  .resultWide { grid-column: 1 / -1; }
+  .result .decisionList strong, .result .decisionList span, .result .decisionList small,
+  .result .watchList li, .result .timeline li, .result .emptyResultNote { font-size: 18px; line-height: 1.75; }
+  .resultActions { gap: 12px; margin-top: 20px; }
+  .result .resultActions > :is(a, button) { flex: 0 1 224px; min-width: 0; min-height: 44px; font-size: 16px; line-height: 1.7; }
+  .lineCard { padding: 16px; border-radius: 16px; font-size: 18px; line-height: 1.75; }
+  .lineCard .primary { min-height: 44px; font-size: 16px; line-height: 1.7; }
+}

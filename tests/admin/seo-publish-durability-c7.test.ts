@@ -41,3 +41,42 @@ test("both inspection reservations carry active minute counters across UTC daily
  assert.ok(latest.minute_start!>Date.parse('2026-10-27T00:00:10Z')-60000);assert.ok(latest.minute_count>=480);
  const tied=[{day:'2026-10-26',minute_start:latest.minute_start,minute_count:479},{day:'2026-10-27',minute_start:latest.minute_start,minute_count:480}].sort((a,b)=>b.minute_start!-a.minute_start!||b.day.localeCompare(a.day));assert.equal(tied[0].minute_count,480);
 });
+
+
+test("real producer binds raw quoted delivery keys without a second token validator or identity normalization",async()=>{
+ const q=queueFixture(),delivery='"00000000-0000-4000-8000-000000000001"';
+ const enqueue=(key:string,doc=article)=>q.enqueuePublishedSeoWebhook({article:doc,deliveryId:key,sanityRev:"TEST-REV"},env);
+ const rows=await Promise.all(Array.from({length:4},()=>enqueue(delivery)));
+ assert.equal(new Set(rows.map(x=>x.job_id)).size,1);assert.equal(q.jobs.size,1);assert.equal(q.receipts.size,1);
+ assert.equal(q.receipts.has(delivery),true);assert.equal(q.receipts.has(delivery.slice(1,-1)),false);
+ await enqueue("LEGACY-BARE-KEY");assert.equal(q.jobs.size,1);assert.equal(q.receipts.size,2);
+ await assert.rejects(()=>enqueue(delivery,{...article,id:"TEST-OTHER"}),/SEO_DELIVERY_COLLISION/);
+});
+
+
+test("signed publish traverses real receiver, producer and notification pipeline with transports default OFF",async()=>{
+ const {encodeSignatureHeader}=await import("@sanity/webhook");
+ const {handleSanityArticlePublished}=loadFixtureModule("lib/admin/seo-intelligence/post-publish-webhook.ts");
+ const {runDurablePostPublishNotifications}=loadFixtureModule("lib/admin/seo-intelligence/post-publish-notifications.ts");
+ const q=queueFixture(),now=1793000000000,delivery='"fixture-delivery"';
+ const doc={...article,rev:"TEST-REV",slug:"example",category:"Personal Finance",categorySlug:"personal-finance",noindex:false};
+ const body=JSON.stringify({articleId:doc.id,rev:doc.rev,contentUpdatedAt:doc.updatedAt,op:"create"});
+ const signature=await encodeSignatureHeader(body,now,"OBVIOUS-TEST-FIXTURE-NOT-A-REAL-SECRET");
+ const ingress={CCPUN_APP_ENV:"production-admin",CCPUN_DEPLOYMENT_PROVIDER:"hostinger",CCPUN_DEPLOYMENT_ROLE:"admin",AUTH_URL:"https://admin.ccpun.com"};
+ const send=()=>handleSanityArticlePublished(new Request("https://admin.ccpun.com/api/integrations/sanity/article-published/",{method:"POST",headers:{host:"admin.ccpun.com","sanity-project-id":"kyfxgjnq","sanity-dataset":"production","sanity-webhook-signature":signature,"idempotency-key":delivery},body}),{environment:"production-admin",secret:"OBVIOUS-TEST-FIXTURE-NOT-A-REAL-SECRET",now:()=>now,runtimeEnv:ingress,readArticle:async()=>doc,enqueue:(input:unknown)=>q.enqueuePublishedSeoWebhook(input,env)});
+ const first=await send(),duplicate=await send();assert.equal(first.status,202);assert.equal(duplicate.status,202);
+ assert.deepEqual(await first.json(),await duplicate.json());assert.equal(q.jobs.size,1);assert.equal(q.receipts.size,1);assert.ok(q.receipts.has(delivery));
+ const job={job_id:q.receipts.get(delivery)!.job_id,article_id:doc.id,content_version:doc.updatedAt,state:"processing",source:"webhook",actor:"sanity-webhook",owner_approved:true,notification_approved:true,attempts:1,sitemap_attempted:false,lease_id:"00000000-0000-4000-8000-000000000002"};
+ const workerEnv={...ingress,CCPUN_BACKGROUND_EXECUTION_PLANE:"vps",CCPUN_SEO_POST_PUBLISH_WORKER_ENABLED:"1",CCPUN_NEON_PROJECT_ID:"lively-bar-43618798",CCPUN_NEON_BRANCH_ID:"br-long-resonance-b3ys5xrv",CCPUN_NEON_DATABASE:"neondb",CCPUN_SEO_POST_PUBLISH_DATABASE_URL:"postgresql://ccpun_seo_post_publish_worker:OBVIOUS-TEST-FIXTURE@ep-broad-butterfly-b3ro7u8w.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"};
+ const calls:string[]=[];
+ const forbidden=async()=>{calls.push("forbidden-transport");throw new Error("unexpected external transport");};
+ const verify={articleId:doc.id,url:"https://ccpun.com/blog/personal-finance/example/",checkedAt:doc.updatedAt,live:{state:"pass",httpStatus:200},canonical:{state:"pass"},indexability:{state:"pass"},sitemap:{state:"pass"},discovery:{state:"sitemap-visible"}};
+ const deps={readArticle:async()=>doc,verify:async()=>verify,initialBudget:forbidden,reserve:forbidden,finish:forbidden,schedule:async()=>{calls.push("schedule-read-only-inspections");},readToken:forbidden,writeToken:forbidden,inspect:forbidden,submitSitemap:forbidden,indexNow:forbidden,telemetry:async(input:{step:string})=>{calls.push(input.step);}};
+ const {runPostPublishSeoPipeline}=loadFixtureModule("lib/admin/seo-intelligence/post-publish-runner.ts",{mocks:new Map([["@/lib/admin/seo-intelligence/post-publish-notifications",{runDurablePostPublishNotifications:(claimed:unknown)=>runDurablePostPublishNotifications(claimed,workerEnv,deps)}]])});
+ const result=await runPostPublishSeoPipeline({articleId:doc.id,actor:job.actor,requestId:job.job_id,revision:doc.updatedAt,ownerApproved:true,job,beforeExternalWrite:forbidden});
+ assert.equal(result.notificationOutcome,"completed");assert.equal(result.sitemapSubmission.state,"skipped");assert.equal(result.google.state,"unavailable");
+ assert.deepEqual(calls,["webhook-received","live-gate","schedule-read-only-inspections"]);
+ // The actual runner delegates durable jobs directly to this same pipeline; no legacy owner-write branch.
+ const runner=readFileSync("lib/admin/seo-intelligence/post-publish-runner.ts","utf8");assert.match(runner,/if \(input\.job\) return runDurablePostPublishNotifications\(input\.job\)/);
+ assert.equal(typeof runPostPublishSeoPipeline,"function");
+});

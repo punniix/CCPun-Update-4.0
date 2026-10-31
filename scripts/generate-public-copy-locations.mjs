@@ -15,7 +15,19 @@ const OUTPUT = path.join(ROOT, "lib/content/public-copy-locations.json");
 // Source files in the order a visitor meets them on each page. Files not listed
 // still contribute; they sort after the listed ones.
 const PAGE_FILES = {
+  about: ["features/about/page.tsx", "features/about/father-story-copy.ts"],
+  toolsHub: ["features/tools-hub/page.tsx"],
+  investment: [
+    "features/investment-allocation/page.tsx",
+    "features/investment-allocation/aia-page.tsx",
+    "features/investment-allocation/InvestmentAllocationTool.tsx",
+    "features/investment-allocation/SingleFundBuilder.tsx",
+    "features/investment-allocation/PortfolioBuilder.tsx",
+  ],
   site: [
+    // Website v5 shell renders first on Phase A pages; 4.3 files stay listed for Phase B pages.
+    "components/layout/v5/V5Header.tsx",
+    "components/layout/v5/V5Footer.tsx",
     "components/layout/website-43/Website43Navbar.tsx",
     "features/home/website-43/Website43HomeStatic.tsx",
     "components/layout/website-43/Website43Shared.tsx",
@@ -29,8 +41,10 @@ const PAGE_FILES = {
     "apps/web/app/not-found.tsx",
     "apps/web/app/layout.tsx",
   ],
-  home: ["features/home/website-43/Website43Home.tsx"],
+  home: ["features/home/v5/V5Home.tsx", "features/home/website-43/Website43Home.tsx"],
+  // Website v5 Phase B: the v5 renderer is what visitors meet first; 4.3 files stay listed as rollback.
   ci: [
+    "features/ci-planning/v5/V5CiPlanning.tsx",
     "features/ci-planning/page.tsx",
     "features/ci-planning/components/CILandingIntro.tsx",
     "features/ci-planning/components/CIWizard.tsx",
@@ -43,6 +57,7 @@ const PAGE_FILES = {
     "features/ci-planning/result-image.ts",
   ],
   fhc: [
+    "features/financial-health-check/v5/V5Fhc.tsx",
     "features/financial-health-check/page.tsx",
     "features/financial-health-check/components/FHCLandingIntro.tsx",
     "features/financial-health-check/components/ClientFHC.tsx",
@@ -50,6 +65,14 @@ const PAGE_FILES = {
     "features/financial-health-check/components/FHCLifeResultImageDownloadButton.tsx",
   ],
   blog: [
+    "features/blog/v5/V5BlogIndex.tsx",
+    "features/blog/v5/V5BlogSearch.tsx",
+    "features/blog/v5/V5GroupPager.tsx",
+    "features/blog/v5/V5Category.tsx",
+    "features/blog/v5/V5ArticleCardEngagement.tsx",
+    "features/blog/v5/V5Article.tsx",
+    "features/blog/v5/V5ArticleBody.tsx",
+    "features/blog/v5/V5ArticleEngagementMeta.tsx",
     "features/blog/website-43/Website43Blog.tsx",
     "features/blog/website-43/Website43BlogInteractive.tsx",
     "features/blog/website-43/ArticleCardEngagement.tsx",
@@ -63,9 +86,10 @@ const PAGE_FILES = {
     "features/blog/website-43/ArticleDetailAccess.tsx",
     "features/blog/website-43/blogData.ts",
   ],
-  privacy: ["features/legal/pages/PrivacyPage.tsx"],
-  cookies: ["features/legal/pages/CookiePolicyPage.tsx"],
+  privacy: ["features/legal/v5/V5Privacy.tsx", "features/legal/pages/PrivacyPage.tsx"],
+  cookies: ["features/legal/v5/V5CookiePolicy.tsx", "features/legal/pages/CookiePolicyPage.tsx"],
   moneyStory: [
+    "features/money-story/v5/V5MoneyStory.tsx",
     "features/money-story/page.tsx",
     "features/money-story/components/MoneyStoryScreens.tsx",
     "features/money-story/components/MoneyStoryGame.tsx",
@@ -75,6 +99,26 @@ const PAGE_FILES = {
 
 // Human section names for whole files that have no visible heading of their own.
 const FILE_SECTIONS = {
+  "features/investment-allocation/page.tsx": "หน้าเครื่องมือหลัก",
+  "features/investment-allocation/aia-page.tsx": "หน้ากองทุน บลจ. เอไอเอ",
+  "features/investment-allocation/InvestmentAllocationTool.tsx": "เลือกวิธีใช้เครื่องมือ",
+  "features/investment-allocation/SingleFundBuilder.tsx": "เลือกกองเดียว",
+  "features/investment-allocation/PortfolioBuilder.tsx": "จัดหลายกอง",
+  "components/layout/v5/V5Header.tsx": "เมนูด้านบน",
+  "components/layout/v5/V5Footer.tsx": "ท้ายเว็บและส่วนที่ใช้ร่วมกัน",
+  "features/blog/v5/V5BlogIndex.tsx": "หน้ารวมบทความ",
+  "features/blog/v5/V5BlogSearch.tsx": "หน้ารวมบทความ · ค้นหาและรายการ",
+  "features/blog/v5/V5GroupPager.tsx": "หน้ารวมบทความ · ตัวแบ่งหน้าในหมวด",
+  "features/blog/v5/V5Category.tsx": "หน้าหมวดหมู่บทความ",
+  "features/blog/v5/V5ArticleCardEngagement.tsx": "การ์ดบทความ · ยอดอ่านและหัวใจ",
+  "features/blog/v5/V5ArticleEngagementMeta.tsx": "หน้าอ่านบทความ · ยอดอ่าน",
+  "features/blog/v5/V5Article.tsx": "หน้าอ่านบทความ",
+  "features/blog/v5/V5ArticleBody.tsx": "หน้าอ่านบทความ · เนื้อหา",
+  "features/ci-planning/v5/V5CiPlanning.tsx": "หน้าวางแผนทุนโรคร้ายแรง",
+  "features/financial-health-check/v5/V5Fhc.tsx": "หน้าตรวจสุขภาพการเงิน",
+  "features/money-story/v5/V5MoneyStory.tsx": "หน้าเกม Money Story",
+  "features/legal/v5/V5Privacy.tsx": "หน้านโยบายความเป็นส่วนตัว",
+  "features/legal/v5/V5CookiePolicy.tsx": "หน้านโยบายคุกกี้",
   "components/layout/website-43/Website43Navbar.tsx": "เมนูด้านบน",
   "components/layout/website-43/Website43Shared.tsx": "ท้ายเว็บและส่วนที่ใช้ร่วมกัน",
   "features/home/website-43/Website43HomeStatic.tsx": "ท้ายเว็บและส่วนที่ใช้ร่วมกัน",
@@ -247,6 +291,7 @@ for (const file of [...files].sort()) {
 // Keys composed at runtime (game events, calculator presets) keep registry order
 // and are grouped by their key prefix.
 const PREFIX_SECTIONS = {
+  "investment.labels": "คำอธิบายประเภทและความเสี่ยง",
   "moneyStory.event": "เหตุการณ์ในเกม", "moneyStory.character": "ตัวละครในเกม", "moneyStory.choice": "ตัวเลือกในเกม",
   "ci.recovery.preset": "ขั้นที่ 2 · ชุดค่าใช้จ่ายพักฟื้นสำเร็จรูป", "ci.recovery.source": "ขั้นที่ 2 · แหล่งข้อมูลอ้างอิง",
   "ci.recovery.mode": "ขั้นที่ 2 · เงินสำรองช่วงพักฟื้น", "ci.method": "วิธีคำนวณ", "ci.image": "รูปผลลัพธ์สำหรับแชร์",
@@ -263,9 +308,580 @@ const prefixSection = key => {
   return "ข้อความที่ระบบเลือกแสดงตามสถานการณ์";
 };
 
+// These two small compositions use shared copy and runtime key arrays. Keep their
+// new editable fields in the actual page reading order, without changing existing maps.
+const PAGE_ENTRY_LOCATIONS = {
+  about: [
+  [
+    "about.hero.heading",
+    "ส่วนแนะนำตัว",
+    "หัวข้อใหญ่สุดของหน้า",
+    true
+  ],
+  [
+    "about.storyV2.heroIntro",
+    "ส่วนแนะนำตัว",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c1.heading",
+    "จุดเริ่มต้นจากความสนใจเรื่องการลงทุน",
+    "หัวข้อส่วน",
+    true
+  ],
+  [
+    "about.storyV2.c1.p1",
+    "จุดเริ่มต้นจากความสนใจเรื่องการลงทุน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c1.p2",
+    "จุดเริ่มต้นจากความสนใจเรื่องการลงทุน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c1.p3",
+    "จุดเริ่มต้นจากความสนใจเรื่องการลงทุน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c1.p4",
+    "จุดเริ่มต้นจากความสนใจเรื่องการลงทุน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c1.p5",
+    "จุดเริ่มต้นจากความสนใจเรื่องการลงทุน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c1.p6",
+    "จุดเริ่มต้นจากความสนใจเรื่องการลงทุน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c1.p7",
+    "จุดเริ่มต้นจากความสนใจเรื่องการลงทุน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c1.p8",
+    "จุดเริ่มต้นจากความสนใจเรื่องการลงทุน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c1.p9",
+    "จุดเริ่มต้นจากความสนใจเรื่องการลงทุน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c1.p10",
+    "จุดเริ่มต้นจากความสนใจเรื่องการลงทุน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c1.p11",
+    "จุดเริ่มต้นจากความสนใจเรื่องการลงทุน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c2.heading",
+    "จุดเปลี่ยนที่ทำให้มองการเงินกว้างกว่าเดิม",
+    "หัวข้อส่วน",
+    true
+  ],
+  [
+    "about.storyV2.c2.p1",
+    "จุดเปลี่ยนที่ทำให้มองการเงินกว้างกว่าเดิม",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c2.p2",
+    "จุดเปลี่ยนที่ทำให้มองการเงินกว้างกว่าเดิม",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c2.p3",
+    "จุดเปลี่ยนที่ทำให้มองการเงินกว้างกว่าเดิม",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c2.p4",
+    "จุดเปลี่ยนที่ทำให้มองการเงินกว้างกว่าเดิม",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c2.p5",
+    "จุดเปลี่ยนที่ทำให้มองการเงินกว้างกว่าเดิม",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c2.p6",
+    "จุดเปลี่ยนที่ทำให้มองการเงินกว้างกว่าเดิม",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c2.p7",
+    "จุดเปลี่ยนที่ทำให้มองการเงินกว้างกว่าเดิม",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c2.p8",
+    "จุดเปลี่ยนที่ทำให้มองการเงินกว้างกว่าเดิม",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c2.p9",
+    "จุดเปลี่ยนที่ทำให้มองการเงินกว้างกว่าเดิม",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c2.p10",
+    "จุดเปลี่ยนที่ทำให้มองการเงินกว้างกว่าเดิม",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c2.p11",
+    "จุดเปลี่ยนที่ทำให้มองการเงินกว้างกว่าเดิม",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c3.heading",
+    "กลับมาเรียนรู้การวางแผนการเงินอย่างจริงจัง",
+    "หัวข้อส่วน",
+    true
+  ],
+  [
+    "about.storyV2.c3.p1",
+    "กลับมาเรียนรู้การวางแผนการเงินอย่างจริงจัง",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c3.p2",
+    "กลับมาเรียนรู้การวางแผนการเงินอย่างจริงจัง",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c3.p3",
+    "กลับมาเรียนรู้การวางแผนการเงินอย่างจริงจัง",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c3.p4",
+    "กลับมาเรียนรู้การวางแผนการเงินอย่างจริงจัง",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c3.p5",
+    "กลับมาเรียนรู้การวางแผนการเงินอย่างจริงจัง",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c3.p6",
+    "กลับมาเรียนรู้การวางแผนการเงินอย่างจริงจัง",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c3.p7",
+    "กลับมาเรียนรู้การวางแผนการเงินอย่างจริงจัง",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c4.heading",
+    "แผนการเงินที่เริ่มจากชีวิตของแต่ละคน",
+    "หัวข้อส่วน",
+    true
+  ],
+  [
+    "about.storyV2.c4.p1",
+    "แผนการเงินที่เริ่มจากชีวิตของแต่ละคน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c4.p2",
+    "แผนการเงินที่เริ่มจากชีวิตของแต่ละคน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c4.p3",
+    "แผนการเงินที่เริ่มจากชีวิตของแต่ละคน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c4.p4",
+    "แผนการเงินที่เริ่มจากชีวิตของแต่ละคน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c4.p5",
+    "แผนการเงินที่เริ่มจากชีวิตของแต่ละคน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c4.p6",
+    "แผนการเงินที่เริ่มจากชีวิตของแต่ละคน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.c4.p7",
+    "แผนการเงินที่เริ่มจากชีวิตของแต่ละคน",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.storyV2.ctaLabel",
+    "วันนี้ผมมองการวางแผนการเงินอย่างไร",
+    "ลิงก์ติดต่อ",
+    true
+  ],
+  [
+    "about.storyV2.photoAlt.scbs",
+    "รูปประกอบเรื่องราว",
+    "คำอธิบายรูป",
+    false
+  ],
+  [
+    "about.storyV2.photoAlt.phillip",
+    "รูปประกอบเรื่องราว",
+    "คำอธิบายรูป",
+    false
+  ],
+  [
+    "about.storyV2.photoAlt.bitkub",
+    "รูปประกอบเรื่องราว",
+    "คำอธิบายรูป",
+    false
+  ],
+  [
+    "about.father.photoAlt",
+    "รูปประกอบเรื่องราว",
+    "คำอธิบายรูป",
+    false
+  ],
+  [
+    "about.storyV2.verify.tfpa",
+    "คุณวุฒิและการตรวจสอบ",
+    "คำอธิบายหรือลิงก์ตรวจสอบ",
+    true
+  ],
+  [
+    "about.storyV2.verify.sec",
+    "คุณวุฒิและการตรวจสอบ",
+    "คำอธิบายหรือลิงก์ตรวจสอบ",
+    true
+  ],
+  [
+    "about.storyV2.verify.oic",
+    "คุณวุฒิและการตรวจสอบ",
+    "คำอธิบายหรือลิงก์ตรวจสอบ",
+    true
+  ],
+  [
+    "about.storyV2.verify.help",
+    "คุณวุฒิและการตรวจสอบ",
+    "คำอธิบายหรือลิงก์ตรวจสอบ",
+    true
+  ],
+  [
+    "about.how.heading",
+    "เริ่มวางแผนกับ CCPun ทีละขั้น",
+    "หัวข้อ",
+    true
+  ],
+  [
+    "about.how.intro",
+    "เริ่มวางแผนกับ CCPun ทีละขั้น",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.how.step1.heading",
+    "เริ่มวางแผนกับ CCPun ทีละขั้น",
+    "หัวข้อ",
+    true
+  ],
+  [
+    "about.how.step1.body",
+    "เริ่มวางแผนกับ CCPun ทีละขั้น",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.how.step2.heading",
+    "เริ่มวางแผนกับ CCPun ทีละขั้น",
+    "หัวข้อ",
+    true
+  ],
+  [
+    "about.how.step2.body",
+    "เริ่มวางแผนกับ CCPun ทีละขั้น",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.how.step3.heading",
+    "เริ่มวางแผนกับ CCPun ทีละขั้น",
+    "หัวข้อ",
+    true
+  ],
+  [
+    "about.how.step3.body",
+    "เริ่มวางแผนกับ CCPun ทีละขั้น",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.how.step4.heading",
+    "เริ่มวางแผนกับ CCPun ทีละขั้น",
+    "หัวข้อ",
+    true
+  ],
+  [
+    "about.how.step4.body",
+    "เริ่มวางแผนกับ CCPun ทีละขั้น",
+    "ย่อหน้า",
+    true
+  ],
+  [
+    "about.partners.heading",
+    "พาร์ทเนอร์",
+    "หัวข้อส่วน",
+    true
+  ],
+  [
+    "about.partners.disclosure",
+    "พาร์ทเนอร์",
+    "คำชี้แจง",
+    true
+  ],
+  [
+    "about.reviews.heading",
+    "เสียงจากผู้รับคำแนะนำ",
+    "หัวข้อส่วน",
+    true
+  ],
+  [
+    "about.reviews.permission",
+    "เสียงจากผู้รับคำแนะนำ",
+    "คำชี้แจง",
+    true
+  ],
+  [
+    "about.faq.heading",
+    "คำถามก่อนเริ่มวางแผน",
+    "หัวข้อส่วน",
+    true
+  ],
+  [
+    "about.faq1.question",
+    "คำถามก่อนเริ่มวางแผน",
+    "คำถามที่กดเปิดได้",
+    true
+  ],
+  [
+    "about.faq1.answer",
+    "คำถามก่อนเริ่มวางแผน",
+    "คำตอบ",
+    true
+  ],
+  [
+    "about.faq2.question",
+    "คำถามก่อนเริ่มวางแผน",
+    "คำถามที่กดเปิดได้",
+    true
+  ],
+  [
+    "about.faq2.answer",
+    "คำถามก่อนเริ่มวางแผน",
+    "คำตอบ",
+    true
+  ],
+  [
+    "about.storyV2.verify.back",
+    "ข้อความเดิม · ไม่ได้แสดงในหน้าปัจจุบัน",
+    "ข้อความเดิม",
+    false
+  ],
+  [
+    "about.breadcrumb.home",
+    "ข้อความเดิม · ไม่ได้แสดงในหน้าปัจจุบัน",
+    "ข้อความเดิม",
+    false
+  ],
+  [
+    "about.next.tools",
+    "ข้อความเดิม · ไม่ได้แสดงในหน้าปัจจุบัน",
+    "ข้อความเดิม",
+    false
+  ],
+  [
+    "about.father.heading",
+    "ข้อความเดิม · ไม่ได้แสดงในหน้าปัจจุบัน",
+    "ข้อความเดิม",
+    false
+  ],
+  [
+    "about.father.caption",
+    "ข้อความเดิม · ไม่ได้แสดงในหน้าปัจจุบัน",
+    "ข้อความเดิม",
+    false
+  ],
+  [
+    "about.father.paragraph1",
+    "ข้อความเดิม · ไม่ได้แสดงในหน้าปัจจุบัน",
+    "ข้อความเดิม",
+    false
+  ],
+  [
+    "about.father.paragraph2",
+    "ข้อความเดิม · ไม่ได้แสดงในหน้าปัจจุบัน",
+    "ข้อความเดิม",
+    false
+  ],
+  [
+    "about.father.paragraph3",
+    "ข้อความเดิม · ไม่ได้แสดงในหน้าปัจจุบัน",
+    "ข้อความเดิม",
+    false
+  ],
+  [
+    "about.father.paragraph4",
+    "ข้อความเดิม · ไม่ได้แสดงในหน้าปัจจุบัน",
+    "ข้อความเดิม",
+    false
+  ],
+  [
+    "about.father.paragraph5",
+    "ข้อความเดิม · ไม่ได้แสดงในหน้าปัจจุบัน",
+    "ข้อความเดิม",
+    false
+  ],
+  [
+    "about.father.paragraph6",
+    "ข้อความเดิม · ไม่ได้แสดงในหน้าปัจจุบัน",
+    "ข้อความเดิม",
+    false
+  ],
+  [
+    "about.father.paragraph7",
+    "ข้อความเดิม · ไม่ได้แสดงในหน้าปัจจุบัน",
+    "ข้อความเดิม",
+    false
+  ],
+  [
+    "about.father.question1",
+    "ข้อความเดิม · ไม่ได้แสดงในหน้าปัจจุบัน",
+    "ข้อความเดิม",
+    false
+  ],
+  [
+    "about.father.question2",
+    "ข้อความเดิม · ไม่ได้แสดงในหน้าปัจจุบัน",
+    "ข้อความเดิม",
+    false
+  ],
+  [
+    "about.father.question3",
+    "ข้อความเดิม · ไม่ได้แสดงในหน้าปัจจุบัน",
+    "ข้อความเดิม",
+    false
+  ]
+],
+  toolsHub: [
+    ["toolsHub.breadcrumb.label", "ส่วนหัวและเส้นทาง", "ข้อความสำหรับโปรแกรมอ่านหน้าจอ", false],
+    ["toolsHub.breadcrumb.home", "ส่วนหัวและเส้นทาง", "ลิงก์", true],
+    ["toolsHub.label", "ส่วนหัวและเส้นทาง", "ชื่อหน้า", true],
+    ["toolsHub.hero.title", "ส่วนหัวและเส้นทาง", "หัวข้อใหญ่สุดของหน้า", true],
+    ["toolsHub.hero.lead", "ส่วนหัวและเส้นทาง", "คำอธิบายหน้า", true],
+    ["toolsHub.investment.title", "การ์ดวางแผนกองทุน", "ชื่อเครื่องมือ", true],
+    ["toolsHub.investment.body", "การ์ดวางแผนกองทุน", "คำอธิบายเครื่องมือ", true],
+    ["toolsHub.aia.title", "การ์ดกองทุน บลจ. เอไอเอ", "ชื่อเครื่องมือ", true],
+    ["toolsHub.aia.body", "การ์ดกองทุน บลจ. เอไอเอ", "คำอธิบายเครื่องมือ", true],
+  ],
+};
+
+// Dynamic native card keys are rendered through typed records. Give editors
+// their actual placement instead of the scanner's generic runtime fallback.
+const nativeHomeFields = [
+  ["home.startHere.title", "หัวข้อส่วน"], ["home.startHere.lead", "คำอธิบาย"],
+  ["home.startHere.noRepeats", "คำอธิบาย"],
+  ["home.startHere.health.situation", "หัวข้อการ์ด · ประกันสุขภาพ"],
+  ["home.startHere.externalGuide", "ลิงก์คู่มือเมื่อยังไม่มีบทความในระบบ"],
+  ["home.startHere.health.campaign", "กำหนดเวลาของแคมเปญ"],
+  ["home.startHere.health.paired", "ลิงก์เครื่องมือหรือบทความคู่กัน"],
+  ["home.startHere.externalSource", "คำอธิบายลิงก์เว็บไซต์หลัก"],
+  ["home.startHere.ci.situation", "หัวข้อการ์ด · โรคร้ายแรง"],
+  ["home.startHere.ci.paired", "ลิงก์เครื่องมือคู่กัน"],
+  ["home.startHere.tax.situation", "หัวข้อการ์ด · ภาษี"],
+  ["home.startHere.tax.paired", "ลิงก์เครื่องมือคู่กัน"],
+  ["home.startHere.pyramid.situation", "หัวข้อการ์ด · พื้นฐานการเงิน"],
+  ["home.startHere.pyramid.paired", "ลิงก์เครื่องมือคู่กัน"],
+];
+const nativeHomeAnchor = found.get("home.startHere.title")?.order;
+for (const [index, [key, kind]] of nativeHomeFields.entries()) {
+  if (defaults.has(key)) found.set(key, { section: "เริ่มจากสถานการณ์ของคุณ · คู่มือและเครื่องมือ", kind, visible: true, order: (nativeHomeAnchor ?? 1_000_000_000) + index / 100 });
+}
+for (const [key, kind] of [["blog.toc.count", "จำนวนหัวข้อ"], ["blog.toc.close", "ปุ่มปิดสารบัญ"]]) {
+  if (defaults.has(key)) found.set(key, { section: "หน้าอ่านบทความ · สารบัญบนมือถือ", kind, visible: true, order: found.get(key)?.order ?? 1_000_000_000 });
+}
+
+// Feature-owned dynamic labels have explicit readable editor placements.
+for (const key of Object.keys(PUBLIC_COPY_SCOPES.blog.defaults)) {
+  if (!key.startsWith("blog.hub.")) continue;
+  const [, , slug, ...rest] = key.split(".");
+  const suffix = rest.join(".");
+  const title = PUBLIC_COPY_SCOPES.blog.defaults[`blog.hub.${slug}.title`];
+  const kind = suffix.startsWith("intro") ? "ย่อหน้าแนะนำหมวด" : suffix.startsWith("featured") ? "ข้อความเครื่องมือที่เกี่ยวข้อง" : suffix === "title" ? "ชื่อหมวดเสริม" : "คำอธิบายหมวดเสริม";
+  found.set(key, { section: `หมวด · ${title}`, kind, visible: true, order: 95000000 + Object.keys(PUBLIC_COPY_SCOPES.blog.defaults).indexOf(key) });
+}
+for (const key of Object.keys(PUBLIC_COPY_SCOPES.site.defaults)) {
+  if (!key.startsWith("site.theme.") && !key.startsWith("site.chat.") && key !== "site.tools.all" && key !== "site.cookie.ariaAlwaysActive") continue;
+  const section = key.startsWith("site.theme.") ? "เมนู · ตัวเลือกธีม" : key.startsWith("site.chat.") ? "LINE · ปุ่มและ QR" : key.startsWith("site.cookie.") ? "คุกกี้ · โปรแกรมอ่านหน้าจอ" : "เมนูและท้ายเว็บ · รวมเครื่องมือ";
+  const location = found.get(key);
+  found.set(key, { section, kind: location?.kind ?? "ข้อความ", visible: !key.includes("status") && !key.endsWith("qrLabel") && !key.includes("aria"), order: location?.order ?? 96000000 + Object.keys(PUBLIC_COPY_SCOPES.site.defaults).indexOf(key) });
+}
+
 const result = {};
 for (const [scope, config] of Object.entries(PUBLIC_COPY_SCOPES)) {
-  const entries = Object.keys(config.defaults).map((key, registryIndex) => {
+  const explicit = PAGE_ENTRY_LOCATIONS[scope];
+  if (explicit && (explicit.length !== Object.keys(config.defaults).length || new Set(explicit.map(([key]) => key)).size !== explicit.length || explicit.some(([key]) => !Object.hasOwn(config.defaults, key)))) throw new Error(`Page copy location coverage mismatch: ${scope}`);
+  const entries = explicit ? explicit.map(([key, section, kind, visible], order) => ({ key, section, kind, visible, order })) : Object.keys(config.defaults).map((key, registryIndex) => {
     const location = found.get(key);
     return location
       ? { key, ...location }

@@ -132,6 +132,16 @@ test('Money Story preserves original Production trees except approved focusable 
       assert.equal(tree.props.tabIndex, -1, name + ': programmatic focus without extra Tab stop');
       const priorTree = { ...tree, props: { ...tree.props } };
       delete priorTree.props.tabIndex;
+      if (name.startsWith('result-')) {
+        // The approved v5 caption changes only its typography; retain every historical tree hash.
+        const heroes = elements(priorTree).filter(node => node.props.className === 'resultHero');
+        assert.equal(heroes.length, 1, name + ': one result hero');
+        const captions = elements(heroes[0]).filter(node => node.type === 'p');
+        assert.equal(captions.length, 1, name + ': one result caption');
+        assert.equal(captions[0].props.className, 'muted', name + ': exact approved v5 caption class');
+        assert.ok(text(captions[0]).startsWith('ผลลัพธ์ · '), name + ': existing caption text');
+        captions[0].props.className = 'kicker';
+      }
       assert.equal(digest(priorTree), baseline[name], name + ': every other original property retained');
     } else assert.equal(digest(tree), baseline[name], name);
   }

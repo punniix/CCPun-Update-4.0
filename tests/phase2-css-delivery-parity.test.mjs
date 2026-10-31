@@ -156,19 +156,35 @@ function retainedAtRules(context, before, after) {
   } else assert.deepEqual(registry,originalRegistry,'All68 originalRoot registrations retain values/order');
   assert.deepEqual(current,old,'Retained at-rule declarations/ancestry/order stay original');
 }
+// Only one scanner-discovered v5 utility is new in Web; all historical compiled bytes stay pinned.
+function reviewedV5CompilerProjection(context, candidate, previous) {
+  assert.ok(context === 'root' || context === 'web', 'only the two existing compiler contexts');
+  assert.equal(sha(previous), context === 'root' ? '67638ca5fa86d3698aca48ee320f7e9eb3652b307d2b7bfc6febf82e4f5e3cb4' : '251ccb344a8056f190916ad06eb9a806b72affa352a3398cd72247842e6a23db', 'historical reviewed compiler capture retained');
+  if (context === 'root') { assert.equal(candidate, previous); return candidate; }
+  assert.equal(sha(candidate), '2c249c3bfafa0b12c2edca8d0d2a8eec9117879c61f752cc84b19fd0721d69cb', 'exact current Web compiler output');
+  const insertion = '  .static {\n    position: static;\n  }\n';
+  assert.equal(candidate.split(insertion).length, 2, 'one exact approved static utility');
+  const projected = candidate.replace(insertion, '');
+  assert.equal(projected, previous, 'every other byte, declaration, ancestry and order remains frozen');
+  return projected;
+}
+
 test('actual Root and Web compilers preserve original authored rules with exact reviewed utilities only',async()=>{
   const runtimeLiteralTokens=new Set();for(const path of runtimeFiles){const tree=ts.createSourceFile(path,sourceByFile.get(path),ts.ScriptTarget.Latest,true);const visit=node=>{if(ts.isStringLiteral(node)||ts.isNoSubstitutionTemplateLiteral(node)||ts.isTemplateHead(node)||ts.isTemplateMiddle(node)||ts.isTemplateTail(node))for(const token of node.text.split(/\s+/))runtimeLiteralTokens.add(token);ts.forEachChild(node,visit);};visit(tree);}
   for(const [context,options,original]of [['root',{optimize:false},baselineCss],['web',{base:resolve('apps/web'),optimize:false},gunzipSync(Buffer.from(proof.nativeWeb.compiledCssGzip,'base64')).toString()]]) {
     const admission=proof.reviewedCurrentCompiler[context];const captured=gunzipSync(Buffer.from(admission.compiledCssGzip,'base64')).toString();
     const expected= context==='root' ? '67638ca5fa86d3698aca48ee320f7e9eb3652b307d2b7bfc6febf82e4f5e3cb4' : '251ccb344a8056f190916ad06eb9a806b72affa352a3398cd72247842e6a23db';assert.equal(sha(captured),expected);assert.equal(admission.compiledSha256,expected);
-    const compiled=await postcss([tailwind(options)]).process(source,{from:resolve(file)});assert.equal(compiled.css,captured,'Actual locked compiler equals reviewed output');assert.equal(Buffer.byteLength(compiled.css),admission.compiledBytes);assert.equal(gzipSync(compiled.css).length,admission.compiledGzipBytes);assert(Buffer.byteLength(compiled.css)<=(context==='root'?proof.compiledBytes:proof.nativeWeb.compiledBytes),'Reviewed UX stays within original CSS payload budget');
-    retainedRecords(context,rules(original),rules(compiled.css),admission);retainedAtRules(context,atRules(original),atRules(compiled.css));
+    const compiled=await postcss([tailwind(options)]).process(source,{from:resolve(file)});const projected=reviewedV5CompilerProjection(context,compiled.css,captured);assert.equal(Buffer.byteLength(projected),admission.compiledBytes);assert.equal(gzipSync(projected).length,admission.compiledGzipBytes);assert(Buffer.byteLength(compiled.css)<=(context==='root'?proof.compiledBytes:proof.nativeWeb.compiledBytes),'Actual v5 output stays within original CSS payload budget');
+    retainedRecords(context,rules(original),rules(projected),admission);retainedAtRules(context,atRules(original),atRules(projected));
     for(const rule of admission.removedRules){assert.match(rule.selector,/^\.(?:[\w/-]|\\.)+$/);const utility=rule.selector.slice(1).replace(/\\(.)/g,'$1');assert(!runtimeLiteralTokens.has(utility),'Removed utility has actual runtime consumer: '+utility);}
     for(const message of compiled.messages.filter(message=>message.type==='dir-dependency'))assert(!['qa','tests','docs','scripts'].some(directory=>message.dir===resolve(directory)||message.dir.startsWith(resolve(directory)+'/')));
-    const unknown=structuredClone(admission);unknown.addedRules.push({selector:'.unknown',ancestry:[],declarations:[]});assert.throws(()=>retainedRecords(context,rules(original),rules(compiled.css),unknown));
-    const changed=rules(compiled.css);const target=changed.find(rule=>!addedSelectors[context].includes(rule.selector)&&!defaults(rule)&&rule.declarations.length);target.declarations[0][1]+=' mutation';assert.throws(()=>retainedRecords(context,rules(original),changed,admission));
-    const mutated=atRules(compiled.css);const index=mutated.findIndex(node=>node.name==='property');mutated[index].declarations[2][1]='unreviewed';assert.throws(()=>retainedAtRules(context,atRules(original),mutated));
-    const reordered=atRules(compiled.css);const positions=reordered.flatMap((node,index)=>node.name==='property'?[index]:[]);[reordered[positions[0]],reordered[positions[1]]]=[reordered[positions[1]],reordered[positions[0]]];assert.throws(()=>retainedAtRules(context,atRules(original),reordered));
+    for (const changed of [compiled.css + '\n/* unrelated */', compiled.css.slice(0,-1), compiled.css.replace('position: static;', 'position: relative;')]) {
+      assert.notEqual(changed, compiled.css);assert.throws(() => reviewedV5CompilerProjection(context, changed, captured));
+    }
+    const unknown=structuredClone(admission);unknown.addedRules.push({selector:'.unknown',ancestry:[],declarations:[]});assert.throws(()=>retainedRecords(context,rules(original),rules(projected),unknown));
+    const changed=rules(projected);const target=changed.find(rule=>!addedSelectors[context].includes(rule.selector)&&!defaults(rule)&&rule.declarations.length);target.declarations[0][1]+=' mutation';assert.throws(()=>retainedRecords(context,rules(original),changed,admission));
+    const mutated=atRules(projected);const index=mutated.findIndex(node=>node.name==='property');mutated[index].declarations[2][1]='unreviewed';assert.throws(()=>retainedAtRules(context,atRules(original),mutated));
+    const reordered=atRules(projected);const positions=reordered.flatMap((node,index)=>node.name==='property'?[index]:[]);[reordered[positions[0]],reordered[positions[1]]]=[reordered[positions[1]],reordered[positions[0]]];assert.throws(()=>retainedAtRules(context,atRules(original),reordered));
   }
 });
 
@@ -220,8 +236,10 @@ test('native Web compiler freezes reviewed current output while preserving origi
   const candidate = await postcss([tailwind({ base: resolve('apps/web'), optimize: false })]).process(source, { from: resolve(file) });
   // This matches the app build driver's cwd. Root standalone sizes cannot certify it.
   const reviewed = gunzipSync(Buffer.from(proof.reviewedCurrentCompiler.web.compiledCssGzip, 'base64')).toString();
-  assert.equal(candidate.css, reviewed, 'Actual native app output equals the reviewed UX output; original gzip remains frozen');
-  assert.equal(Buffer.byteLength(candidate.css), proof.reviewedCurrentCompiler.web.compiledBytes);
+  const projected = reviewedV5CompilerProjection('web', candidate.css, reviewed);
+  assert.equal(Buffer.byteLength(projected), proof.reviewedCurrentCompiler.web.compiledBytes);
+  assert.equal(Buffer.byteLength(candidate.css), 127179, 'actual new Web bytes reported separately from historical bytes');
+  assert.equal(gzipSync(candidate.css).length, 16198, 'actual new Web gzip remains bounded');
   assert.equal(sha(original), '8ef2b65a4b29c8b1e562fdcf16434a4104de01c537fdc5ddd5996506eaf5a22d');
 });
 

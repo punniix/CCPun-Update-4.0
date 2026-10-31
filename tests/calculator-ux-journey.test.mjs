@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import test from 'node:test';
 import { JSDOM } from 'jsdom';
 import React, { act, createElement } from 'react';
+import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 
 const dom = new JSDOM('<div id="root"></div>', { url: 'https://preview.example.test/' });
 for (const key of ['window', 'document', 'HTMLElement', 'Element', 'Event', 'MouseEvent', 'localStorage']) {
@@ -14,6 +15,15 @@ window.requestAnimationFrame = (fn) => window.setTimeout(fn, 0);
 Element.prototype.scrollIntoView = function () {};
 const { createRoot } = await import('react-dom/client');
 const require = createRequire(import.meta.url);
+// Node executes the real calculator components; only their new native CSS boundary is synthetic.
+const nativeToolCss = require.resolve('../components/layout/v5/V5Tool.module.css');
+const previousCssLoader = require.extensions['.css'];
+require.extensions['.css'] = (module, filename) => {
+  assert.equal(filename,nativeToolCss,'unexpected stylesheet must not be silently ignored');
+  module.exports = {__esModule:true,default:new Proxy({},{get:(_,key)=>String(key)})};
+};
+test.after(()=>{ if(previousCssLoader)require.extensions['.css']=previousCssLoader;else delete require.extensions['.css']; });
+
 const FHC = require('../features/financial-health-check/components/LifeCoverageWizard.tsx').default;
 const CI = require('../features/ci-planning/components/CIWizard.tsx').default;
 const setValue = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
@@ -99,4 +109,47 @@ test('CI errors, dependent field limits, preserved inputs, zero coverage, method
     await click('เริ่มใหม่');
     assert.equal(document.getElementById('ci-household').value, '');
   } finally { await close(); }
+});
+
+
+test('result LINE chat restores its true opener after unmount, with removed-target and consent-modal safety',{timeout:10000},async()=>{
+  for(const key of ['CustomEvent','MutationObserver','navigator'])Object.defineProperty(globalThis,key,{configurable:true,value:window[key]});
+  const previousMatchMedia=window.matchMedia;
+  const previousActEnvironment=globalThis.IS_REACT_ACT_ENVIRONMENT;globalThis.IS_REACT_ACT_ENVIRONMENT=false;
+  const {flushSync}=require('react-dom');
+  const settle=async check=>{const until=Date.now()+1000;while(!check()&&Date.now()<until)await new Promise(resolve=>setTimeout(resolve,5));assert.ok(check(),'real chat transition completes within one second');};
+  window.matchMedia=query=>({matches:query.includes('prefers-reduced-motion')||query.includes('pointer: coarse'),media:query,addEventListener(){},removeEventListener(){}});
+  window.cancelAnimationFrame=id=>window.clearTimeout(id);
+  const mocks=new Map([
+    ['./V5ChatDock.module.css',{__esModule:true,default:new Proxy({},{get:(_,key)=>String(key)})}],
+    ['@/lib/analytics',{trackEvent(){}}],['@/lib/acquisition',{getAttribution:()=>null}],['@/lib/cookie-consent',{getConsentData:()=>null}],
+  ]);
+  const Dock=loadFixtureModule('components/layout/v5/V5ChatDock.tsx',{mocks}).default;
+  const Link=loadFixtureModule('components/layout/v5/V5ChatLink.tsx',{mocks}).default;
+  const {LINE_CHAT_DEFAULTS,chatContextForPath,resultChatHref}=loadFixtureModule('lib/line/chat-panel.ts');
+  const host=document.createElement('div');document.body.append(host);const root=createRoot(host);let cookie,external;
+  try{
+    flushSync(()=>root.render(createElement(React.Fragment,null,createElement(Link,{href:resultChatHref('fhc'),resultTool:'fhc'},'Result LINE'),createElement(Dock,{config:LINE_CHAT_DEFAULTS,context:chatContextForPath('/tools/financial-health-check/'),fallbackHref:resultChatHref('fhc')}))));
+    const opener=host.querySelector('[data-v5-chat-link]');
+    for(const scenario of ['inline opener','removed opener','consent modal']){
+      flushSync(()=>{
+        if(scenario==='removed opener'){
+          external=document.createElement('a');external.href=resultChatHref('fhc');external.textContent='Removed result';document.body.append(external);external.focus();
+          window.dispatchEvent(new CustomEvent('ccpun:open-chat',{cancelable:true,detail:{trigger:'article_cta',returnTo:external,resultTool:'fhc'}}));
+        }else{opener.focus();opener.click();}
+      });
+      await settle(()=>document.querySelector('#v5-chat-panel')?.contains(document.activeElement));
+      const panel=document.querySelector('#v5-chat-panel');assert.ok(panel,scenario+': actual lazy panel mounted');assert.ok(panel.contains(document.activeElement),scenario+': panel owns focus');
+      if(scenario==='removed opener')external.remove();
+      if(scenario==='consent modal'){
+        cookie=document.createElement('div');cookie.setAttribute('role','dialog');cookie.setAttribute('aria-labelledby','cookie-title');cookie.tabIndex=-1;document.body.append(cookie);
+      }
+      flushSync(()=>window.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));
+      const expected=scenario==='consent modal'?cookie:scenario==='removed opener'?host.querySelector('[data-v5-chat-dock] a'):opener;
+      await settle(()=>!document.querySelector('#v5-chat-panel') && document.activeElement === expected);
+      assert.equal(document.querySelector('#v5-chat-panel'),null,scenario+': actual close lifecycle fully unmounts');
+      assert.ok(document.activeElement === expected,scenario+': correct connected/top-modal destination; actual='+document.activeElement?.outerHTML.slice(0,250)+' expected='+expected?.outerHTML.slice(0,250));
+      cookie?.remove();cookie=null;external?.remove();external=null;
+    }
+  }finally{cookie?.remove();external?.remove();flushSync(()=>root.unmount());host.remove();window.matchMedia=previousMatchMedia;globalThis.IS_REACT_ACT_ENVIRONMENT=previousActEnvironment;}
 });

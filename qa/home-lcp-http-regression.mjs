@@ -5,7 +5,13 @@ assert.equal(response.status, 200);
 const html = await response.text();
 const hero = html.match(/<section id="home"[\s\S]*?<\/section>/)?.[0];
 assert.ok(hero, "Homepage renders its hero in server HTML");
-assert.match(hero, /home-hero-desktop/);
+// V5 uses CSS-module class names; assert the actual semantic hero and approved eager portrait.
+assert.match(hero, /<section id="home"[^>]*aria-labelledby="home-hero-title"/);
+assert.match(hero, /<h1 id="home-hero-title"[^>]*>/);
+assert.match(hero, /<div class="V5Home_portrait__[^"]+">/);
+assert.match(hero, /home-hero-white-outline-bottom-flush-f548ab58\.png/);
+assert.match(hero, /alt="CCPun กำลังนั่งทำงานพร้อมคอมพิวเตอร์โน้ตบุ๊ก"/);
+assert.doesNotMatch(hero, /home-hero-desktop/, "obsolete 4.x hero must not return");
 assert.match(hero, /loading="eager"/);
 assert.match(hero, /fetchPriority="high"|fetchpriority="high"/);
 assert.doesNotMatch(hero, /loading="lazy"/);

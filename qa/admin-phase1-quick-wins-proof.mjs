@@ -32,8 +32,13 @@ export const adminPhase1QuickWinSources = Object.freeze({
 // for an exact reviewed successor, otherwise the file's own digest (so any other
 // edit still fails the original assertion).
 export function adminPhase1PredecessorDigest(file, source) {
+  // Approved v5 Production-copy scope allowlist; all historical pins stay frozen.
+  let currentDigest = sha(source);
+  // Exact approved Production human Studio label; the existing quick-win source and pins stay intact.
+  if (file === 'sanity.config.ts' && currentDigest === 'fcd2a0a5fca8ff3aea117a30881bf9a0036236b76d48163039178bd279492d20') currentDigest = '25dc55df26c71146de1a8fa6517ae4526dda23f6531ce54d272aa61c41a1a25f';
+  if (file === 'cms/sanity/policy/studio-policy.ts' && currentDigest === '6b76938f6a473ebda335d14f9931aa82b3d6a505fa9735b3cd09d2f3f430c39c') currentDigest = '4cad6a03bc5befd47ef77937952f4c3ee50d7eb83cb0acc897dcc66518c45a7d';
   // Later reviewed successors (qa/admin-ops-20261025-proof.mjs) chain back first.
-  const digest = adminOps20261025PredecessorDigest(file, sha(source));
+  const digest = adminOps20261025PredecessorDigest(file, currentDigest);
   const entry = Object.hasOwn(adminPhase1QuickWinSources, file) ? adminPhase1QuickWinSources[file] : null;
   return entry && digest === entry.after ? entry.before : digest;
 }

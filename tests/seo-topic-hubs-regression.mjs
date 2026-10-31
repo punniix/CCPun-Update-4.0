@@ -89,16 +89,18 @@ assert.match(categoryPage, /const hub = getBlogTopicHub\(slug\);[\s\S]*getLegacy
 assert.match(categoryPage, /getCategoryCanonical\(category\.slug\)/);
 assert.match(categoryPage, /!includeDrafts[\s\S]*category\.status === "active"/);
 assert.match(categoryPage, /const shouldIndexHub = !includeDrafts && hub\.indexable/);
-assert.match(categoryPage, /activeCategorySlug=\{category\.slug\}/);
-assert.match(categoryPage, /activeCategorySlug=\{hub\.slug\}/);
-assert.match(categoryPage, /heroDescription=\{category\.description \?\? hub\?\.description\}/);
-assert.match(categoryPage, /heroDescription=\{hub\.description\}/);
-assert.match(categoryPage, /topicContent=\{buildTopicIntro\(hub, copyText\)\}/);
-assert.match(categoryPage, /hub\.intro\.map/);
-assert.match(categoryPage, /styles\.storyCopy/);
-assert.match(blogPresentation, /heroDescription\?: string/);
-assert.match(blogPresentation, /<p>\{heroDescription \?\? 'เข้าใจเรื่องการเงิน\ ประกัน\ การลงทุนได้ง่าย\ แม้จะเริ่มจาก\ 0'\}<\/p>/);
-assert.match(categoryPage, /categories=\{categoryMenu\(registry, includeDrafts\)\}/);
+assert.match(categoryPage, /<V5Category\s+slug=\{category\.slug\}\s+categoryOwner/);
+assert.match(categoryPage, /<V5Category\s+slug=\{hub\.slug\}/);
+assert.match(categoryPage, /description=\{category\.description \?\? hub\?\.description\}/);
+assert.match(categoryPage, /description=\{hub\.description\}/);
+assert.match(categoryPage, /hub=\{hub\}/);
+assert.match(categoryPage, /topics=\{linkableTopics\(registry, visibleArticles\)\}/);
+const nativeCategory = await read('features/blog/v5/V5Category.tsx');
+assert.match(nativeCategory, /hub\.intro\.map/);
+assert.match(nativeCategory, /styles\.introCopy/);
+assert.match(nativeCategory, /hubText\(`intro\$\{index \+ 1\}`, paragraph\)/);
+assert.match(nativeCategory, /headingDescription \? <p className=\{styles\.heroLead\}>/);
+assert.match(nativeCategory, /topic\.slug === slug \? "page"/);
 
 // Article routing/canonical functions stay intact while visible topic navigation is semantic.
 assert.match(articlePage, /getArticleCategorySlug\(article\)/);
@@ -137,13 +139,22 @@ for (const sitemapSource of [sitemap, webSitemap]) {
 // Main Blog dropdown is injected from the server-side registry; query filters
 // remain UX state and are never canonical SEO destinations.
 assert.match(blogPage, /listCategoryRegistry/);
-assert.match(blogPage, /listCategoryMenuEntries/);
-assert.match(blogPage, /categories=\{categories\}/);
+assert.match(blogPage, /listLinkableTopics\(registry, articles\)/);
+assert.match(blogPage, /listFallbackTopics\(articles\)/);
+assert.match(blogPage, /topics=\{topics\}/);
 assert.doesNotMatch(blogPage, /BLOG_TOPIC_HUBS/);
-assert.match(blogPresentation, /categories\?: Website43BlogCategoryItem\[\]/);
+const nativeBlog = await read('features/blog/v5/V5BlogIndex.tsx');
+assert.match(nativeBlog, /topics: TopicLink\[\]/);
+assert.match(nativeBlog, /topics\.map\(\(topic\)/);
+assert.match(nativeBlog, /href=\{topic\.href\}/);
 assert.match(blogPresentation, /ทุกหมวดหมู่/);
 assert.match(blogInteractive, /nativeReplaceState\.call\(window\.history/);
 assert.match(blogInteractive, /url\.searchParams\.set\('q'/);
+const nativeSearch = await read('features/blog/v5/V5BlogSearch.tsx');
+assert.match(nativeSearch, /window\.history\.replaceState\(window\.history\.state/);
+assert.match(nativeSearch, /url\.searchParams\.set\("q"/);
+assert.match(nativeSearch, /url\.searchParams\.delete\("page"\)/);
+assert.doesNotMatch(nativeSearch, /window\.history\.pushState/);
 assert.match(blogPage, /filters\.category/);
 assert.match(blogPage, /filters\.tag/);
 

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { JSDOM } from 'jsdom';
+import postcss from 'postcss';
 
 const require = createRequire(import.meta.url);
 require('tsx/cjs');
@@ -89,7 +90,7 @@ const article = {
 async function serverTree(node) {
   if(Array.isArray(node))return Promise.all(node.map(serverTree));
   if(!React.isValidElement(node))return node;
-  if(typeof node.type==='function'&&(node.type.constructor.name==='AsyncFunction'||['Website43Article','Website43ArticleToc','Website43Footer','Website43Blog','renderWebsite43Blog'].includes(node.type.name)))return serverTree(await node.type(node.props));
+  if(typeof node.type==='function'&&(node.type.constructor.name==='AsyncFunction'||['V5Article','V5Category','V5BlogIndex','Website43Article','Website43ArticleToc','Website43Footer','Website43Blog','renderWebsite43Blog'].includes(node.type.name)))return serverTree(await node.type(node.props));
   const children=await serverTree(node.props.children);
   return React.cloneElement(node,{},...(Array.isArray(children)?children:[children]));
 }
@@ -221,12 +222,32 @@ mock('../lib/content/provider.ts', { getContentProvider: () => ({
 mock('next/headers', { draftMode: async () => ({ isEnabled: true }) });
 mock('next/navigation', { ...nextNavigation, useRouter: () => ({ replace: () => {} }) });
 mock('../lib/deployment-environment.ts', { IS_DRAFT_PREVIEW_ALLOWED: false });
-const overview = require('../features/blog/pages/BlogArchivePage.tsx').default;
-const category = require('../features/blog/pages/BlogCategoryPage.tsx');
-const articleRoute = require('../features/blog/pages/ArticlePage.tsx');
+// Run the actual native route owners with synthetic readers and shell chrome only.
+// Body, category/card filtering, metadata, redirects and stale-cookie gates remain real.
+const routeMocks=new Map([
+  ['@/lib/content/public-copy',require('../lib/content/public-copy.ts')],
+  ['@/lib/content/provider',require('../lib/content/provider.ts')],
+  ['@/lib/content/category-registry',require('../lib/content/category-registry.ts')],
+  ['@/lib/content/category-registry-sanity',require('../lib/content/category-registry-sanity.ts')],
+  ['@/lib/content/blog-featured-sanity',require('../lib/content/blog-featured-sanity.ts')],
+  ['@/lib/content/sanity',{getPrimaryAuthorProfile:async()=>null}],
+  ['@/components/layout/v5/shell-data',{
+    getPublishedArticles:async()=>require('../lib/content/provider.ts').getContentProvider().listArticles({includeDrafts:false}),
+    getPublishedCategoryRegistry:async()=>categoryRegistryFixture,
+  }],
+  ['@/components/layout/v5/V5Page',{__esModule:true,default:({children})=>React.createElement('main',null,children)}],
+  ['@/components/layout/v5/V5ChatDockServer',{getV5ChatFallbackHref:async()=> 'https://lin.ee/tqLCs4f'}],
+  ['@/lib/seo/page-seo',{resolvePageSeoMetadata:async(_path,defaults)=>defaults}],
+  ['@/lib/deployment-environment',{IS_DRAFT_PREVIEW_ALLOWED:false,IS_REVIEW_ENVIRONMENT:false}],
+  ['next/headers',require('next/headers')],['next/navigation',require('next/navigation')],
+  ...['@/components/layout/v5/V5.module.css','./V5.module.css','./V5Blog.module.css','./ArticleWidgets.module.css'].map(id=>[id,styles]),
+]);
+const overview = loadFixtureModule('features/blog/pages/BlogArchivePage.tsx',{mocks:routeMocks}).default;
+const category = loadFixtureModule('features/blog/pages/BlogCategoryPage.tsx',{mocks:routeMocks});
+const articleRoute = loadFixtureModule('features/blog/pages/ArticlePage.tsx',{mocks:routeMocks});
 for (const [slug, label, expected] of [['health-insurance', 'ประกันสุขภาพ', 'บทความสุขภาพ'], ['investment', 'การลงทุน', null]]) {
   const markup = await doc(await category.default({ params: Promise.resolve({ category: slug }) }));
-  assert.equal(markup.querySelector('.categoryMenuButton').textContent.trim().startsWith(label), true);
+  assert.equal(markup.querySelector('.chip[aria-current="page"]').textContent.trim().startsWith(label), true);
   assert.equal(markup.querySelectorAll('h1').length, 1);
   assert.equal(markup.querySelector('h1').textContent, label);
   if (expected) assert.ok(markup.body.textContent.includes(expected));
@@ -254,7 +275,9 @@ const shared = readFileSync(new URL('../components/layout/website-43/Website43Sh
 const layout = readFileSync(new URL('../app/layout.tsx', import.meta.url), 'utf8');
 const articleStyles = readFileSync(new URL('../components/layout/website-43/Website43.module.css', import.meta.url), 'utf8');
 assert.ok(!shared.includes('Website43ResponsiveStyles'), 'static responsive CSS must not hydrate with the shared navbar');
-assert.ok(layout.includes('<Website43ResponsiveStyles />'), 'canonical responsive CSS must remain server-rendered in the public shell');
+assert.ok(layout.includes('<Website43ResponsiveStyles />'), 'legacy root retains its historical server-rendered responsive owner');
+const webLayout=readFileSync(new URL('../apps/web/app/layout.tsx',import.meta.url),'utf8');
+assert.ok(!webLayout.includes('Website43ResponsiveStyles'),'actual Web v5 layout does not mount the retained43 stylesheet');
 assert.ok(!layout.includes('Website43TransitionStyles') && !layout.includes('Website43FinalPolishStyles'), 'retired responsive patch owners must stay out of the public shell');
 assert.match(articleStyles, /\.prose ol\s*\{[^}]*list-style-type:\s*decimal;/s, 'ordered article lists must restore decimal markers after Tailwind Preflight');
 assert.match(articleStyles, /\.prose ul\s*\{[^}]*list-style-type:\s*disc;/s, 'unordered article lists must restore bullet markers after Tailwind Preflight');
@@ -335,3 +358,86 @@ browserDom.window.close();
 console.log('PASS: actual Article block/credit/anchor/profile renderer, Bangkok date, public route/filter/metadata/redirect, stale Draft cookie and cached browser query restoration');
 const { execFileSync } = await import('node:child_process');
 execFileSync(process.execPath, ['--test', fileURLToPath(new URL('./health-happy-blog-preload.test.mjs', import.meta.url))], { stdio: 'inherit' });
+
+
+// Native Tablet Blog keeps the actual route data and all original phone/desktop styles.
+{
+ const css=readFileSync('features/blog/v5/V5Blog.module.css','utf8');let tablet;
+ postcss.parse(css).walkAtRules('media',media=>{if(media.params==='(min-width: 768px) and (max-width: 1023px)'&&media.nodes.some(n=>n.type==='rule'&&n.selector==='.nativeBlog .featuredGrid'))tablet=media;});
+ assert.ok(tablet);assert.equal(tablet.params,'(min-width: 768px) and (max-width: 1023px)');
+ const rules={};tablet.walkRules(rule=>{rules[rule.selector]=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(d=>[d.prop,d.value]));});
+ assert.equal(rules['.nativeBlog .featuredGrid']['grid-template-columns'],'minmax(0, 1fr)');
+ assert.equal(rules['.nativeBlog .featuredGrid article']['flex-direction'],'row');
+ assert.equal(rules['.nativeBlog .featuredGrid .featuredLead > :is(img, span[aria-hidden])'].width,'280px');
+ assert.equal(rules['.nativeBlog .featuredGrid article > :is(img, span[aria-hidden])'].width,'240px');
+ assert.equal(rules['.nativeBlog .featuredGrid article > div'].padding,'24px 88px 24px 24px');
+ assert.equal(rules['.nativeBlog .chipRow > ul']['flex-wrap'],'wrap');
+ assert.equal(rules['.nativeBlog .groupGrid']['grid-template-columns'],'repeat(2, minmax(0, 1fr))');
+ assert.ok(Object.keys(rules).some(selector=>selector.includes(':last-child:nth-child(odd)')&&rules[selector]['grid-template-columns']==='minmax(0, 1fr)'),'real odd groups use complete rows without invented cards');
+ const counter=postcss.parse(readFileSync('components/ui/health-happy/HealthHappyCountdown.module.css','utf8'));let blog;
+ counter.walkAtRules('media',media=>{if(media.nodes.some(n=>n.type==='rule'&&n.selector==='.splitDigits[data-campaign-placement="blog"] .frame'))blog=media;});assert.ok(blog);
+ const props={};blog.walkRules(rule=>{props[rule.selector]=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(d=>[d.prop,d.value]));});
+ assert.equal(props['.splitDigits[data-campaign-placement="blog"] .timer']['grid-template-columns'],'repeat(4, minmax(0, 1fr))');
+ assert.equal(props['.splitDigits[data-campaign-placement="blog"] .actions']['padding-inline-end'],'64px');
+}
+
+// Owner Safari card treatment: the media slot is edge-to-edge on phone,
+// iPad and narrow desktop, but the embedded text in the source image stays
+// complete (contain). The fallback span shares that same media well.
+{
+ const css=readFileSync('features/blog/v5/V5Blog.module.css','utf8');
+ const styles=postcss.parse(css);
+ const rulesFor=(mediaParams,selector)=>{
+   const declarations={};
+   styles.walkAtRules('media',media=>{
+     if(media.params!==mediaParams)return;
+     media.walkRules(rule=>{
+       if(rule.selector.includes(selector))for(const d of rule.nodes.filter(n=>n.type==='decl'))declarations[d.prop]=d.value;
+     });
+   });
+   return declarations;
+ };
+ const stack=rulesFor('(max-width: 1279px)', '.nativeBlog .featuredGrid article');
+ assert.equal(stack['flex-direction'],'column','Featured images keep full source ratio and text below on narrow viewports');
+ const img=rulesFor('(max-width: 1279px)', '.nativeBlog .featuredGrid article > :is(img, span[aria-hidden])');
+ assert.equal(img.width,'100%');assert.equal(img.height,'auto');assert.equal(img['object-fit'],'contain');
+ assert.equal(img.background,'transparent','no fake upper or lower bands');
+ const category=rulesFor('(max-width: 1279px)', '.categoryGrid > :not([data-pager-hidden]) ~ :not([data-pager-hidden]) > .categoryCard');
+ assert.equal(category['flex-direction'],'column','Category compact cards match the image-top treatment');
+ const compact=rulesFor('(max-width: 1279px)', '.nativeBlog .groupGrid .compactCard');
+ assert.equal(compact['flex-direction'],'column','Blog compact cards match the image-top treatment');
+ assert.doesNotMatch(css,/background-image:\s*url\(/,'no extra image downloads');
+}
+
+// Category real odd counts and Article collapsed contents share the approved 640px reader.
+{
+ const source=readFileSync('features/blog/v5/V5Blog.module.css','utf8');const groups=[];postcss.parse(source).walkAtRules('media',m=>{if(m.params==='(min-width: 768px) and (max-width: 1023px)')groups.push(m);});
+ const props=selector=>{let value;for(const media of groups)media.walkRules(rule=>{if(rule.selector===selector)value={...(value??{}),...Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(d=>[d.prop,d.value]))};});assert.ok(value,selector);return value;};
+ assert.equal(props('.categoryHero .chipRow > ul')['flex-wrap'],'wrap');assert.equal(props('.introCopy')['line-height'],'1.75');assert.equal(props('.categoryCard h3')['font-size'],'22px');assert.equal(props('.categoryCard p')['-webkit-line-clamp'],'unset');
+ const fullCover = '.categoryGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .categoryCard';
+ assert.equal(props(fullCover)['grid-template-columns'], '45% minmax(0, 1fr)', 'the 820px image gets a full-height column');
+ const media = props(fullCover + ' > :is(img, span[aria-hidden])');
+ assert.equal(media.height, '100%');assert.equal(media['object-fit'], 'contain', 'preserve the full cover lettering and embedded logo');
+ assert.equal(media['align-self'], 'stretch');
+ assert.equal(media.background, 'linear-gradient(155deg, #251818, #4a3a3a 52%, #251818)', 'unified non-cropping media fill does not request a second image asset');
+ assert.equal(props('.tocAside').display,'none');assert.equal(props('.tocMobileSheet').display,'block');assert.equal(props('.tocTrigger')['min-height'],'48px');assert.equal(props('.tocSheet')['max-width'],'640px');assert.equal(props('.metaDates')['flex-basis'],'100%');assert.equal(props('.metaRow > .shareSlot')['flex-basis'],'100%');
+ for(const media of groups)media.walkRules(rule=>assert.doesNotMatch(rule.selector,/dialog\[open\]|dialog:not|dialog\[aria-hidden/,'CSS never forces a closed/inert dialog visible'));
+ const controller=readFileSync('features/blog/v5/V5ArticleMobileToc.tsx','utf8');assert.match(controller,/showModal/);assert.match(controller,/<dialog[^>]+onClose=\{closed\}/);assert.doesNotMatch(controller,/onCancel=.*preventDefault/);
+}
+
+// The native 390 Light/Dark category cards require clearance after the swipeable category chips.
+{
+ const source = readFileSync('features/blog/v5/V5Blog.module.css', 'utf8');
+ let mobile;
+ postcss.parse(source).walkAtRules('media', rule => {
+  if (rule.params === '(max-width: 639px)' && rule.nodes.some(node => node.type === 'rule' && node.selector === '.relatedCategories')) mobile = rule;
+ });
+ assert.ok(mobile, 'category phone spacing and category navigation stay scoped');
+ const properties = {};
+ mobile.walkRules(rule => {
+  properties[rule.selector] = Object.fromEntries(rule.nodes.filter(node => node.type === 'decl').map(d => [d.prop, d.value]));
+ });
+ assert.equal(properties['.relatedCategories']['padding-bottom'], '56px');
+ assert.equal(properties['.relatedCategories nav']['overflow-x'], 'auto');
+ assert.equal(properties['.relatedCategories nav > ul']['flex-wrap'], 'nowrap');
+}

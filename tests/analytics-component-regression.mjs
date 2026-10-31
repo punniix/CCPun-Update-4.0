@@ -5,6 +5,13 @@ import { createRoot } from 'react-dom/client';
 import { JSDOM } from 'jsdom';
 
 const require = createRequire(import.meta.url);
+const consentCss=require.resolve('../features/analytics/components/CookieConsent.module.css');
+const previousCssLoader=require.extensions['.css'];
+require.extensions['.css']=(module,filename)=>{
+  assert.equal(filename,consentCss,'unexpected stylesheet must not be silently ignored');
+  module.exports={__esModule:true,default:new Proxy({},{get:(_,key)=>String(key)})};
+};
+
 const GoogleAnalytics = require('../features/analytics/components/GoogleAnalytics.tsx').default;
 const GoogleTagManager = require('../features/analytics/components/GoogleTagManager.tsx').default;
 // No external resources execute: this checks the app's loader and consent lifecycle, not provider hits.
@@ -179,6 +186,7 @@ try {
   delete document.cookie;
   console.log('analytics component regression checks passed (semantic, consent, remount, native fallback)');
 } finally {
+  if(previousCssLoader)require.extensions['.css']=previousCssLoader;else delete require.extensions['.css'];
   dom.window.close();
   delete process.env.NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED;
   delete process.env.NEXT_PUBLIC_CCPUN_APP_ENV;

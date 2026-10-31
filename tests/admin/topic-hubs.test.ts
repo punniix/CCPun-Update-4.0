@@ -131,10 +131,16 @@ test("hub route resolves real hubs before any legacy one-segment redirect fallba
   assert.match(categoryPage, /const includeDrafts = IS_DRAFT_PREVIEW_ALLOWED && isEnabled/);
   assert.match(categoryPage, /const shouldIndexHub = !includeDrafts && hub\.indexable/);
   assert.match(categoryPage, /buildBlogTopicHubSchema\(hub, relevantIndexableArticles\)/);
-  assert.match(categoryPage, /activeCategorySlug=\{hub\.slug\}/);
-  assert.match(categoryPage, /articles=\{toWebsite43ArticleItems\(relevantArticles, copy\)\}/);
-  assert.match(categoryPage, /const featuredArticles = curateFeaturedArticles\(relevantArticles\)/);
-  assert.match(categoryPage, /featuredArticles=\{toWebsite43ArticleItemsInOrder\(featuredArticles, copy\)\}/);
+  // Native v5 owns its active topic and presents every matching article, newest first.
+  assert.match(categoryPage, /<V5Category\s+slug=\{hub\.slug\}/);
+  assert.match(categoryPage, /articles=\{relevantArticles\}/);
+  assert.match(categoryPage, /topics=\{linkableTopics\(registry, publishedArticles\)\}/);
+  assert.match(categoryPage, /copy=\{copy\}/);
+  const presentation = source("features/blog/v5/V5Category.tsx");
+  assert.match(presentation, /const cards = toV5Cards\(newestFirst\(articles\), copy\)/);
+  assert.match(presentation, /cards\.map\(\(card, index\)/);
+  assert.match(presentation, /aria-current=\{topic\.slug === slug \? "page" : undefined\}/);
+  assert.match(presentation, /<V5GroupPager gridId="v5-category-grid" total=\{cards\.length\}/);
 });
 
 test("visible and JSON-LD article breadcrumbs never use query-filter URLs as SEO nodes", () => {

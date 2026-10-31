@@ -206,6 +206,17 @@ function optionImpactLines(option: EventOption, game: GameState) {
   const resultTrackedRef = useRef<string | null>(null);
 
   useEffect(() => {
+    // Presentation state only: selected, playing and final-result screens own their LINE action.
+    // The initial SSR tree stays unchanged; reset/unmount releases the floating dock.
+    const root = document.documentElement;
+    const sync = () => window.dispatchEvent(new Event('ccpun:money-story-dock'));
+    if (game || selectedCharacterId) root.setAttribute('data-money-story-dock-hidden', '');
+    else root.removeAttribute('data-money-story-dock-hidden');
+    sync();
+    return () => { root.removeAttribute('data-money-story-dock-hidden'); sync(); };
+  }, [game, selectedCharacterId]);
+
+  useEffect(() => {
     const trackLanding = () => {
       if (landingTrackedRef.current || !getConsentData()?.analytics) return;
       landingTrackedRef.current = true;

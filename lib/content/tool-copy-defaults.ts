@@ -218,7 +218,7 @@ export const CI_COPY_DEFAULTS = {
   "ci.landing.heading2": "ทุนตามรายได้",
   "ci.landing.description8": "ดูจากรายได้ต่อเดือนและระยะเวลาที่ต้องการวางแผน เมื่อคุณเลือกกรอกรายได้",
   "ci.landing.description9": "ทุนสำรองช่วงพักฟื้น · ข้อพิจารณาเพิ่มเติม",
-  "ci.landing.heading3": "Recovery Reserve แยกให้เห็นที่มาและกรอกตามสถานการณ์จริง",
+  "ci.landing.heading3": "ทุนสำรองช่วงพักฟื้น (Recovery Reserve) แยกให้เห็นที่มาและกรอกตามสถานการณ์จริง",
   "ci.landing.description10": "ในขั้นตอนแรก คุณสามารถเพิ่มจำนวนครั้งรักษา/ติดตาม วันที่ผู้ดูแลต้องหยุดงาน กายภาพ อุปกรณ์หรือปรับบ้าน และค่าใช้จ่ายอื่นได้ โดยระบบใช้ข้อมูลอ้างอิงปี 2025–2026 พร้อมแสดงแหล่งข้อมูล และไม่ตั้งยอดก้อนเดียวเป็นค่าเริ่มต้นให้ทุกคน",
   "ci.landing.description11": "คำถามที่พบบ่อย",
   "ci.landing.heading4": "เรื่องที่ควรรู้ก่อนใช้ผลประเมิน",
@@ -304,7 +304,8 @@ export const CI_COPY_DEFAULTS = {
   "ci.validation.stepExpensesSchema.message2": "กรุณากรอกค่างวดบ้านต่อเดือน",
   "ci.validation.stepExpensesSchema.message3": "กรุณากรอกจำนวนงวดรถที่เหลือ",
   "ci.validation.stepExpensesSchema.message4": "กรุณากรอกค่างวดรถต่อเดือน",
-  "ci.validation.stepExpensesSchema.message5": "กรุณากรอกรายได้ ค่าใช้จ่าย หรือภาระอย่างน้อย 1 รายการก่อนคำนวณเงินก้อน"
+  "ci.validation.stepExpensesSchema.message5": "กรุณากรอกรายได้ ค่าใช้จ่าย หรือภาระอย่างน้อย 1 รายการก่อนคำนวณเงินก้อน",
+  "ci.result.recoveryTerm": "Recovery Reserve",
 } as const;
 
 export const FHC_COPY_DEFAULTS = {
@@ -314,7 +315,7 @@ export const FHC_COPY_DEFAULTS = {
   "fhc.landing.description": "ประเมินภาระที่ครอบครัวยังต้องดูแล แล้วเทียบกับทุนประกันชีวิตและสินทรัพย์ที่พร้อมใช้ เพื่อเห็นจุดที่ควรทบทวนต่อในแผนการเงิน",
   "fhc.landing.ctaLabel": "เริ่มประเมิน",
   "fhc.landing.description2": "เครื่องคำนวณทุนประกันชีวิต",
-  "fhc.landing.calculatorHeading.heading": "เริ่มจากภาระที่คนข้างหลังต้องดูแล",
+  "fhc.landing.calculatorHeading.heading": "คำนวณทุนประกันชีวิต เริ่มจากภาระที่คนข้างหลังต้องดูแล",
   "fhc.landing.description3": "2 ขั้นตอน เพื่อเห็นภาระรวม เทียบกับทุนประกันชีวิตและสินทรัพย์ที่พร้อมใช้",
   "fhc.landing.description4": "คำถามที่พบบ่อย",
   "fhc.landing.faqTitle.heading": "เรื่องที่ควรรู้ก่อนใช้ผลประเมิน",

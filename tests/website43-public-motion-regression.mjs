@@ -55,7 +55,7 @@ test('motion introduces no library, observer, animation-frame loop or hydration 
 });
 
 test('functional motion is inherited from public shells without duplicate child imports', () => {
-  for (const file of ['features/ci-planning/page.tsx','features/financial-health-check/components/ClientFHC.tsx']) assert.match(read(file), /FunctionalMotion\.module\.css/);
+  for (const file of ['features/ci-planning/website-43/Website43CiPlanningPage.tsx','features/financial-health-check/components/ClientFHC.tsx','features/ci-planning/v5/V5CiPlanning.tsx','features/financial-health-check/v5/V5Fhc.tsx']) assert.match(read(file), /FunctionalMotion\.module\.css/);
   for (const source of [ci, fhc, read('features/ci-planning/components/result/CIResult.tsx'), read('components/ui/HumanCalculatorCard.tsx'), read('components/ui/CurrencyInput.tsx')]) assert.doesNotMatch(source, /FunctionalMotion\.module\.css/);
   assert.doesNotMatch(css, /\.navDropdown\b|\.mobileMenu\b/);
   assert.doesNotMatch(functional, /animation-timeline|view\(\)|homeHero|blogHero|articleHeadline|articleFeature|featuredViewport/);

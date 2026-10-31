@@ -1,3 +1,4 @@
+import postcss from 'postcss';
 import { productionCmsDisplaySource } from '../qa/production-cms-source-proof.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -135,8 +136,8 @@ test('article metadata uses verified optimization date, consistent type and read
 });
 
 test('Kanit starts early without putting the whole font family on the critical path', () => {
-  assert.match(layout, /const kanit = Kanit\(\{[\s\S]*?subsets: \["thai", "latin"\][\s\S]*?weight: \["300", "400", "500", "600", "700"\][\s\S]*?display: "swap"[\s\S]*?preload: false/);
-  assert.match(layout, /const kanitCritical = Kanit\(\{[\s\S]*?subsets: \["thai"\][\s\S]*?weight: \["400", "500", "600", "700"\][\s\S]*?display: "swap"[\s\S]*?preload: true/);
+  assert.match(layout, /const kanit = Kanit\(\{[\s\S]*?subsets: \["thai", "latin"\][\s\S]*?weight: \["400", "500", "600"\][\s\S]*?display: "swap"[\s\S]*?preload: false/);
+  assert.match(layout, /const kanitCritical = Kanit\(\{[\s\S]*?subsets: \["thai", "latin"\][\s\S]*?weight: \["500"\][\s\S]*?display: "swap"[\s\S]*?preload: true/);
   assert.match(layout, /className=\{`\$\{kanit\.variable\} \$\{kanitCritical\.variable\}`\}/);
   assert.doesNotMatch(layout, /const kanitCritical = Kanit\(\{[\s\S]*?weight: \[[^\]]*"300"/);
 });
@@ -145,9 +146,9 @@ test('the Home LCP image is preloaded alongside the bounded critical font budget
   assert.match(home, /home-hero-desktop\.png[\s\S]*?fill preload loading="eager" fetchPriority="high" sizes="100vw"/);
 });
 
-test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI use the new aligned tool shell', () => {
+test('retained Website 4.3 shells stay intact while active pages delegate to native v5', () => {
   const fhc = read('features/financial-health-check/components/ClientFHC.tsx');
-  const ci = read('features/ci-planning/page.tsx');
+  const ci = read('features/ci-planning/website-43/Website43CiPlanningPage.tsx');
   const toolHero = read('components/layout/website-43/Website43ToolHero.tsx');
   assert.match(home, /Website43/);
   assert.match(blog, /Website43/);
@@ -160,7 +161,8 @@ test('Home and Blog stay on the Production Website 4.3 shell while FHC and CI us
   assert.match(fhc, /functionalMotion\.scope/);
   assert.match(fhc, /FHCPlanningContext/);
   assert.match(ci, /functionalMotion\.scope/);
-  assert.match(ci, /Recovery Reserve/);
+  assert.match(ci, /t\.node\(["']ci\.landing\.heading3["']\)/);
+  assert.match(read('lib/content/tool-copy-defaults.ts'),/Recovery Reserve/);
   assert.match(toolHero, /ctaHref/);
   assert.match(toolHero, /toolHeroGradient/);
   assert.match(toolHero, /fullBleed\?: boolean/);
@@ -244,10 +246,16 @@ test('Tool heroes keep text and CTA in native flow at portrait, landscape and ta
   }
   assert.notEqual(declarations(['.toolHero'], 1440, 900).height, 'auto');
   assert.equal(declarations(['.toolHeroCopy'], 1440, 900).position, 'absolute');
+  assert.match(read('apps/web/app/page.tsx'), /<V5Home authorProfile=\{authorProfile\}/);
+  assert.match(read('features/blog/pages/BlogArchivePage.tsx'), /<V5BlogIndex/);
+  for(const file of ['features/ci-planning/v5/V5CiPlanning.tsx','features/financial-health-check/v5/V5Fhc.tsx']){
+    const active=read(file);assert.match(active,/<V5Page current=/);assert.match(active,/<V5ToolHero/);assert.doesNotMatch(active,/Website43ToolHero|Website43Footer/);
+  }
+
 });
 
 test('CI Planning keeps the TorYod project badge as secondary proof near the end of the tool page', () => {
-  const ci = read('features/ci-planning/page.tsx');
+  const ci = read('features/ci-planning/website-43/Website43CiPlanningPage.tsx');
   const toryodProjectUrl = 'https://www.toryod.co/projects/35d2877e-e97a-45ee-a6df-aefa5e09e2b3-ccpun-s-ci-planning';
 
   assert.equal(ci.split(toryodProjectUrl).length - 1, 1, 'TorYod project link appears exactly once');
@@ -257,6 +265,12 @@ test('CI Planning keeps the TorYod project badge as secondary proof near the end
   assert.match(ci, /width="240"[\s\S]*?height="54"[\s\S]*?loading="lazy"/);
   assert.match(css, /\.toolProjectRecognitionLink img \{[^}]*height: 48px;/);
   assert.match(css, /@media \(max-width: 639px\)[\s\S]*?\.toolProjectRecognitionLink img \{ height: 44px; \}/);
+  const native=read('features/ci-planning/v5/V5CiPlanning.tsx');
+  assert.equal(native.split(toryodProjectUrl).length-1,1,'active native page retains the exact functional TorYod citation');
+  assert.ok(native.indexOf(toryodProjectUrl)>native.indexOf('aria-labelledby="ci-faq-title"'),'citation remains secondary after the calculator and FAQ');
+  assert.match(native,/target="_blank" rel="noopener" aria-label=\{t\('ci\.landing\.ariaLabel'\)\}/);
+  assert.match(native,/t\.node\('ci\.landing\.alt'\)/,'text-first native citation retains its accessible wording');
+
 });
 
 test('Footer controls and warnings stay inside the visible Website 4.3 footer card at every breakpoint', () => {
@@ -321,27 +335,20 @@ test('Blog category filter is a compact publication-style dropdown with stable l
   assert.match(css, /@media \(max-width: 639px\) \{[\s\S]*?\.categoryMenu \{ width: 100%; \}[\s\S]*?\.categoryMenuPanel \{ width: 100%; \}/);
 });
 
-test('Privacy and Cookie Policy use the Production Website 4.3 shell while preserving legal and SEO contracts', () => {
+test('Privacy and Cookie Policy use native v5 while preserving legal, SEO and retained rollback CSS contracts', () => {
   const privacy = read('apps/web/app/privacy/page.tsx');
   const cookiePolicy = read('apps/web/app/cookie-policy/page.tsx');
   const legalCss = read('components/layout/website-43/Website43Legal.module.css');
 
-  for (const source of [privacy, cookiePolicy]) {
-    assert.match(source, /Website43Navbar/);
-    assert.match(source, /Website43Footer/);
-    assert.match(source, /w43Styles\.root/);
-    assert.match(source, /legalStyles\.content/);
-    assert.doesNotMatch(source, /components\/layout\/Navbar/);
-    assert.doesNotMatch(source, /components\/layout\/Footer/);
+  for (const [wrapper,nativePath] of [[privacy,'features/legal/v5/V5Privacy.tsx'],[cookiePolicy,'features/legal/v5/V5CookiePolicy.tsx']]) {
+    assert.match(wrapper,/features\/legal\/v5\/V5/);
+    const native=read(nativePath);assert.match(native,/<V5Page siteCopy=\{siteCopy\}/);assert.match(native,/styles\.legalBody/);assert.match(native,/styles\.toc/);
+    assert.doesNotMatch(wrapper,/components\/layout\/Navbar|components\/layout\/Footer/);
   }
-
-  assert.match(privacy, /canonical: "https:\/\/ccpun\.com\/privacy\/"/);
-  assert.match(cookiePolicy, /canonical: "https:\/\/ccpun\.com\/cookie-policy\/"/);
-  assert.match(privacy, /ภายใต้พระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ\.ศ\. 2562 \(PDPA\) คุณมีสิทธิ์/);
-  assert.match(privacy, /ผู้ควบคุมข้อมูลส่วนบุคคลของเว็บไซต์นี้คือ/);
-  assert.match(cookiePolicy, /Google Analytics 4 \(GA4\) และ Google Tag Manager \(GTM\)/);
-  assert.match(cookiePolicy, /Meta Pixel เพื่อการวัดผลและการตลาด/);
-  assert.match(cookiePolicy, /คุณควบคุมการใช้คุกกี้ได้ 3 วิธี/);
+  assert.match(privacy,/canonical: "https:\/\/ccpun\.com\/privacy\/"/);
+  assert.match(cookiePolicy,/canonical: "https:\/\/ccpun\.com\/cookie-policy\/"/);
+  const legalCopy=read('lib/content/legal-copy-defaults.ts');
+  for(const phrase of ['ภายใต้พระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA) คุณมีสิทธิ์','ผู้ควบคุมข้อมูลส่วนบุคคลของเว็บไซต์นี้คือ','Google Analytics 4 (GA4) และ Google Tag Manager (GTM)','Meta Pixel เพื่อการวัดผลและการตลาด','คุณควบคุมการใช้คุกกี้ได้ 3 วิธี'])assert.ok(legalCopy.includes(phrase),phrase);
 
   assert.match(legalCss, /background: var\(--w43-bg\)/);
   assert.match(legalCss, /border: 1px solid var\(--w43-border\)/);
@@ -349,4 +356,15 @@ test('Privacy and Cookie Policy use the Production Website 4.3 shell while prese
   assert.match(legalCss, /@media \(max-width: 640px\)/);
   assert.match(legalCss, /\.content table \{\s*width: 100%;\s*table-layout: fixed;/);
   assert.match(legalCss, /\.content td,\s*\.content th \{\s*overflow-wrap: anywhere;/);
+});
+
+
+test('native portrait legal reader and 404 cards preserve readable sizes within their own tablet interval',()=>{
+ const rulesFor=(file,selector)=>{let found;postcss.parse(readFileSync(file,'utf8')).walkAtRules('media',media=>{if(media.params==='(min-width: 768px) and (max-width: 1023px)'&&media.nodes.some(n=>n.type==='rule'&&n.selector===selector))found=media;});assert.ok(found);const out={};found.walkRules(rule=>{out[rule.selector]=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(d=>[d.prop,d.value]));});return out;};
+ const legal=rulesFor('components/layout/v5/V5Tool.module.css','.legalGrid');
+ assert.equal(legal['.legalGrid']['max-width'],'calc(640px + var(--v5-gutter) * 2)');assert.equal(legal['.legalGrid']['grid-template-columns'],'minmax(0, 1fr)');
+ assert.equal(legal['.legalGrid .toc > ol']['grid-template-columns'],'repeat(2, minmax(0, 1fr))');assert.equal(legal['.legalBody']['font-size'],'18px');assert.equal(legal['.legalBody']['line-height'],'1.75');assert.equal(legal['.legalBody h2']['font-size'],'22px');
+ for(const path of ['features/legal/v5/V5Privacy.tsx','features/legal/v5/V5CookiePolicy.tsx'])assert.match(readFileSync(path,'utf8'),/lead=\{text\("(?:privacy|cookies)\.p2"\)\}/,'complete original hero introduction is retained');
+ const missing=rulesFor('components/layout/v5/V5.module.css','.root :global(section[aria-labelledby="not-found-title"])');
+ assert.equal(missing['.root :global(section[aria-labelledby="not-found-latest"]) .cardGrid']['grid-template-columns'],'minmax(0, 1fr)');assert.equal(missing['.root :global(section[aria-labelledby="not-found-latest"]) .articleCardImage'].width,'240px');assert.equal(missing['.root :global(section[aria-labelledby="not-found-latest"]) .articleCardTitle']['font-size'],'22px');
 });

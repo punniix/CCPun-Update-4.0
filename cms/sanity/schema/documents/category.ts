@@ -6,7 +6,7 @@ export const category = defineType({
   title: "Category",
   type: "document",
   fields: [
-    defineField({ name: "title", title: "ชื่อบทความ", type: "string", validation: (Rule) => Rule.required() }),
+    defineField({ name: "title", title: "ชื่อหมวดหมู่", type: "string", validation: (Rule) => Rule.required() }),
     defineField({
       name: "slug",
       title: "URL Slug",
@@ -41,6 +41,8 @@ export const category = defineType({
       },
     }),
     defineField({ name: "description", title: "Description", type: "text", rows: 3 }),
+    defineField({ name: "seoTitle", title: "ชื่อหมวดบน Google (SEO Title)", type: "string", description: "เว้นว่างเพื่อใช้ชื่อเริ่มต้น ไม่เปลี่ยนชื่อหมวดหรือ URL", validation: Rule => Rule.max(120).custom(value => !value || !/[<>\u0000-\u001f\u007f]/.test(value) ? true : "ใช้ข้อความธรรมดาเท่านั้น") }),
+    defineField({ name: "seoDescription", title: "คำอธิบายหมวดบน Google", type: "text", rows: 3, description: "เว้นว่างเพื่อใช้คำอธิบายเริ่มต้น", validation: Rule => Rule.max(320).custom(value => !value || !/[<>\u0000-\u001f\u007f]/.test(value) ? true : "ใช้ข้อความธรรมดาเท่านั้น") }),
     defineField({
       name: "featuredArticles",
       title: "บทความแนะนำของหมวดหมู่นี้",

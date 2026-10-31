@@ -10,23 +10,27 @@ import { buildCcpunSchemaGraph } from "@/lib/seo/structured-data/site-schema";
 import { getPrimaryAuthorProfile } from "@/lib/content/sanity";
 import { getPublicAuthorName } from "@/lib/content/author-identity";
 import ClientWidgets from "@/features/analytics/components/ClientWidgets";
-import { Website43ResponsiveStyles } from "@/components/layout/website-43/Website43ResponsiveStyles";
-import { IS_WEB_REVIEW_ENVIRONMENT, PRODUCTION_WEB_ANALYTICS_ENABLED } from "../runtime-environment";
+import { IS_WEB_REVIEW_ENVIRONMENT, PRODUCTION_WEB_ANALYTICS_ENABLED, UAT_WEB_GOOGLE_ANALYTICS_ENABLED } from "../runtime-environment";
 
 const GA_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLIC_GA_ID ?? "") : "";
 const META_PIXEL_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? (process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "") : "";
 const GTM_ID = PRODUCTION_WEB_ANALYTICS_ENABLED ? "GTM-5DKMGSK3" : "";
+const UAT_GOOGLE_GA_ID = UAT_WEB_GOOGLE_ANALYTICS_ENABLED ? "G-RQ5C651M5M" : "";
+const UAT_GOOGLE_GTM_ID = UAT_WEB_GOOGLE_ANALYTICS_ENABLED ? "GTM-N4S93T5T" : "";
+// Website v5: three Kanit weights (400 body, 500 headings/UI, 600 calculator emphasis) in Thai + Latin,
+// none preloaded. Only the LCP face is preloaded: Kanit 500 for v5 headings (--font-kanit-critical), in
+// Thai + Latin because Thai headings take their spaces and digits from the Latin subset file.
 const kanit = Kanit({
   subsets: ["thai", "latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600"],
   variable: "--font-kanit",
   display: "swap",
   preload: false,
 });
 
 const kanitCritical = Kanit({
-  subsets: ["thai"],
-  weight: ["400", "500", "600", "700"],
+  subsets: ["thai", "latin"],
+  weight: ["500"],
   variable: "--font-kanit-critical",
   display: "swap",
   preload: true,
@@ -36,6 +40,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const author = await getPrimaryAuthorProfile();
   return {
     ...buildSiteRootMetadata({ admin: false, review: IS_WEB_REVIEW_ENVIRONMENT }),
+    ...(IS_WEB_REVIEW_ENVIRONMENT ? {
+      icons: {
+        icon: { url: "/assets/ccpun-favicon-v5-7253e60c.png", type: "image/png", sizes: "256x256" },
+        apple: { url: "/assets/ccpun-favicon-v5-7253e60c.png", type: "image/png", sizes: "256x256" },
+      },
+    } : {}),
     authors: [{ name: getPublicAuthorName(author), url: "https://ccpun.com" }],
   };
 }
@@ -50,7 +60,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {IS_WEB_REVIEW_ENVIRONMENT ? <meta name="darkreader-lock" /> : null}
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
-        <Website43ResponsiveStyles />
         <style dangerouslySetInnerHTML={{ __html: CRITICAL_FOUNDATION_CSS }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaGraph).replace(/</g, "\\u003c") }} />
       </head>
@@ -60,7 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         <PublicCopyProvider values={copy}>
         {children}
-        <ClientWidgets gaId={GA_ID} gtmId={GTM_ID} metaPixelId={META_PIXEL_ID} />
+        <ClientWidgets gaId={UAT_GOOGLE_GA_ID || GA_ID} gtmId={UAT_GOOGLE_GTM_ID || GTM_ID} metaPixelId={META_PIXEL_ID} />
         </PublicCopyProvider>
       </body>
     </html>

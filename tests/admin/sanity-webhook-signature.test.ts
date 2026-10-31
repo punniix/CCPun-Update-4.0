@@ -8,11 +8,12 @@ const now=1793000000000;
 const article={id:"fixture-article",rev:"fixture-revision",slug:"example",category:"Personal Finance",categorySlug:"personal-finance",updatedAt:"2026-10-26T00:00:00.000Z",reviewStatus:"approved",noindex:false};
 const payload={articleId:article.id,rev:article.rev,contentUpdatedAt:article.updatedAt,op:"update"};
 let sequence=0;
-async function run(opts:{body?:unknown;raw?:string;headers?:Record<string,string>;timestamp?:number;signSecret?:string;environment?:string;doc?:unknown;error?:string;url?:string;runtimeEnv?:object;missingSecret?:boolean}={}){
- const raw=opts.raw??JSON.stringify(opts.body??payload);const signature=await encodeSignatureHeader(raw,opts.timestamp??now,opts.signSecret??secret);let reads=0,writes=0;
+async function run(opts:{body?:unknown;raw?:string;headers?:Record<string,string>;timestamp?:number;signSecret?:string;environment?:string;doc?:unknown;error?:string;url?:string;runtimeEnv?:object;missingSecret?:boolean;missingDeliveryId?:boolean}={}){
+ const raw=opts.raw??JSON.stringify(opts.body??payload);const signature=await encodeSignatureHeader(raw,opts.timestamp??now,opts.signSecret??secret);let reads=0,writes=0;let enqueuedDeliveryId:string|undefined;
  const request=new Request(opts.url??"https://admin.ccpun.com/api/integrations/sanity/article-published/",{method:"POST",headers:{host:"admin.ccpun.com","sanity-project-id":"kyfxgjnq","sanity-dataset":"production","sanity-webhook-signature":signature,"idempotency-key":"TEST-DELIVERY","x-real-ip":`fixture-${sequence++}`,...opts.headers},body:raw});
- const response=await handle(request,{environment:opts.environment??"production-admin",secret:opts.missingSecret?undefined:secret,now:()=>now,runtimeEnv:opts.runtimeEnv??{CCPUN_APP_ENV:"production-admin",CCPUN_DEPLOYMENT_PROVIDER:"hostinger",CCPUN_DEPLOYMENT_ROLE:"admin",AUTH_URL:"https://admin.ccpun.com"},readArticle:async()=>{reads++;return opts.doc===undefined?article:opts.doc;},enqueue:async()=>{writes++;if(opts.error)throw new Error(opts.error);return {job_id:"fixture-job"};}});
- return {response,reads,writes,json:await response.json()};
+ if(opts.missingDeliveryId)request.headers.delete("idempotency-key");
+ const response=await handle(request,{environment:opts.environment??"production-admin",secret:opts.missingSecret?undefined:secret,now:()=>now,runtimeEnv:opts.runtimeEnv??{CCPUN_APP_ENV:"production-admin",CCPUN_DEPLOYMENT_PROVIDER:"hostinger",CCPUN_DEPLOYMENT_ROLE:"admin",AUTH_URL:"https://admin.ccpun.com"},readArticle:async()=>{reads++;return opts.doc===undefined?article:opts.doc;},enqueue:async(input:{deliveryId:string})=>{writes++;enqueuedDeliveryId=input.deliveryId;if(opts.error)throw new Error(opts.error);return {job_id:"fixture-job"};}});
+ return {response,reads,writes,enqueuedDeliveryId,json:await response.json()};
 }
 test("real Sanity toolkit signature authenticates exact raw body before durable commit",async()=>{const r=await run();assert.equal(r.response.status,202);assert.equal(r.writes,1);assert.equal(r.json.jobId,"fixture-job");assert.equal(r.response.headers.get("cache-control"),"private, no-store");});
 test("tamper, wrong secret, missing signature, stale/future, draft/version/strict shape cannot write",async()=>{
@@ -49,4 +50,33 @@ test("signature comparison is constant-time over the recomputed header, never a 
  const raw=JSON.stringify(payload);const valid=await encodeSignatureHeader(raw,now,secret);
  const flipped=valid.slice(0,-1)+(valid.endsWith("A")?"B":"A");
  for(const signature of [flipped,valid+"A",valid.replace(",v1=",", v1=")]){const r=await run({raw,headers:{"sanity-webhook-signature":signature}});assert.equal(r.response.status,401);assert.equal(r.writes,0);}
+});
+
+
+test("bounded documented quoted tokens preserve raw delivery identity and all legacy bounds",async()=>{
+ for(const key of ['"00000000-0000-4000-8000-000000000001"','"'+"x".repeat(198)+'"',"x","x".repeat(200)]){
+  const r=await run({headers:{"idempotency-key":key}});
+  assert.equal(r.response.status,202);assert.equal(r.reads,1);assert.equal(r.writes,1);assert.equal(r.enqueuedDeliveryId,key);
+ }
+});
+test("quoted compatibility never accepts missing, malformed, oversized or unsigned deliveries",async()=>{
+ for(const key of ["",'""','"a"suffix','"a,b"','"a b"','"a\\b"','"a","b"','"a";p=?1','"'+"x".repeat(199)+'"',"x".repeat(201),'"é"']){
+  const r=await run({headers:{"idempotency-key":key}});
+  assert.equal(r.response.status,400);assert.equal(r.reads,0);assert.equal(r.writes,0);assert.equal(r.json.error,"invalid-delivery-id");
+ }
+ const unsigned=await run({headers:{"idempotency-key":'"fixture-key"',"sanity-webhook-signature":""}});
+ assert.equal(unsigned.response.status,401);assert.equal(unsigned.reads,0);assert.equal(unsigned.writes,0);assert.equal(unsigned.json.reason,undefined);
+});
+
+
+test("authenticated delivery diagnostics expose only bounded shape and preserve zero persistence",async()=>{
+ const cases=[
+  {opts:{missingDeliveryId:true},reason:"missing",present:false,length:0,quoted:false},
+  {opts:{headers:{"idempotency-key":""}},reason:"empty",present:true,length:0,quoted:false},
+  {opts:{headers:{"idempotency-key":"x".repeat(201)}},reason:"too-long",present:true,length:201,quoted:false},
+  {opts:{headers:{"idempotency-key":'"private value"'}},reason:"unsupported-format",present:true,length:15,quoted:true},
+ ];
+ for(const c of cases){const r=await run(c.opts);assert.equal(r.response.status,400);assert.equal(r.reads,0);assert.equal(r.writes,0);assert.deepEqual(r.json,{error:"invalid-delivery-id",reason:c.reason,present:c.present,length:c.length,quoted:c.quoted});}
+ const unauthenticated=await run({missingDeliveryId:true,headers:{"sanity-webhook-signature":""}});
+ assert.equal(unauthenticated.response.status,401);assert.deepEqual(unauthenticated.json,{error:"unauthorized"});
 });

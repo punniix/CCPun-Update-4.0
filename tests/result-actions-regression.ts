@@ -275,7 +275,17 @@ const ciResultSource = readFileSync(
   'utf8',
 );
 const ciConstantsSource = readFileSync(new URL('../features/ci-planning/calculator/constants.ts', import.meta.url), 'utf8');
-const ciPageSource = readFileSync(new URL('../features/ci-planning/page.tsx', import.meta.url), 'utf8');
+const ciWrapperSource = readFileSync(new URL('../features/ci-planning/page.tsx', import.meta.url), 'utf8');
+const ciNativeSource = readFileSync(new URL('../features/ci-planning/v5/V5CiPlanning.tsx', import.meta.url), 'utf8');
+// Inspect only constant registered copy lookups; routes, expressions and calculator code stay literal.
+const ciPageSource = ciWrapperSource + '\n' + ciNativeSource.replace(/t(?:\.node)?\((["'])(ci\.[^"']+)\1\)/g, (_match, _quote, key: string) => {
+  assert(Object.hasOwn(CI_COPY_DEFAULTS,key),'known CI lookup '+key);
+  return JSON.stringify(CI_COPY_DEFAULTS[key as keyof typeof CI_COPY_DEFAULTS]);
+});
+assert(ciWrapperSource.includes('return <V5CiPlanning copy={copyOverride'),'active CI owner must delegate to its actual native renderer');
+assert(CI_COPY_DEFAULTS['ci.landing.badge'] === 'เครื่องมือวางแผนทุนโรคร้ายแรง · Research Preview','original stored badge wording stays available for retained rollback');
+assert(ciPageSource.includes('การวางแผนทุนโรคร้ายแรง · Research Preview'),'native WebApplication schema retains the Research Preview qualification');
+assert(ciNativeSource.includes('https://www.toryod.co/projects/35d2877e-e97a-45ee-a6df-aefa5e09e2b3-ccpun-s-ci-planning'),'actual native research citation remains functional');
 const ciLandingSource = readFileSync(
   new URL('../features/ci-planning/components/CILandingIntro.tsx', import.meta.url),
   'utf8',
@@ -361,7 +371,6 @@ for (const legacyFhcResolverToken of ['bit.ly', 'NEXT_PUBLIC_LINE_OA_BITLY_URL']
 }
 
 for (const requiredLandingCopy of [
-  'เครื่องมือวางแผนทุนโรคร้ายแรง · Research Preview',
   'เงินก้อนจากประกันโรคร้ายแรงที่มี ',
   'เพียงพอรับภาระจริงไหม?',
   'วางแผนทุนโรคร้ายแรงจากรายได้และภาระ | CCPun',
@@ -388,7 +397,7 @@ for (const requiredLandingCopy of [
   );
 }
 assert(!ciLandingSource.includes('คำถามที่ไม่มีคำตอบเดียว'), 'lean CI landing must remove the deleted eyebrow');
-assert(ciPageSource.includes('Website43ToolHero') && ciPageSource.includes('line2="เพียงพอรับภาระจริงไหม?"'), 'CI hero must keep the approved Website 4.3 split-title treatment');
+assert(ciNativeSource.includes('<V5ToolHero') && ciNativeSource.includes("<span>{t('ci.landing.line2Text')}</span>") && CI_COPY_DEFAULTS['ci.landing.line2Text'] === 'เพียงพอรับภาระจริงไหม?', 'native CI hero retains the full split title');
 assert(!ciPageSource.includes('· Beta'), 'CI Research Preview must not retain the Beta label');
 assert(!navConfigSource.includes('วางแผนเงินก้อนโรคร้ายแรง (Beta)'), 'CI navigation must not retain the Beta label');
 for (const activeCiSource of [ciPageSource, ciExpensesSurfaceSource, ciExistingSource, ciResultSource, ciCalculatorSource, ciTypesSource]) {
@@ -396,12 +405,12 @@ for (const activeCiSource of [ciPageSource, ciExpensesSurfaceSource, ciExistingS
   assert(!/multiPay|Multi-pay|ความคุ้มครองโรคร้ายแรงที่อาจจ่ายได้หลายครั้ง/.test(activeCiSource), 'active CI scope must not retain Multi-pay');
 }
 equal(
-  (ciPageSource.match(/ctaHref="#ci-calculator"/g) ?? []).length,
+  (ciNativeSource.match(/href: '#ci-calculator'/g) ?? []).length,
   1,
   'lean CI landing must have exactly one pre-calculator anchor',
 );
 equal(
-  (ciPageSource.match(/ctaLabel="เริ่มประเมิน"/g) ?? []).length,
+  (ciNativeSource.match(/label: t\('ci\.landing\.ctaLabel'\)/g) ?? []).length,
   1,
   'CI tool hero must have exactly one primary pre-calculator CTA label',
 );
@@ -471,10 +480,10 @@ for (const source of [ciResultSource, imageSource]) {
 }
 assert(!ciResultSource.includes('ดูวิธีคิดและข้อจำกัด'), 'CI result must not restore the expanded formula section');
 assert(!ciPageSource.includes('ข้อมูลของคุณทำงานอย่างไรในเครื่องมือนี้'), 'CI landing must remove the privacy explainer section');
-assert(ciPageSource.includes('"@type": "FAQPage"'), 'CI page must include FAQPage schema');
+assert(ciNativeSource.includes("'@type': 'FAQPage'"), 'CI page must include FAQPage schema');
 assert(
-  ciPageSource.includes('mainEntity: CI_FAQS.map')
-    && ciPageSource.includes('{CI_FAQS.map((faq) =>'),
+  ciNativeSource.includes('mainEntity: faqs.map')
+    && ciNativeSource.includes('<V5Faq items={faqs}'),
   'visible FAQ and FAQPage schema must share CI_FAQS',
 );
 assert(

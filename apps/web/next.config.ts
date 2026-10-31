@@ -46,6 +46,29 @@ function resolveProductionWebPublicAnalytics() {
   return { ...PRODUCTION_WEB_PUBLIC_ANALYTICS };
 }
 
+// Match the explicit Hostinger UAT identity and deployment contract at build time.
+// Production's resolver above remains the sole owner of its original values.
+const UAT_WEB_PUBLIC_ANALYTICS = {
+  NEXT_PUBLIC_GA_ID: "G-RQ5C651M5M",
+  NEXT_PUBLIC_SEMANTIC_EVENT_LAYER_ENABLED: "true",
+};
+function resolveUatWebPublicAnalytics() {
+  if (WEB_ENVIRONMENT !== "web-uat" || !SANITY_LANE_ALLOWED
+    || process.env.CCPUN_DEPLOYMENT_PROVIDER?.trim() !== "hostinger"
+    || process.env.CCPUN_DEPLOYMENT_ROLE?.trim() !== "web"
+    || process.env.CCPUN_APP_ENV?.trim() !== "web-uat"
+    || process.env.NEXT_PUBLIC_CCPUN_APP_ENV?.trim() !== "web-uat"
+    || process.env.CCPUN_UAT_MODE?.trim() !== "1"
+    || process.env.CCPUN_ENABLE_PRODUCTION_ANALYTICS?.trim() !== "0"
+    || Object.entries(process.env).some(([key, value]) => key.startsWith("VERCEL_") && Boolean(value?.trim()))
+    || ["vercel", "@workflow/world-vercel"].includes(process.env.WORKFLOW_TARGET_WORLD?.trim() ?? "")) return {};
+  for (const [key, expected] of Object.entries(UAT_WEB_PUBLIC_ANALYTICS)) {
+    const explicit = process.env[key]?.trim();
+    if (explicit && explicit !== expected) throw new Error(`UAT_WEB_PUBLIC_ANALYTICS_CONFLICT: ${key}`);
+  }
+  return { ...UAT_WEB_PUBLIC_ANALYTICS };
+}
+
 const nextConfig: NextConfig = {
   ...(IS_HOSTINGER_DEPLOYMENT
     ? {
@@ -62,6 +85,7 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_CCPUN_APP_ENV: WEB_ENVIRONMENT === "unknown" ? "" : WEB_ENVIRONMENT,
     ...resolveProductionWebPublicAnalytics(),
+    ...resolveUatWebPublicAnalytics(),
   },
   trailingSlash: true,
   compress: true,

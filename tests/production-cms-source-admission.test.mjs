@@ -3,8 +3,59 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
-import { productionCmsOwners, assertProductionCmsOwner, productionCmsDisplaySource, cmsSha } from '../qa/production-cms-source-proof.mjs';
+import { productionCmsOwners, assertProductionCmsOwner, ciPlanningConcurrentReadPredecessor, productionCmsDisplaySource, cmsSha, v5ProductionSourceSuccessors, v5ProductionSourcePredecessor } from '../qa/production-cms-source-proof.mjs';
 const read=file=>readFileSync(file,'utf8');
+
+test('reviewed CI route concurrency preserves frozen CMS/SEO identity and rejects unapproved alterations', () => {
+  const file = 'apps/web/app/ci-planning/page.tsx';
+  const source = read(file);
+  assert.equal(cmsSha(source), 'b99435df268ddda1a88081454e33c50997241e2729f5e3bf3b88b6db181d78e6');
+  const predecessor = ciPlanningConcurrentReadPredecessor(source);
+  assert.equal(cmsSha(predecessor), '6bdc2925143bda8a2d2d687e69312faa737e2b25618bce6e67f7a4bd28a7462a');
+  assertProductionCmsOwner(file, source);
+  for (const [from, to] of [
+    ['getPublicCopy("blog")', 'getPublicCopy("site")'],
+    ['getPublishedArticles()', 'Promise.resolve([])'],
+    ['getShellTopics()', 'Promise.resolve([])'],
+    ['Promise.allSettled([', 'Promise.all(['],
+    ['getPublicCopy("ci")', 'getPublicCopy("home")'],
+    ['return <PublicCopyProvider values={copy}>', 'return <PublicCopyProvider values={{}}>'],
+  ]) {
+    const mutant = source.replace(from, to);
+    assert.notEqual(mutant, source);
+    assert.throws(() => assertProductionCmsOwner(file, mutant), 'unreviewed reader or SEO/UI alteration must fail');
+  }
+  assert.throws(() => assertProductionCmsOwner(file, predecessor), 'old route cannot silently replace approved successor');
+});
+
+test('CI route starts all independent CMS reads before CI copy resolves, with unchanged provider and SEO', async () => {
+  let resolveCi;
+  const waitForCi = new Promise(resolve => { resolveCi = resolve; });
+  const calls = [];
+  const ciValues = { 'ci.example': 'validated value' };
+  const mocks = new Map([
+    ['@/features/ci-planning/page', { __esModule: true, default: () => null, metadata: { title: 'Same CI title' } }],
+    ['@/lib/seo/page-seo', { resolvePageSeoMetadata: () => ({ title: 'Same CI title' }) }],
+    ['@/lib/content/public-copy', {
+      getPublicCopy: scope => {
+        calls.push('copy:' + scope);
+        return scope === 'ci' ? waitForCi : Promise.resolve({});
+      },
+    }],
+    ['@/components/layout/v5/shell-data', {
+      getPublishedArticles: () => { calls.push('articles'); return Promise.resolve([]); },
+      getShellTopics: () => { calls.push('topics'); return Promise.resolve([]); },
+    }],
+    ['@/components/ui/PublicCopyProvider', { PublicCopyProvider: ({ children }) => children }],
+  ]);
+  const { default: Page, generateMetadata } = loadFixtureModule('apps/web/app/ci-planning/page.tsx', { mocks });
+  const rendering = Page();
+  assert.deepEqual(calls, ['copy:ci', 'copy:blog', 'articles', 'topics'], 'parallel requests start without awaiting CI copy');
+  resolveCi(ciValues);
+  const result = await rendering;
+  assert.deepEqual(result.props.values, ciValues, 'original validated CI provider values retained');
+  assert.deepEqual(generateMetadata(undefined, null), { title: 'Same CI title' }, 'original SEO delegation retained');
+});
 
 test('same-word CMS admission rejects every unknown or modified source, including attempted pin reseal elsewhere',()=>{
   assert.equal(Object.keys(productionCmsOwners).length,74);
@@ -30,6 +81,12 @@ test('published-only reader hardening retains the frozen predecessor proof and d
   assert.ok(!source.includes('draftMode'));assert.ok(!source.includes('IS_DRAFT_PREVIEW_ALLOWED'));
   assertProductionCmsOwner(file,source);
   let predecessor=source;
+  // The newly approved scope gate is independently exact; preserve every older reader inverse below.
+  for (const [current, old] of [
+    ['import { resolveContentEnvironment } from "./sanity-lane";\n', ''],
+    ['PUBLIC_COPY_SCOPES, isPublicCopyScopeAvailable, parsePublicCopy', 'PUBLIC_COPY_SCOPES, parsePublicCopy'],
+    ['  // New page-copy scopes are reviewed in UAT only. Never request them from Production.\n  const environment = resolveContentEnvironment();\n  const dataset = ["development", "web-uat", "local-uat", "admin-uat"].includes(environment) ? "uat" : "production";\n  if (!isPublicCopyScopeAvailable(scope, dataset)) return {};\n', ''],
+  ]) { assert.equal(predecessor.split(current).length, 2); predecessor = predecessor.replace(current, old); }
   for(const[current,old]of [
     // Sized copy (size fields and value encoding) is the newest reviewed reader step.
     [
@@ -129,4 +186,16 @@ test('validation text callback preserves original messages, first issue, unknown
   // Duplicate original error messages share one reverse-map alias; they are not independently editable.
   const defaults=loadFixtureModule('lib/content/tool-copy-defaults.ts').CI_COPY_DEFAULTS;
   assert.equal(defaults['ci.validation.educationPlanSchema.int'],'จำนวนปีต้องเป็นจำนวนเต็ม');
+});
+
+test('v5 exact successors reconstruct every complete prior owner and reject partial, extra or misowned bytes',()=>{
+  assert.equal(Object.keys(v5ProductionSourceSuccessors).length,33);
+  for(const [file,entry] of Object.entries(v5ProductionSourceSuccessors)){
+    const current=read(file);
+    assert.equal(cmsSha(v5ProductionSourcePredecessor(file,current)),entry.before);
+    assertProductionCmsOwner(file,current);
+    for(const mutant of [current.slice(0,-1),current+'\n// unreviewed'])assert.throws(()=>v5ProductionSourcePredecessor(file,mutant));
+    assert.equal(v5ProductionSourcePredecessor('unknown-owner.ts',current),current);
+    assert.throws(()=>assertProductionCmsOwner('unknown-owner.ts',current));
+  }
 });

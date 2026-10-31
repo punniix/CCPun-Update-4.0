@@ -1,0 +1,425 @@
+/*
+  Website v5 shell and shared primitives (UAT prototype, FigCraft review-v3).
+  Brand tokens are unchanged: Main #352727, Deep #251818, Surface #4A3A3A,
+  Border #5B4848, Gold #E0C985, Highlight #EBD9A2, Text #FAF9F9, Muted #BAABAB.
+  The light theme only adds named cream surfaces and a darker gold for text
+  contrast. The header boot script resolves the visitor's choice (system by default, D2)
+  into `html[data-theme]`; without JavaScript the page stays dark.
+*/
+.root {
+  --v5-bg: #251818;
+  --v5-bg-alt: #352727;
+  --v5-card: #352727;
+  --v5-card-alt: #2b1d1d;
+  --v5-surface: #4a3a3a;
+  --v5-border: #5b4848;
+  --v5-border-soft: rgba(91, 72, 72, 0.72);
+  --v5-text: #faf9f9;
+  --v5-muted: #baabab;
+  --v5-gold: #e0c985;
+  --v5-highlight: #ebd9a2;
+  --v5-gold-text: #e0c985;
+  /* Per-mode keyboard focus ring (>= 3:1 on every v5 surface) and form-field edge (>= 3:1, WCAG 1.4.11). */
+  --v5-focus: #e0c985;
+  --v5-field-edge: #9a8585;
+  --v5-on-gold: #251818;
+  --v5-header: rgba(37, 24, 24, 0.94);
+  --v5-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+  --v5-watermark: rgba(250, 249, 249, 0.06);
+  --v5-font: var(--font-kanit), Kanit, system-ui, sans-serif;
+  /* Weight-500 text (headings, buttons, labels) leads with the single preloaded LCP face (Thai 500). */
+  --v5-font-display: var(--font-kanit-critical), var(--font-kanit), Kanit, system-ui, sans-serif;
+  font-synthesis-weight: none;
+  --v5-gutter: 20px;
+  --v5-max: 1280px;
+  /* One radius scale (design QA 2026-10-25): cards, large media, small surfaces. Chips and round icon buttons stay pill. */
+  --v5-radius: 14px;
+  --v5-radius-lg: 16px;
+  --v5-radius-sm: 12px;
+  /* One button shape for the whole site (every .button variant, calculators, cookie notice, chat dock):
+     14px per DESIGN.md (owner decision 2026-10-25, not pill). */
+  --v5-radius-button: 14px;
+  /* Rhythm and type tokens (design QA 2026-10-25). Thai meta text never drops below 14px. */
+  --v5-section-y: 56px;
+  --v5-head-gap: 24px;
+  --v5-card-gap: 16px;
+  --v5-list-gap: 12px;
+  --v5-text-meta: 14px;
+  /* Motion tokens (smoothing pass 2026-10-26): one small set for every v5 effect; motion-tokens.ts mirrors them. */
+  --v5-motion-micro: 120ms;
+  --v5-motion-fast: 160ms;
+  --v5-motion-base: 240ms;
+  --v5-motion-slow: 400ms;
+  --v5-motion-reveal: 600ms;
+  --v5-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --v5-ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+  color-scheme: dark;
+  min-height: 100vh;
+  background: var(--v5-bg);
+  color: var(--v5-text);
+  font-family: var(--v5-font);
+  font-weight: 400;
+  line-height: 1.6;
+  overflow-x: clip;
+}
+
+:global(html[data-theme="light"]) .root {
+  --v5-bg: #faf6f0;
+  --v5-bg-alt: #f2ebe1;
+  --v5-card: #f2ebe1;
+  --v5-card-alt: #fffdf9;
+  --v5-surface: #e9dfd2;
+  --v5-border: #dccdb9;
+  --v5-border-soft: rgba(91, 72, 72, 0.18);
+  --v5-text: #251818;
+  --v5-muted: #5f4c4c;
+  --v5-gold-text: #7a5c14;
+  --v5-focus: #7a5c14;
+  --v5-field-edge: #8a7766;
+  --v5-header: rgba(250, 246, 240, 0.95);
+  --v5-shadow: 0 18px 40px rgba(53, 39, 39, 0.1);
+  --v5-watermark: rgba(53, 39, 39, 0.07);
+  color-scheme: light;
+}
+
+@media (min-width: 640px) { .root { --v5-card-gap: 20px; } }
+@media (min-width: 768px) { .root { --v5-gutter: 32px; } }
+/* Section rhythm on the 8px scale (audit #8): 56 phones, 96 from 1024px, 120 from 1440px. */
+@media (min-width: 1024px) { .root { --v5-section-y: 96px; --v5-head-gap: 32px; } }
+@media (min-width: 1440px) { .root { --v5-section-y: 120px; } }
+@media (min-width: 1200px) { .root { --v5-gutter: 80px; } }
+
+/* Zero-specificity resets so component classes (buttons, chips) always win. */
+:where(.root) a { color: inherit; }
+.root :focus-visible { outline: 3px solid var(--v5-focus); outline-offset: 3px; border-radius: 6px; }
+:where(.root) h1, :where(.root) h2, :where(.root) h3, :where(.root) h4 { font-family: var(--v5-font-display); font-weight: 500; margin: 0; text-wrap: balance; }
+:where(.root) p { margin: 0; }
+/* Emphasis uses the already-loaded 500 face instead of fetching 600/700 files for a few bold words. */
+:where(.root) strong, :where(.root) b { font-weight: 500; }
+/* Tap floor for disclosure toggles, including reused widgets (zero specificity: component rules win). */
+:where(.root) summary { min-height: 44px; }
+
+.inner { width: 100%; max-width: calc(var(--v5-max) + var(--v5-gutter) * 2); margin-inline: auto; padding-inline: var(--v5-gutter); }
+.narrow { max-width: calc(1028px + var(--v5-gutter) * 2); }
+.section { padding-block: var(--v5-section-y); }
+.sectionAlt { padding-block: var(--v5-section-y); background: var(--v5-bg-alt); }
+
+.h1 { font-size: clamp(30px, 6.4vw, 48px); line-height: 1.28; }
+/* Section headings reach 40px on wide screens so they read as a level under the 48px H1 (audit #8). */
+.h2 { font-size: clamp(24px, 3vw, 40px); line-height: 1.3; }
+.h3 { font-size: 20px; line-height: 1.4; }
+.lead { color: var(--v5-muted); font-size: clamp(16px, 1.6vw, 19px); line-height: 1.7; margin-top: 12px; max-width: 760px; }
+.gold { color: var(--v5-gold-text); }
+.headingRow { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; margin-bottom: var(--v5-head-gap); }
+.headingRow .h2 { display: inline-flex; align-items: baseline; gap: 12px; }
+.count { color: var(--v5-muted); font-size: var(--v5-text-meta); font-weight: 400; }
+.textLink { color: var(--v5-gold-text); font-weight: 500; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; font-family: var(--v5-font-display); }
+.textLink:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+/* Buttons: 48px touch targets, 14px corners (--v5-radius-button). */
+.button, .buttonOutline, .buttonDark {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 48px; padding: 12px 28px; border-radius: var(--v5-radius-button); font-family: var(--v5-font-display);
+  font-size: 15px; font-weight: 500; line-height: 1.3; text-align: center; text-decoration: none; cursor: pointer;
+  transition: background-color var(--v5-motion-fast) ease, border-color var(--v5-motion-fast) ease, color var(--v5-motion-fast) ease;
+}
+.button { background: var(--v5-gold); color: var(--v5-on-gold); border: 1px solid var(--v5-gold); }
+.button:hover { background: var(--v5-highlight); }
+.buttonOutline { background: transparent; color: var(--v5-text); border: 1px solid var(--v5-border); }
+.buttonOutline:hover { border-color: var(--v5-gold); }
+.buttonDark { background: #251818; color: #e0c985; border: 1px solid #251818; }
+.buttonDark:hover { background: #352727; }
+.buttonRow { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+@media (max-width: 479px) { .buttonRow > * { flex: 1 1 100%; } }
+
+.card { background: var(--v5-card); border: 1px solid var(--v5-border-soft); border-radius: var(--v5-radius); }
+.sectionAlt .card { background: var(--v5-card-alt); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.chip {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 16px; border-radius: 999px;
+  border: 1px solid var(--v5-border); color: var(--v5-text); font-size: 14px; font-weight: 500; text-decoration: none; white-space: nowrap; font-family: var(--v5-font-display); }
+.chip:hover { border-color: var(--v5-gold); }
+.chip[aria-current="page"] { background: var(--v5-gold); border-color: var(--v5-gold); color: var(--v5-on-gold); }
+.chip span { color: inherit; opacity: 0.72; font-weight: 400; }
+
+/* Article card (shared by home, blog, category, related and 404). */
+.cardGrid { display: grid; gap: var(--v5-card-gap); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .cardGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .cardGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.cardGrid2 { display: grid; gap: var(--v5-card-gap); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .cardGrid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/*
+  Adaptive grids (audit #9): a short list never leaves empty slots. One card spans the row as a
+  horizontal card; two cards share a row; four cards make 2 x 2; three cards in the two-column
+  grid sit in one row of three where there is room, otherwise the last one spans the row.
+  Children are the cards themselves or a one-card wrapper (blog groups, search items).
+*/
+@media (min-width: 640px) {
+  :is(.cardGrid, .cardGrid2):has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+  .cardGrid2 > :last-child:nth-child(odd):not(:only-child) { grid-column: 1 / -1; }
+}
+/*
+  A lone card turns horizontal only from 1024px (owner bug report 2026-10-26, option c): below that its text
+  column (topic, two-line title, three-line excerpt) is far taller than a 40% cover, so it stacks like a phone card.
+*/
+@media (min-width: 1024px) {
+  :is(.cardGrid, .cardGrid2) > .articleCard:only-child, :is(.cardGrid, .cardGrid2) > :only-child > .articleCard { flex-direction: row; --v5-card-meta-top: 0; }
+  :is(.cardGrid, .cardGrid2) > .articleCard:only-child > .articleCardImage, :is(.cardGrid, .cardGrid2) > :only-child > .articleCard > .articleCardImage { width: 40%; height: auto; aspect-ratio: auto; align-self: flex-start; flex: none; border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius); }
+  :is(.cardGrid, .cardGrid2) > .articleCard:only-child > .articleCardBody, :is(.cardGrid, .cardGrid2) > :only-child > .articleCard > .articleCardBody { justify-content: center; padding: 24px 32px; }
+}
+@media (min-width: 1024px) {
+  .cardGrid:has(> :last-child:nth-child(2)), .cardGrid:has(> :last-child:nth-child(4)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cardGrid2:has(> :last-child:nth-child(3)) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cardGrid2:has(> :last-child:nth-child(3)) > :last-child { grid-column: auto; }
+}
+.articleCard {
+  /* Inner radius of the 1px card border: the cover's outer corners use it, so the cover never pokes past the
+     rounded border (owner bug report 2026-10-26), also where overflow clipping is skipped (view transitions). */
+  --v5-card-image-radius: calc(var(--v5-radius) - 1px);
+  position: relative; display: flex; flex-direction: column; overflow: hidden; min-width: 0;
+  background: var(--v5-card); border: 1px solid var(--v5-border-soft); border-radius: var(--v5-radius);
+  transition: border-color var(--v5-motion-fast) ease;
+}
+.sectionAlt .articleCard { background: var(--v5-card-alt); }
+.articleCard:hover { border-color: var(--v5-gold); }
+/* Whole-card links (title ::after covers the card): the ring goes on the card, not on the title text. */
+.articleCard:focus-within { border-color: var(--v5-focus); }
+.articleCard:has(.articleCardTitle a:focus-visible) { outline: 3px solid var(--v5-focus); outline-offset: 3px; }
+/* Informative covers use their source dimensions, including legacy shapes with baked-in text. */
+.articleCardImage { display: block; width: 100%; height: auto; aspect-ratio: auto; object-fit: contain; object-position: top; background: var(--v5-surface); border-radius: var(--v5-card-image-radius) var(--v5-card-image-radius) 0 0; }
+.articleCardImage:not(img) { aspect-ratio: 1200 / 630; }
+.articleCardBody { display: flex; flex: 1; flex-direction: column; gap: 8px; padding: 20px 20px 20px; }
+.articleCardTopic { color: var(--v5-gold-text); font-size: var(--v5-text-meta); font-weight: 500; font-family: var(--v5-font-display); }
+.articleCardTitle { font-size: 18px; line-height: 1.45; font-weight: 500; font-family: var(--v5-font-display); }
+.articleCardTitle a { text-decoration: none; }
+.articleCardTitle a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+/* Blog only: retain the full headline link while reserving the mobile card's right hit strip. */
+@media (max-width: 1023px) {
+  :global(#v5-blog-scope) .articleCardTitle a::after { right: 72px; }
+}
+.articleCardTitle a:focus-visible { outline: none; }
+.articleCardExcerpt { color: var(--v5-muted); font-size: 15px; line-height: 1.65; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.articleCardMeta { color: var(--v5-muted); font-size: var(--v5-text-meta); margin-top: var(--v5-card-meta-top, auto); padding-top: 4px; }
+.articleCardFooter { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; margin-top: var(--v5-card-meta-top, auto); }
+.articleCardFooter .articleCardMeta { margin-top: 0; padding-top: 0; min-width: 0; }
+.articleCardHorizontal { flex-direction: row; align-items: stretch; --v5-card-meta-top: 0; }
+/* Horizontal covers hug their intrinsic height and align with the start of the text column. */
+.articleCardHorizontal .articleCardImage { width: 38%; height: auto; aspect-ratio: auto; align-self: flex-start; flex: none; border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius); }
+.articleCardHorizontal .articleCardBody { justify-content: center; padding: 16px 16px; }
+/* Stacked: the cover spans the card width so the topic, title and date stay visible below it. */
+@media (max-width: 639px), (min-width: 900px) and (max-width: 1279px) {
+  .articleCardHorizontal { flex-direction: column; --v5-card-meta-top: auto; }
+  .articleCardHorizontal .articleCardImage { width: 100%; min-height: 0; aspect-ratio: auto; }
+  .articleCardHorizontal .articleCardImage { border-radius: var(--v5-card-image-radius) var(--v5-card-image-radius) 0 0; }
+  .articleCardHorizontal .articleCardBody { justify-content: flex-start; padding: 16px 20px 20px; }
+}
+
+/* Breadcrumbs. */
+.breadcrumbs { color: var(--v5-muted); font-size: var(--v5-text-meta); }
+.breadcrumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; padding: 0; list-style: none; }
+.breadcrumbs li { display: inline-flex; align-items: center; gap: 8px; }
+.breadcrumbs li + li::before { content: "›"; color: var(--v5-muted); }
+.breadcrumbs a { text-decoration: none; min-height: 44px; margin-block: -8px; display: inline-flex; align-items: center; }
+.breadcrumbs a:hover { color: var(--v5-gold-text); }
+.breadcrumbs [aria-current="page"] { color: var(--v5-text); }
+
+/* Header. */
+.header { position: sticky; top: 0; z-index: 40; background: var(--v5-header); border-bottom: 1px solid var(--v5-border-soft); backdrop-filter: saturate(140%) blur(10px); -webkit-backdrop-filter: saturate(140%) blur(10px); }
+.headerBar { display: flex; align-items: center; gap: 16px; min-height: 68px; }
+@media (min-width: 1024px) { .headerBar { min-height: 76px; } }
+.brand { display: inline-flex; align-items: center; min-height: 44px; font-size: 22px; font-weight: 500; letter-spacing: 0.01em; text-decoration: none; font-family: var(--v5-font-display); }
+.brandCc { color: var(--v5-text); }
+.brandPun { color: var(--v5-gold-text); }
+.desktopNav { display: none; margin-inline: auto; }
+.desktopNav > ul { display: flex; align-items: center; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.navItem { position: relative; }
+.navLink, .navToggle {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 16px; border: 0; border-radius: 999px;
+  background: transparent; color: var(--v5-text); font-family: var(--v5-font-display); font-size: 15px; font-weight: 500; text-decoration: none; cursor: pointer;
+}
+.navLink:hover, .navToggle:hover { color: var(--v5-gold-text); }
+.navLink[aria-current] { color: var(--v5-gold-text); }
+.chevron { width: 10px; height: 10px; transition: transform var(--v5-motion-fast) var(--v5-ease-standard); }
+.navToggle[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+.dropdown {
+  position: absolute; top: calc(100% + 8px); left: 50%; min-width: 260px; transform: translateX(-50%);
+  padding: 8px; margin: 0; list-style: none; background: var(--v5-bg); border: 1px solid var(--v5-border); border-radius: var(--v5-radius); box-shadow: var(--v5-shadow);
+  visibility: hidden; opacity: 0; transition: opacity var(--v5-motion-micro) ease, visibility var(--v5-motion-micro);
+}
+.navItem:hover > .dropdown, .navItem:focus-within > .dropdown, .navItem[data-open="true"] > .dropdown { visibility: visible; opacity: 1; }
+.navItem[data-open="false"] > .dropdown { visibility: hidden; opacity: 0; }
+.dropdown a { display: flex; align-items: center; min-height: 44px; padding: 8px 16px; border-radius: 10px; font-size: 15px; text-decoration: none; }
+.dropdown a:hover, .dropdown a[aria-current] { background: var(--v5-bg-alt); color: var(--v5-gold-text); }
+.dropdownDivider { height: 1px; margin: 8px 8px; background: var(--v5-border-soft); }
+.headerActions { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.iconButton {
+  display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 999px; border: 1px solid var(--v5-border);
+  background: transparent; color: var(--v5-text); cursor: pointer;
+}
+.iconButton:hover { border-color: var(--v5-gold); color: var(--v5-gold-text); }
+.iconButton svg { width: 18px; height: 18px; }
+/* Native theme control: three icon-only 44px targets; mobile keeps its existing toggle. */
+.themeIconLight, .themeIconDark { display: none; }
+:global(html[data-theme="light"]) .themeIconLight, :global(html[data-theme="dark"]) .themeIconDark { display: block; }
+.themeSegments { display: none; position: relative; isolation: isolate; width: 132px; height: 44px; grid-template-columns: repeat(3, 44px); padding: 0; border: 0; border-radius: 999px; background: var(--v5-bg-alt); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.themeSegments::before { content: ""; position: absolute; top: 4px; left: 4px; width: 36px; height: 36px; background: var(--v5-bg); border-radius: 999px; box-shadow: 0 2px 6px rgb(0 0 0 / 12.15686%); transform: translateX(44px); transition: transform var(--v5-motion-fast) var(--v5-ease-standard); }
+:global(html[data-theme-choice="light"]) .themeSegments::before { transform: translateX(0); }
+:global(html[data-theme-choice="dark"]) .themeSegments::before { transform: translateX(88px); }
+.themeOption { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--v5-muted); font: inherit; font-size: 14px; cursor: pointer; }
+.themeOption:hover, .themeOption[aria-checked="true"] { color: var(--v5-text); }
+.themeOption svg { width: 20px; height: 20px; flex-shrink: 0; }
+.themeOption svg [stroke] { stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.themeOption span { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); padding: 4px 8px; border: 1px solid var(--v5-border); border-radius: 8px; background: var(--v5-bg); color: var(--v5-text); font-size: 14px; line-height: 1.4; white-space: nowrap; box-shadow: var(--v5-shadow); pointer-events: none; visibility: hidden; opacity: 0; }
+.themeOption:hover span, .themeOption:focus-visible span { visibility: visible; opacity: 1; }
+@media (min-width: 834px) { .themeSegments { display: inline-grid; } .mobileThemeToggle { display: none; } }
+.menuButton { display: inline-grid; }
+@media (min-width: 1024px) {
+  .desktopNav { display: block; }
+  .desktopNav + .headerActions { margin-left: 0; }
+  .menuButton { display: none; }
+}
+.mobilePanel { border-top: 1px solid var(--v5-border-soft); padding-block: 12px 24px; }
+.mobilePanel[hidden] { display: none; }
+@media (min-width: 1024px) { .mobilePanel { display: none !important; } }
+.mobileGroup { padding-block: 8px; border-bottom: 1px solid var(--v5-border-soft); }
+.mobilePanel ul { margin: 0; padding: 0; list-style: none; }
+.mobilePanel a:not(.button) { display: flex; align-items: center; min-height: 48px; padding: 8px 4px; font-size: 17px; font-weight: 500; text-decoration: none; font-family: var(--v5-font-display); }
+.mobilePanel a[aria-current] { color: var(--v5-gold-text); }
+
+.mobilePreferences { display: grid; gap: 12px; padding-top: 12px; }
+.themeSystemSwitch { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; padding: 0 4px; border: 0; background: transparent; color: var(--v5-text); font: inherit; cursor: pointer; }
+.switchTrack { width: 44px; height: 28px; padding: 4px; border: 1px solid var(--v5-border); border-radius: 999px; background: var(--v5-bg-alt); }
+.switchTrack::before { content: ""; display: block; width: 18px; height: 18px; border-radius: 50%; background: var(--v5-muted); transition: transform var(--v5-motion-fast) var(--v5-ease-standard); }
+.themeSystemSwitch[aria-checked="true"] .switchTrack { background: var(--v5-gold); }
+.themeSystemSwitch[aria-checked="true"] .switchTrack::before { background: var(--v5-on-gold); transform: translateX(16px); }
+.mobileLine { width: 100%; }
+
+/* Footer. */
+.footer { background: var(--v5-bg); border-top: 1px solid var(--v5-border-soft); padding-block: 56px 32px; }
+@media (min-width: 1024px) { .footer { padding-block: 72px 40px; } }
+/* Room for the mobile LINE corner button, including the device safe area. */
+@media (max-width: 1023px) { .footer { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); } }
+.footerMark { display: block; font-size: clamp(64px, 14vw, 132px); line-height: 0.9; font-weight: 500; letter-spacing: -0.02em; color: var(--v5-watermark); margin-bottom: 36px; user-select: none; font-family: var(--v5-font-display); }
+.footerGrid { display: grid; gap: 28px 24px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 900px) { .footerGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.footerColumn h2 { font-size: 15px; font-weight: 500; margin-bottom: 8px; font-family: var(--v5-font-display); }
+.footerColumn ul { margin: 0; padding: 0; list-style: none; }
+.footerColumn a, .footerColumn button {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none;
+  color: var(--v5-muted); font-family: var(--v5-font); font-size: 15px; font-weight: 400; text-decoration: none; cursor: pointer;
+}
+.footerColumn a:hover, .footerColumn button:hover { color: var(--v5-gold-text); }
+.footerLegal { margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--v5-border-soft); color: var(--v5-muted); font-size: 14px; line-height: 1.75; display: grid; gap: 8px; }
+.footerCopyright { margin-top: 20px; color: var(--v5-muted); font-size: 14px; }
+
+.srOnly { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .root *, .root *::before, .root *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+/* Theme switch (smoothing pass 2026-10-26): every surface swaps in the same frame. Without this, hover-state
+   colour transitions made buttons, chips and cards fade for 160ms after the page itself had already switched.
+   V5HeaderEnhancer sets the attribute for the switching frame only. */
+:global(html[data-v5-theme-switching]) .root *, :global(html[data-v5-theme-switching]) .root *::before, :global(html[data-v5-theme-switching]) .root *::after { transition: none !important; }
+.articleCard[hidden] { display: none; }
+
+/* Health Happy countdown slot: removed entirely (no reserved space) once the deadline has passed. */
+.countdownSlot { display: block; }
+:global(html[data-v5-countdown-ended]) .countdownSlot { display: none; }
+/* All campaign placements keep balanced slots; only widget action hit regions clear LINE. */
+
+/*
+  Bridge for reused Website 4.3 widgets (Health Happy countdown, share/engagement
+  controls, table scroll hint). Their behaviour and analytics stay single-owner;
+  this maps the 4.3 tokens onto v5 tokens and neutralises the 4.3 page-root box.
+*/
+.compat.compat {
+  --w43-bg: var(--v5-bg-alt);
+  --w43-deep: #251818;
+  --w43-surface: var(--v5-surface);
+  --w43-border: var(--v5-border);
+  --w43-ink: var(--v5-text);
+  --w43-muted: var(--v5-muted);
+  min-height: 0;
+  overflow-x: visible;
+  background: transparent;
+  color: inherit;
+  font-family: var(--v5-font);
+}
+
+/*
+  D1 (owner-approved 2026-10-25): backdrop-filter glass only on the header and the bottom LINE
+  bar. Reused calculator surfaces (.glass-card / .glass-button) lose their blur inside v5 in both
+  themes and keep their existing opaque-enough fills, so text sits on a predictable background.
+*/
+.root :global(:is(.glass-card, .glass-button, .glass-button-sm)) { backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+/* C8: native details keep their built-in no-JS toggle; only the newly exposed content moves. */
+.root details[open] > :not(summary) { animation: v5DetailsReveal var(--v5-motion-fast) var(--v5-ease-standard) both; }
+@keyframes v5DetailsReveal { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+:global(html[data-v5-theme-switching]) .themeSegments::before { transition: transform var(--v5-motion-fast) var(--v5-ease-standard) !important; }
+@media (prefers-reduced-motion: reduce) { :global(html[data-v5-theme-switching]) .themeSegments::before { transition: none !important; } }
+
+/* Only category/404 recovery expanded links; headline links and card paint stay intact. */
+@media (max-width:1023px) { :global(section:is([aria-labelledby="category-articles"],[aria-labelledby="not-found-latest"])) .articleCardTitle a::after { right:calc(80px - var(--v5-gutter)); } }
+@media (min-width:1024px) { :global(#v5-blog-scope) .articleCardTitle a::after, :global(section[aria-labelledby="not-found-latest"]) .articleCardTitle a::after { right:calc(248px - var(--v5-gutter)); } }
+
+/* 404 recovery controls leave the same fixed LINE corner clear as the reading surfaces. */
+.notFoundTools { padding-inline-end: max(var(--v5-gutter), 80px); }
+@media (min-width: 1024px) { .notFoundTools { padding-inline-end: max(var(--v5-gutter), 248px); } }
+
+/* Compact phone footer is selected explicitly by the page's physical context. */
+.footerDisclosure > summary { list-style: none; }
+.footerDisclosure > summary::-webkit-details-marker { display: none; }
+.footerDisclosure > summary > span { display: none; }
+@media (min-width: 640px) { .footerDisclosure > summary { pointer-events: none; } }
+@media (max-width: 639px) {
+  .footerCompact .footerGrid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .footerDisclosure { border-bottom: 1px solid var(--v5-border-soft); }
+  .footerDisclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; cursor: pointer; }
+  .footerDisclosure > summary > h2 { margin: 0; font-size: 16px; }
+  .footerDisclosure > summary > span { display: block; color: var(--v5-gold-text); }
+  .footerDisclosure[open] > summary > span { transform: rotate(180deg); }
+  .footerDisclosure > ul { padding-bottom: 12px; }
+}
+
+/* Native portrait tablet chrome (Home 82641/82877, matching the approved full-nav 834 pattern). */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .headerBar { min-height: 78px; }
+  .desktopNav { display: block; }
+  .desktopNav > ul { gap: 32px; }
+  .navLink, .navToggle { padding-inline: 0; font-size: 16px; }
+  .desktopNav + .headerActions { margin-left: 0; }
+  .themeSegments { display: inline-grid; }
+  .mobileThemeToggle, .menuButton, .mobilePanel { display: none; }
+  .footer { padding-block: 64px 48px; }
+  .countdownSlot:has(:global([data-campaign-placement="blog"])) { padding-inline-end: 0; }
+  .footerMark { font-size: 96px; }
+  .footerGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Approved portrait 404 recovery keeps its existing URLs and complete article records. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .root :global(section[aria-labelledby="not-found-title"]) { padding-block: 48px; text-align: left !important; }
+  .root :global(section[aria-labelledby="not-found-title"]) > .inner { max-width: calc(640px + var(--v5-gutter) * 2); }
+  .root :global(section[aria-labelledby="not-found-title"]) > .inner > p[aria-hidden="true"] { font-family: var(--v5-font); font-size: 96px !important; font-weight: 600 !important; }
+  .root :global(#not-found-title) { font-size: 36px; line-height: 1.3; }
+  .root :global(section[aria-labelledby="not-found-title"]) .lead { font-size: 18px; line-height: 1.75; }
+  .root :global(section[aria-labelledby="not-found-title"]) .buttonRow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 520px; margin-inline: auto; }
+  .root :global(section[aria-labelledby="not-found-title"]) .buttonRow > a { min-height: 56px; }
+  .root :global(section[aria-labelledby="not-found-tools"]) { padding-block: 32px !important; background: var(--v5-bg-alt); }
+  .notFoundTools { padding-inline: var(--v5-gutter); }
+  .notFoundTools .chips { gap: 12px; }
+  .notFoundTools .buttonOutline { padding-inline: 16px; border-color: transparent; font-size: 16px; }
+  .root :global(#not-found-tools) { font-size: 22px; line-height: 1.5; }
+  .root :global(section[aria-labelledby="not-found-latest"]) { padding-bottom: 64px; }
+  .root :global(section[aria-labelledby="not-found-latest"]) .cardGrid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .root :global(section[aria-labelledby="not-found-latest"]) .articleCard { flex-direction: row; align-items: center; background: var(--v5-bg); }
+  .root :global(section[aria-labelledby="not-found-latest"]) .articleCardImage { width: 240px; height: auto; aspect-ratio: 16 / 9; flex: none; object-fit: contain; align-self: center; }
+  .root :global(section[aria-labelledby="not-found-latest"]) .articleCardBody { min-width: 0; padding: 24px; }
+  .root :global(section[aria-labelledby="not-found-latest"]) .articleCardTitle { font-family: var(--v5-font); font-size: 22px; font-weight: 600; line-height: 1.4; }
+  .root :global(section[aria-labelledby="not-found-latest"]) .articleCardTopic { font-family: var(--v5-font); font-size: 16px; font-weight: 600; line-height: 1.7; }
+  .root :global(section[aria-labelledby="not-found-latest"]) .articleCardMeta { font-size: 16px; line-height: 1.7; }
+}

@@ -1,0 +1,288 @@
+/* Approved Home only (native EC7, 2026-10-29). Shared shell tokens and other pages remain owned by their existing components. */
+.hero { background: var(--v5-bg); padding-block: 16px 32px; }
+.heroGrid { display: grid; gap: 16px; }
+.heroCopy { min-width: 0; }
+.heroTitle { font-size: 34px; line-height: 1.3; overflow-wrap: anywhere; }
+.heroTitle em { font-style: normal; color: var(--v5-gold-text); }
+.heroBody { margin-top: 10px; color: var(--v5-muted); font-size: 16px; line-height: 1.7; max-width: 620px; }
+.heroBody + div { margin-top: 16px; }
+.credentials { display: grid; grid-auto-flow: column; grid-auto-columns: 100%; gap: 8px; margin: 16px 0 0; padding: 4px 4px 12px; list-style: none; overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: 4px; }
+.credentials > li { display: grid; min-width: 0; scroll-snap-align: start; }
+.credentials span { white-space: normal; }
+.credentials dt { font-size: 15px; font-weight: 500; font-family: var(--v5-font-display); }
+.credentials dd { margin: 4px 0 0; color: var(--v5-muted); font-size: var(--v5-text-meta); line-height: 1.55; overflow-wrap: anywhere; }
+.portrait { position: relative; order: -1; height: 320px; isolation: isolate; }
+.portrait img { object-fit: contain; object-position: center bottom; }
+.portraitBadge { position: absolute; inset-inline: 12px; bottom: 0; width: fit-content; max-width: calc(100% - 24px); padding: 8px 14px; border-radius: 14px; background: rgb(37 24 24 / 85%); color: #faf9f9; font-size: 16px; line-height: 1.5; }
+.portraitBadge strong, .portraitBadge span { display: block; }
+.portraitBadge strong { font-weight: 500; font-family: var(--v5-font-display); }
+.portraitBadge span { color: #ebd9a2; }
+:global(html[data-theme="light"]) .heroBody { color: #4f3e3a; }
+@media (max-width: 359px) { .heroTitle { font-size: 30px; } }
+@media (min-width: 640px) and (max-width: 1023px) { .portrait { height: 400px; } }
+@media (min-width: 1024px) {
+  .hero { background: var(--v5-bg-alt); padding-block: 0; }
+  .heroGrid { position: relative; min-height: 840px; padding-block: 96px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: start; }
+  .heroCopy { padding-inline-end: 0; }
+  .heroTitle { font-size: 48px; }
+  .heroBody { margin-top: 20px; font-size: 22px; }
+  .heroBody + div { margin-top: 20px; }
+  .credentials { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 20px; padding: 0; overflow: visible; }
+  .portrait { position: absolute; order: 0; inset-inline-end: var(--v5-gutter); bottom: 0; width: calc((100% - var(--v5-gutter) * 2 - 48px) / 2); height: 760px; }
+  .portrait::before { content: ""; position: absolute; z-index: -1; left: 9.415584%; bottom: 0; width: 81.168831%; height: 78.947368%; border-radius: 999px 999px 0 0; background: #4a3a3a; box-shadow: 0 10px 24px rgb(37 24 24 / 20%); }
+  :global(html[data-theme="light"]) .portrait::before { background: #dccfbe; box-shadow: 0 10px 24px rgb(37 24 24 / 10%); }
+  .portraitBadge { display: none; }
+}
+
+/* Density stays local to Home. Content height remains intrinsic for CMS edits and large text. */
+.homeSection.homeSection { padding-block: 24px; }
+.homeSection :is(h2, h3) { overflow-wrap: anywhere; }
+.homeSection > div > h2, .faq h2 { font-size: 26px; line-height: 1.3; }
+.story { display: flex; flex-direction: column; }
+.voicesSection { background: var(--v5-bg-alt); }
+:global(html[data-theme="light"]) .partnerStrip { background: var(--v5-bg-alt); }
+:global(html[data-theme="light"]) .voicesSection { background: var(--v5-surface); }
+.aboutSection.aboutSection { background: var(--v5-bg); }
+.learningSection { background: var(--v5-bg-alt); }
+.coreGuides { margin-top: 32px; }
+.latestSection { background: var(--v5-bg); }
+.latestTrack { min-width: 0; }
+@media (min-width: 1024px) {
+  .homeSection.homeSection { padding-block: 96px; }
+  .painsSection.painsSection, .faqSection.faqSection { padding-block: 64px; }
+  .partnerStrip { order: -1; }
+  .homeSection > div > h2, .faq h2 { font-size: 32px; }
+  .voicesSection { background: var(--v5-bg); }
+  .learningSection { background: var(--v5-bg); }
+}
+
+/*
+  Pains (design QA 2026-10-25): an editorial list instead of three boxed icon-tile cards. Each item
+  sits under a hairline rule with a small inline icon; desktop separates the columns with rules.
+*/
+.cards3 { display: grid; gap: 0; margin-top: 12px; counter-reset: home-pain; }
+@media (min-width: 768px) { .cards3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; } }
+.painCard { position: relative; padding: 10px 0 10px 32px; border-top: 1px solid var(--v5-border); counter-increment: home-pain; }
+.painCard::before { content: counter(home-pain, decimal-leading-zero); position: absolute; left: 0; top: 10px; color: var(--v5-gold-text); font-family: var(--v5-font-display); font-weight: 500; }
+@media (min-width: 768px) {
+  .painCard { padding: 24px 28px 0; border-left: 1px solid var(--v5-border-soft); }
+  .painCard:first-child { padding-left: 28px; border-left: 0; }
+}
+.painIcon { display: block; width: 24px; height: 24px; margin-bottom: 8px; }
+.painCard h3 { font-size: 20px; line-height: 1.45; }
+.painCard p { margin-top: 8px; color: var(--v5-muted); font-size: 16px; line-height: 1.75; }
+
+.partners { display: grid; grid-auto-flow: column; grid-auto-columns: 150px; gap: 10px; list-style: none; margin: 16px 0 0; padding: 4px 4px 12px; overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: 4px; }
+/* Partners are one row of logos: a compact strip instead of a full-height band. */
+.partnerStrip.partnerStrip { padding-block: 24px; background: var(--v5-bg); }
+@media (min-width: 1024px) { .partnerStrip.partnerStrip { padding-block: 48px; } .partners { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(6, minmax(0, 1fr)); overflow: visible; padding: 0; } }
+.partner { scroll-snap-align: start; display: grid; justify-items: center; gap: 8px; padding: 16px 12px; border-radius: var(--v5-radius-sm); background: #fffdf9; border: 1px solid rgba(91, 72, 72, 0.18); color: #352727; text-align: center; }
+.partner img { width: auto; max-width: 100%; height: 40px; object-fit: contain; }
+.partner strong { font-size: 14px; font-weight: 500; font-family: var(--v5-font-display); }
+.partner span { font-size: var(--v5-text-meta); color: #5f4c4c; line-height: 1.45; }
+
+/* Testimonials as pull quotes (design QA 2026-10-25): gold rule, no box; the first quote leads. */
+.quotes { display: grid; grid-auto-flow: column; grid-auto-columns: calc(100% - 24px); gap: 12px; margin-top: 12px; padding: 4px 4px 12px; overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: 4px; align-items: start; }
+@media (min-width: 1024px) { .quotes { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: 1.4fr 1fr; gap: 40px; overflow: visible; margin-top: 40px; padding: 0; } }
+.quote { margin: 0; padding: 16px; border: 1px solid var(--v5-border-soft); border-radius: var(--v5-radius); background: var(--v5-card); scroll-snap-align: start; }
+.quote blockquote { margin: 0; font-size: 16px; line-height: 1.7; font-weight: 400; font-family: var(--v5-font-display); }
+@media (min-width: 1024px) { .quote:first-child blockquote { font-size: 21px; line-height: 1.7; } }
+.quote blockquote::before { content: "“"; }
+.quote blockquote::after { content: "”"; }
+.quote figcaption { margin-top: 16px; color: var(--v5-gold-text); font-size: 14px; font-weight: 500; font-family: var(--v5-font-display); }
+.quote figcaption::before { content: "— "; }
+
+.about { position: relative; display: grid; gap: 16px; align-items: start; }
+@media (min-width: 1024px) { .about { grid-template-columns: minmax(240px, 400px) minmax(0, 1fr); gap: 48px; } }
+.aboutPortraitFrame { width: 100%; max-width: 400px; }
+.aboutPortrait { width: 100%; height: auto; border-radius: var(--v5-radius-lg); aspect-ratio: 4 / 5; object-fit: cover; object-position: top; background: var(--v5-surface); max-width: 400px; }
+.aboutPortraitLight { display: none; }
+:global(html[data-theme="light"]) .aboutPortraitDark { display: none; }
+:global(html[data-theme="light"]) .aboutPortraitLight { display: block; }
+.aboutIdentity { margin-top: 16px; }
+.aboutIdentity strong { display: block; font-size: 18px; font-weight: 500; font-family: var(--v5-font-display); }
+.aboutIdentity span { color: var(--v5-muted); font-size: var(--v5-text-meta); }
+.aboutCopy { display: grid; gap: 16px; margin-top: 20px; color: var(--v5-muted); font-size: 16px; line-height: 1.85; }
+.advisorNote { margin-top: 20px; padding: 20px 20px; border-left: 3px solid var(--v5-gold); background: var(--v5-card); border-radius: 0 var(--v5-radius-sm) var(--v5-radius-sm) 0; font-weight: 500; font-family: var(--v5-font-display); }
+
+.tools { display: grid; gap: 12px; margin-top: 16px; }
+@media (min-width: 640px) { .tools { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .tools { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.toolCard { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: var(--v5-radius); background: var(--v5-card); border: 1px solid var(--v5-border-soft); }
+.toolCard:hover { border-color: var(--v5-gold); }
+.toolCard:focus-within { border-color: var(--v5-focus); }
+.toolCard:has(h3 a:focus-visible) { outline: 3px solid var(--v5-focus); outline-offset: 3px; }
+.toolCard h3 a:focus-visible { outline: none; }
+.toolCard h3 { font-size: 19px; line-height: 1.4; }
+.toolCard h3 a { text-decoration: none; }
+.toolCard h3 a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.toolCard p { color: var(--v5-muted); font-size: 15px; line-height: 1.7; }
+.toolCard span { margin-top: auto; color: var(--v5-gold-text); font-weight: 500; font-size: 15px; font-family: var(--v5-font-display); }
+
+.guides { display: grid; gap: 12px; margin-top: 16px; }
+@media (min-width: 900px) { .guides { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.topicsLabel { margin-top: 28px; margin-bottom: 12px; color: var(--v5-muted); font-size: var(--v5-text-meta); font-weight: 500; font-family: var(--v5-font-display); }
+
+.faq { display: grid; gap: 16px; }
+@media (min-width: 900px) { .faq { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; } }
+.faqList { display: grid; gap: var(--v5-list-gap); }
+.faqItem { border-radius: var(--v5-radius-sm); background: var(--v5-card-alt); border: 1px solid var(--v5-border-soft); }
+.faqItem > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 16px 20px; cursor: pointer; font-size: 17px; font-weight: 500; list-style: none; font-family: var(--v5-font-display); }
+.faqItem > summary::-webkit-details-marker { display: none; }
+.faqItem > summary::after { content: "+"; color: var(--v5-gold-text); font-size: 20px; line-height: 1; }
+.faqItem[open] > summary::after { content: "–"; }
+.faqItem > p { padding: 0 20px 20px; color: var(--v5-muted); font-size: 16px; line-height: 1.75; }
+
+/* Native compact media rows retain every headline/date and the whole cover; no clamping. */
+@media (max-width: 639px) {
+  .guideCard.guideCard, .latestCard.latestCard { flex-direction: row; align-items: center; }
+  .guideCard.guideCard > img, .latestCard.latestCard > img { width: 104px; height: auto; min-height: 0; aspect-ratio: auto; align-self: flex-start; flex: none; margin-inline-start: 12px; border-radius: 8px; }
+  .guideCard.guideCard > div, .latestCard.latestCard > div { min-width: 0; padding: 12px; }
+  .guideCard h3, .latestCard h3 { font-size: 16px; line-height: 1.5; }
+  .latestTrack.latestTrack { grid-auto-flow: column; grid-auto-columns: calc(100% - 24px); grid-template-columns: none; gap: 12px; overflow-x: auto; padding: 4px 4px 12px; scroll-snap-type: x proximity; scroll-padding-inline: 4px; align-items: start; }
+  .latestCard { scroll-snap-align: start; }
+  .about { padding: 16px; border: 1px solid var(--v5-border-soft); border-radius: var(--v5-radius); background: var(--v5-card); }
+  .aboutPortraitFrame { width: 72px; }
+  .aboutPortrait { width: 72px; height: 72px; aspect-ratio: 1; border-radius: 50%; }
+  .aboutCopy { gap: 12px; margin-top: 16px; line-height: 1.7; }
+  .advisorNote { padding: 12px 16px; margin-top: 16px; }
+  .faqItem > summary { min-height: 44px; padding: 12px 16px; font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .credentials, .partners, .quotes, .latestTrack { scroll-behavior: auto; scroll-snap-type: none; } }
+
+/* Native sections keep equal shell gutters. LINE clearance stays on bounded controls below. */
+.homeSection > div { padding-inline: var(--v5-gutter); }
+.countdownFrame { background: var(--v5-bg-alt); }
+@media (min-width: 1024px) {
+  .countdownFrame { background: var(--v5-bg); }
+}
+@media (max-width: 359px) {
+  .guideCard.guideCard > img, .latestCard.latestCard > img { width: 72px; }
+}
+
+/* Published CMS paragraphs may contain long Latin tokens or URLs as well as Thai. */
+.homeSection p { overflow-wrap: anywhere; }
+
+/* The existing native compact strip/grid is scoped to the owner-selected static UAT badges. */
+.staticCredentials { grid-auto-columns: max-content; gap: 8px; padding: 0 20px 0 0; }
+@media (min-width: 1024px) { .staticCredentials { grid-auto-columns: auto; gap: 12px 16px; padding: 16px; border: 1px solid var(--v5-border); border-radius: var(--v5-radius); } }
+
+/* Native T01 alone uses the full approved content width; other LINE clearance stays intact. */
+.startHereSection.startHereSection { background: var(--v5-bg-alt); }
+.startHereSection.startHereSection > div { padding-inline-end: var(--v5-gutter); }
+.noRepeats { display: none; }
+.startHereGrid { display: grid; gap: 16px; margin-top: 16px; }
+.startHereCard { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.situation { display: flex; align-items: baseline; gap: 12px; }
+.situation > span { flex: none; color: var(--v5-gold-text); font-size: 16px; line-height: 24px; }
+.situation h3 { font-family: var(--v5-font-display); font-size: 21px; line-height: 32px; font-weight: 500; }
+.guideBody { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 16px; align-items: start; }
+.guideCover, .guidePlaceholder { width: 112px; height: auto; aspect-ratio: 40 / 21; border-radius: 8px; object-fit: cover; }
+.guidePlaceholder { display: grid; place-items: center; background: var(--v5-card); color: var(--v5-gold-text); font-family: var(--v5-font-display); font-size: 28px; }
+.guideCopy { min-width: 0; overflow-wrap: anywhere; }
+.guideKicker { color: var(--v5-muted); font-size: 16px; line-height: 27px; }
+.guideTitle { margin-top: 4px; font-family: var(--v5-font-display); font-size: 16px; font-weight: 500; line-height: 24px; }
+.guideTitle a { text-decoration: none; border-bottom: 1px solid transparent; scroll-margin-block: 112px; }
+.guideTitle a:hover { border-bottom-color: var(--v5-gold); }
+.guideCampaign { margin-top: 4px; color: var(--v5-gold-text); font-size: 16px; line-height: 27px; }
+.pairedGuide { display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 54px; margin-top: auto; padding: 12px 0; border-block: 1px solid var(--v5-border); text-decoration: none; font-family: var(--v5-font-display); font-size: 16px; line-height: 24px; scroll-margin-block: 112px; }
+.pairedGuide > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.pairedGuide > span:last-child { flex: none; font-size: 28px; color: var(--v5-gold-text); }
+.pairedGuide small { display: block; color: var(--v5-muted); font-family: var(--v5-font-body); font-size: 13px; font-weight: 400; }
+@media (min-width: 640px) { .startHereGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; } }
+@media (min-width: 1360px) {
+  .noRepeats { display: inline; }
+  .startHereGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 32px; }
+  .guideBody { display: flex; flex-direction: column; gap: 12px; }
+  .guideCover, .guidePlaceholder { width: 100%; }
+  .guideCopy { width: 100%; }
+  .guideTitle { font-size: 20px; line-height: 32px; }
+  .guideKicker { font-size: 18px; }
+  .pairedGuide { min-height: 70px; }
+}
+
+/* Bound T01 controls beside the unchanged LINE corner; retain full content width. */
+.guideTitle a { display: inline-block; max-width: 100%; }
+@media (max-width: 639px) {
+  .guideTitle a { max-width: calc(100% - max(0px, 80px - var(--v5-gutter))); }
+  .pairedGuide { width: calc(100% - max(0px, 80px - var(--v5-gutter))); }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .startHereCard:nth-child(2n) .guideTitle a,
+  .startHereCard:nth-child(2n) .pairedGuide { max-width: calc(100% - max(0px, 80px - var(--v5-gutter))); }
+}
+@media (min-width: 1024px) and (max-width: 1359px) {
+  .guideBody { display: flex; flex-direction: column; }
+  .guideCopy { width: 100%; }
+  .startHereCard:nth-child(2n) .guideTitle a,
+  .startHereCard:nth-child(2n) .pairedGuide { max-width: calc(100% - max(0px, 248px - var(--v5-gutter))); }
+}
+@media (min-width: 1360px) {
+  .startHereCard:last-child .guideTitle a,
+  .startHereCard:last-child .pairedGuide { max-width: calc(100% - max(0px, 248px - var(--v5-gutter))); }
+}
+
+/* Approved 820 portrait Home: native 82640/82901, e4ac38e4; intrinsic copy height remains editable. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .hero { background: var(--v5-bg-alt); padding-block: 0; }
+  .heroGrid { position: relative; min-height: 700px; padding-block: 56px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; align-items: center; }
+  .heroTitle { font-size: 36px; }
+  .heroBody { margin-top: 20px; font-size: 18px; line-height: 1.7; }
+  .heroBody + div { margin-top: 20px; }
+  .heroCopy > div > a { width: 100%; min-height: 56px; }
+  .credentials.staticCredentials { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 20px; padding: 12px; overflow: visible; border: 1px solid var(--v5-border); border-radius: var(--v5-radius); }
+  .staticCredentials > li > a { min-width: 0; width: 100%; min-height: 58px; gap: 4px; padding: 0; border: 0; background: none; }
+  .portrait { position: absolute; order: 0; inset-inline-end: var(--v5-gutter); bottom: 0; width: min(360px, calc((100% - var(--v5-gutter) * 2 - 32px) / 2)); height: auto; aspect-ratio: 360 / 530.2941176471; }
+  .portrait::before { content: ""; position: absolute; z-index: -1; left: 8.333333%; bottom: 0; width: 83.333333%; height: 82.972973%; border-radius: 999px 999px 0 0; background: #4a3a3a; box-shadow: 0 10px 24px rgb(37 24 24 / 20%); }
+  :global(html[data-theme="light"]) .portrait::before { background: #dccfbe; box-shadow: 0 10px 24px rgb(37 24 24 / 10%); }
+  .portraitBadge { display: none; }
+  .homeSection.homeSection { padding-block: 64px; }
+  .homeSection > div > h2, .faq h2 { font-size: 28px; }
+  .partnerStrip.partnerStrip { order: -1; padding-block: 48px; }
+  .aboutSection.aboutSection { display: none; }
+  .partner { position: relative; display: flex; align-items: center; justify-content: center; height: 88px; padding: 12px 20px; }
+  .partner img { width: auto; height: auto; max-width: 100%; max-height: 48px; }
+  .partner strong, .partner span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  .cards3 { gap: 20px; margin-top: 40px; align-items: start; }
+  .painCard, .painCard:first-child { display: grid; gap: 16px; padding: 20px; border: 0; border-radius: 24px; background: var(--v5-card); }
+  .painCard::before { content: none; }
+  .painIcon { box-sizing: content-box; width: 24px; height: 24px; padding: 16px; margin: 0; border-radius: 50%; background: var(--v5-surface); }
+  .painCard h3 { font-family: var(--v5-font); font-size: 22px; font-weight: 600; line-height: 1.35; }
+  :global(html[data-theme="light"]) .painIcon { background: #e8ddcf; }
+  .painCard p { margin-top: 0; font-size: 18px; line-height: 1.75; }
+  .partners { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 0; overflow: visible; }
+  .quotes { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; padding: 0; overflow: visible; }
+  .quote { padding: 24px; }
+  .quote blockquote, .quote figcaption { font-size: 18px; line-height: 1.75; }
+  .startHereGrid { gap: 20px; }
+  .guideBody { display: flex; flex-direction: column; gap: 14px; }
+  .guideCover, .guidePlaceholder { width: 100%; }
+  .guideCopy { width: 100%; }
+  .latestTrack.latestTrack { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .latestCard.latestCard { flex-direction: row; align-items: center; gap: 24px; padding: 20px; }
+  .latestCard.latestCard > :is(img, span[aria-hidden]) { flex: 0 0 240px; width: 240px; height: auto; aspect-ratio: 16 / 9; object-fit: contain; align-self: center; border-radius: 0; }
+  .latestCard.latestCard > div { min-width: 0; padding: 0; }
+  .latestCard h3 { font-family: var(--v5-font); font-size: 22px; font-weight: 600; line-height: 1.35; }
+  .latestCard > div > span { font-family: var(--v5-font); font-size: 16px; font-weight: 600; line-height: 1.7; }
+  .latestCard > div > p { font-size: 16px; line-height: 1.7; }
+  .latestCard p { display: block; -webkit-line-clamp: unset; overflow: visible; }
+  .faq { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+}
+
+/* Approved mobile silhouette effect: four tuned cardinal shadows over the existing outlined alpha asset. */
+@media (max-width: 767px) {
+  .portrait img { filter: drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff); clip-path: inset(-4px -4px 0); }
+}
+
+/* Owner Safari iPad/phone: make the pale-gold SVG strokes legible on every viewport.
+   Dark circular backing matches the FigCraft partner/brand palette; no SVG asset edits. */
+.painIcon { display: grid; place-items: center; box-sizing: border-box; width: 48px; height: 48px; padding: 12px; background: #352727; border-radius: 50%; }
+.painIcon img { display: block; width: 24px; height: 24px; filter: none; opacity: 1; }
+@media (min-width: 768px) {
+  .painIcon { box-sizing: border-box; width: 56px; height: 56px; padding: 16px; background: #352727; }
+}
+
+/* The tablet light-theme token rule has higher specificity than .painIcon. */
+:global(html[data-theme="light"]) .painIcon,
+:global(html[data-theme="dark"]) .painIcon { background: #352727; }

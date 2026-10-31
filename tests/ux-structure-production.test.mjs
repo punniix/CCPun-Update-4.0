@@ -1,6 +1,7 @@
+import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 import { assertProductionCmsOwner, hasProductionCmsOwner } from '../qa/production-cms-source-proof.mjs';
 import './article-overview-rendering.test.mjs';
-import { articleOverviewSourceProjection, reviewedThaiWrapProjection, reviewedArticleCardProjection } from '../qa/phase2-source-proof.mjs';
+import { articleOverviewSourceProjection, reviewedThaiWrapProjection, reviewedArticleCardProjection, hasReviewedV5Successor, reviewedV5PredecessorDigest } from '../qa/phase2-source-proof.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -151,6 +152,8 @@ test('Investment release capability remains false even with explicit environment
 
 function packageBeforePostPublishScripts(source) {
   const manifest = JSON.parse(source);
+  assert.equal(manifest.dependencies['qrcode-generator'], '2.0.4', 'only the exact approved local LINE QR encoder');
+  delete manifest.dependencies['qrcode-generator'];
   assert.equal(manifest.dependencies['@sanity/webhook'], '4.0.4');
   delete manifest.dependencies['@sanity/webhook'];
   const sameWordTest=' && node --test tests/production-cms-sameword.test.mjs';
@@ -242,6 +245,15 @@ function lockBeforeZodBodyParserPatch(lock) {
 
 function lockBeforeAiSdk(source) {
   const lock = JSON.parse(source);
+  for (const owner of ['', 'apps/web']) {
+    assert.equal(lock.packages[owner].dependencies['qrcode-generator'], '2.0.4');
+    delete lock.packages[owner].dependencies['qrcode-generator'];
+  }
+  assert.deepEqual(lock.packages['node_modules/qrcode-generator'], {
+    version: '2.0.4', resolved: 'https://registry.npmjs.org/qrcode-generator/-/qrcode-generator-2.0.4.tgz',
+    integrity: 'sha512-mZSiP6RnbHl4xL2Ap5HfkjLnmxfKcPWpWe/c+5XxCuetEenqmNFf1FH/ftXPCtFG5/TDobjsjz6sSNL0Sr8Z9g==', license: 'MIT',
+  });
+  delete lock.packages['node_modules/qrcode-generator'];
   for (const owner of ['', 'apps/admin']) {
     assert.equal(lock.packages[owner].dependencies['@sanity/webhook'], '4.0.4');
     delete lock.packages[owner].dependencies['@sanity/webhook'];
@@ -332,7 +344,7 @@ test('Production providers, metadata, models, engines, tracking, consent storage
       : file === webConfigPath ? 'd4cf8aa0725fdf58263e3f68776db192fa39bfa1e7578b8cb7f715a7e5face9f' : digest;
     if(hasProductionCmsOwner(file)) { assertProductionCmsOwner(file,read(file)); continue; }
     const source = file === 'package.json' ? packageBeforePostPublishScripts(read(file)) : file === 'package-lock.json' ? lockBeforeAiSdk(read(file)) : read(file);
-    assert.equal(sha(source), reviewedDigest, file);
+    assert.equal(hasReviewedV5Successor(file) ? reviewedV5PredecessorDigest(file, source, reviewedDigest) : sha(source), reviewedDigest, file);
   }
 });
 
@@ -349,7 +361,12 @@ test('Production script and AI SDK admissions reject unknown scripts, changed co
   assert.notEqual(altered({ ...manifest, scripts: { ...manifest.scripts, 'build:admin:uat:acceptance': 'node scripts/build-root.mjs --native-scheduler-uat-acceptance' } }), protectedProduction['package.json'], 'no native acceptance alias is admitted in Production');
   assert.throws(() => altered({ ...manifest, dependencies: { ...manifest.dependencies, '@cloudflare/ai-search-snippet': '^0.0.44' } }));
   assert.throws(() => altered({ ...manifest, scripts: { ...manifest.scripts, 'test:architecture': manifest.scripts['test:architecture'] + ' node --test tests/monorepo-lane-ownership.test.mjs tests/ai-search-integration.test.mjs' } }));
+  assert.throws(() => altered({ ...manifest, dependencies: { ...manifest.dependencies, 'qrcode-generator': '2.0.3' } }));
   const lock = JSON.parse(read('package-lock.json'));
+  for (const field of ['version','resolved','integrity','license']) {
+    const changed = structuredClone(lock); changed.packages['node_modules/qrcode-generator'][field] = 'unreviewed';
+    assert.throws(() => lockBeforeAiSdk(JSON.stringify(changed)));
+  }
   lock.packages['node_modules/clsx'].version = '0.0.0';
   assert.notEqual(sha(lockBeforeAiSdk(JSON.stringify(lock))), protectedProduction['package-lock.json']);
   lock.packages['node_modules/@cloudflare/ai-search-snippet'].integrity = 'unreviewed';
@@ -383,42 +400,67 @@ test('Vite security admission rejects changed overrides, artifact metadata and u
 });
 
 function loadArchive(articles, registry) {
-  const Page = props => React.createElement('archive-proof', props);
-  const mocks = {
-    '@/lib/content/public-copy': { getPublicCopy: async () => ({}) },
-    '@/lib/content/public-copy-registry': { publicCopyText: () => key => key },
-    '@/components/ui/PublicCopyProvider': { PublicCopyProvider: ({children}) => children },
-    'next/headers': { draftMode: async () => ({ isEnabled: false }) },
-    '@/features/blog/website-43/Website43Blog': { __esModule: true, default: Page },
-    '@/features/blog/website-43/blogData': { toWebsite43ArticleItems: x => x, toWebsite43ArticleItemsInOrder: x => x },
-    '@/lib/content/provider': { getContentProvider: () => ({ listArticles: async () => articles }) },
-    '@/lib/deployment-environment': { IS_DRAFT_PREVIEW_ALLOWED: false },
-    '@/lib/content/category-registry': { listCategoryMenuEntries: entries => entries.entries.filter(x => x.status === 'active') },
-    '@/lib/content/category-registry-sanity': { listCategoryRegistry: async () => registry },
-    '@/lib/content/blog-featured-sanity': { listBlogFeaturedArticleIds: async () => [] },
-    '@/lib/content/featured-articles': { curateFeaturedArticles: () => [] },
-    '@/lib/content/structured-data/serialize-json-ld': { serializeJsonLd: JSON.stringify },
-    '@/lib/content/structured-data/article-schema': { buildBlogArchiveSchema: () => ({}) },
+  const css = { __esModule: true, default: new Proxy({}, { get: (_, key) => String(key) }) };
+  const mocks = new Map([
+    ['@/lib/content/public-copy', { getPublicCopy: async () => ({}) }],
+    ['next/headers', { draftMode: async () => ({ isEnabled: false }) }],
+    ['@/lib/deployment-environment', { IS_DRAFT_PREVIEW_ALLOWED: false }],
+    ['@/components/layout/v5/shell-data', { getPublishedArticles: async () => articles, getPublishedCategoryRegistry: async () => registry }],
+    ['@/lib/content/provider', { getContentProvider: () => ({ listArticles: async () => { throw new Error('Public archive must not use private draft reader'); } }) }],
+    ['@/lib/content/category-registry-sanity', { listCategoryRegistry: async () => registry }],
+    ['@/lib/content/blog-featured-sanity', { listBlogFeaturedArticleIds: async () => null }],
+    ['@/lib/content/sanity', { getPrimaryAuthorProfile: async () => null }],
+    ['@/lib/analytics', { trackEvent() {} }],
+    // Unrelated shared shell fetch boundaries; the archive, grouping, cards, search and pager execute for real.
+    ['./V5Header', { __esModule: true, default: () => null }],
+    ['./V5Footer', { __esModule: true, default: () => null }],
+    ['./V5ChatDockServer', { __esModule: true, default: () => null }],
+    ...['./V5.module.css', './V5Blog.module.css', './V5Engagement.module.css', './HealthHappyCountdown.module.css', './ArticleWidgets.module.css', './Website43.module.css'].map(id => [id, css]),
+  ]);
+  return {
+    module: loadFixtureModule('features/blog/pages/BlogArchivePage.tsx', { mocks }),
+    Pager: loadFixtureModule('features/blog/v5/V5GroupPager.tsx', { mocks }).default,
   };
-  const compiled = ts.transpileModule(read('features/blog/pages/BlogArchivePage.tsx'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText;
-  const loaded = { exports: {} };
-  new Function('require','module','exports',compiled)(id => Object.hasOwn(mocks,id) ? mocks[id] : require(id),loaded,loaded.exports);
-  return { module: loaded.exports, Page };
 }
-test('actual archive route sends only published provider records/active registry and honest querypage to UI', async () => {
-  const records = Array.from({ length: 10 }, (_, index) => ({ id: `production-${index}`, status: 'published', title: `published${index}`, category: 'personal-finance' }));
-  records.push({ id: 'draft-excluded', status: 'draft' });
-  const registry = { entries: [{ slug:'personal-finance', title:'Original physical category', status:'active' }, { slug:'hidden', title:'Disabled', status:'disabled' }] };
-  const { module: archiveModule, Page } = loadArchive(records,registry);
+test('actual v5 archive keeps all published records in HTML with same-URL 4/6-card paging and active category links', async () => {
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const { JSDOM } = require('jsdom');
+  const records = Array.from({ length: 8 }, (_, index) => ({ id: `production-${index}`, slug: `archive-proof-${index}`, status: 'published', title: `published${index}`, excerpt: `complete excerpt ${index}`, category: 'การเงินส่วนบุคคล', categorySlug: 'personal-finance', semanticTopic: 'personal-finance', authorName: 'CCPun', publishedAt: '2026-01-10T03:00:00Z', seoTitle: `published${index}`, seoDescription: `description ${index}`, body: [] }));
+  const entries = [{ id:'category-personal', slug:'personal-finance', title:'Original physical category', status:'active' }, { id:'category-hidden', slug:'hidden', title:'Disabled', status:'disabled' }];
+  const registry = { available:true, entries, active:entries.slice(0,1), claimedSlugs:new Set(entries.map(entry => entry.slug)), issues:[] };
+  const { module: archiveModule, Pager } = loadArchive([...records, { id:'draft-excluded', status:'draft' }], registry);
   const tree = await archiveModule.default({ searchParams: Promise.resolve({ page:'2', q:'' }) });
-  const page = React.Children.toArray(tree.props.children).find(x => x.type === Page);
-  assert.deepEqual(page.props.articles, records.slice(0,10));
-  assert.deepEqual(page.props.categories, [{ slug:'personal-finance',title:'Original physical category' }]);
-  assert.equal(page.props.initialPage,'2');
-  const empty = loadArchive([], { entries:[] });
-  const emptyTree = await empty.module.default({ searchParams: Promise.resolve({}) });
-  const emptyPage = React.Children.toArray(emptyTree.props.children).find(x => x.type === empty.Page);
-  assert.deepEqual(emptyPage.props.articles,[]); assert.deepEqual(emptyPage.props.categories,[]);
+  const html = renderToStaticMarkup(tree);
+  const doc = new JSDOM(html).window.document;
+  const grid = doc.querySelector('#v5-group-personal-finance');
+  assert.ok(grid, 'real grouping owns the physical category');
+  assert.equal(grid.querySelectorAll('article').length,8, 'all published article bodies survive server rendering');
+  assert.equal(grid.querySelectorAll(':scope > :not([data-pager-hidden])').length,6, 'desktop SSR exposes first six, not legacy query page two');
+  for (const record of records) assert.ok([...grid.querySelectorAll('h3')].some(node => node.textContent === record.title));
+  assert.ok(doc.querySelector('a[href="/blog/personal-finance/"]'));assert.equal(doc.querySelector('a[href="/blog/hidden/"]'),null);assert.ok(!html.includes('draft-excluded'));assert.equal(doc.querySelector('input[type="search"]').value,'');
+  assert.ok(doc.querySelector('[data-v5-pager]'), 'the actual client pager is emitted by the server owner');
+  for (const [width, first, second] of [[390,4,4],[1440,6,2]]) {
+    const dom = new JSDOM(html, { url:'https://test.ccpun.com/blog/?page=2' });
+    const names = ['window','document','navigator','IS_REACT_ACT_ENVIRONMENT'];
+    const saved = new Map(names.map(name => [name, Object.getOwnPropertyDescriptor(globalThis,name)]));
+    Object.defineProperties(globalThis,{window:{value:dom.window,configurable:true},document:{value:dom.window.document,configurable:true},navigator:{value:dom.window.navigator,configurable:true},IS_REACT_ACT_ENVIRONMENT:{value:true,configurable:true}});
+    dom.window.matchMedia = () => ({ matches:width<640, addEventListener(){},removeEventListener(){} });
+    dom.window.HTMLElement.prototype.scrollIntoView = () => {};
+    const mount = dom.window.document.createElement('div');dom.window.document.body.append(mount);
+    const { createRoot } = require('react-dom/client');const root = createRoot(mount);
+    try {
+      await React.act(async () => { root.render(React.createElement(Pager,{gridId:grid.id,total:8,groupTitle:'Original physical category'})); });
+      const actualGrid = dom.window.document.getElementById(grid.id);
+      assert.equal(actualGrid.querySelectorAll(':scope > :not([data-pager-hidden])').length,first,`width${width}: actual pager first-page visibility`);
+      const next = [...mount.querySelectorAll('button')].find(node => node.textContent==='ถัดไป');assert.ok(next);
+      await React.act(async () => { next.dispatchEvent(new dom.window.MouseEvent('click',{bubbles:true})); });
+      assert.equal(actualGrid.querySelectorAll(':scope > :not([data-pager-hidden])').length,second,`width${width}: actual pager next-page visibility`);
+      assert.equal(actualGrid.querySelectorAll('article').length,8);assert.equal(dom.window.location.href,'https://test.ccpun.com/blog/?page=2');
+    } finally { await React.act(async () => root.unmount());for(const [name, descriptor] of saved){if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];}dom.window.close(); }
+  }
+  const empty = loadArchive([], {available:true,entries:[],active:[],claimedSlugs:new Set(),issues:[]});
+  const emptyDoc = new JSDOM(renderToStaticMarkup(await empty.module.default({searchParams:Promise.resolve({})}))).window.document;
+  assert.equal(emptyDoc.querySelectorAll('article').length,0);assert.ok(emptyDoc.querySelector('h1'));
 });
 
 // Reviewed Article/H4/Author candidate updates retain original baseline hashes in the parity manifests.
@@ -447,8 +489,11 @@ test('all39 approved source records retain provenance with exact reviewed Articl
       const asset = 'assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.png';
       const derived = asset.replace('.png', '.lossless.webp');
       const resolved = `url('../../../public/${derived}')`;
-      assert.equal(source.split(resolved).length, 2, 'exactly one native module-resolved background');
-      assert.equal(sha(source.replace(resolved, `url('/${asset}')`)), digest, 'only image URL ownership may change; all visual CSS stays byte-exact');
+      if (hasReviewedV5Successor(file)) reviewedV5PredecessorDigest(file, source, digest);
+      else {
+        assert.equal(source.split(resolved).length, 2, 'exactly one native module-resolved background');
+        assert.equal(sha(source.replace(resolved, `url('/${asset}')`)), digest, 'only image URL ownership may change; all visual CSS stays byte-exact');
+      }
       assert.equal(sha(readFileSync(resolve(root, 'public', asset))), '3b70e95f0c0e6d15afc8c43aceb1283220c170de3c3fba9440d0091374a9e428', 'same original PNG bytes');
       assert.equal(sha(readFileSync(resolve(root, 'public', derived))), '0691ec77ae85113dc3ed87e6d26025f3d5a56db12ce3e144092b790e5dae2d4f', 'reviewed lossless WebP derivative retains decoded pixels and metadata');
     } else if (file === 'components/layout/website-43/Website43.module.css') {
@@ -461,7 +506,7 @@ test('all39 approved source records retain provenance with exact reviewed Articl
     } else if (file === 'features/blog/website-43/Website43Article.tsx') {
       assert.equal(digest, 'd6415bfcdee858ba052a3c78077f302463ef1db2ce128cb15257c74653a93bb2');
       assert.equal(sha(articleOverviewSourceProjection(source)), 'c808e31c1e6e43e6c8ca7bb2b41efe7c82c36c696c1b0a1ee0eb6363dfaea3ae', 'reviewed Article V4 plus exact published overview only');
-    } else assert.equal(sha(source),digest,file);
+    } else assert.equal(hasReviewedV5Successor(file) ? reviewedV5PredecessorDigest(file, source, digest) : sha(source),digest,file);
   }
 });
 

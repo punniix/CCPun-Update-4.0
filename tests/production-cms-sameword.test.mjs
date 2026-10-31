@@ -1,7 +1,9 @@
+import './public-content-editability.test.mjs';
+import './money-story-v5-release.test.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import test from 'node:test';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 const require = createRequire(import.meta.url);
@@ -28,21 +30,21 @@ function assertPreviewValues(actual, scope, expected) {
   for (const [key, value] of Object.entries(actual)) {
     assert.equal(copyText.cleanCopyText(value), expected[key], key + ': same wording once edit markers are removed');
     const path = `entries[_key=="${key.replaceAll('.', '-')}"].text`;
-    assert.deepEqual(editTarget(value), { origin: 'sanity.io', href: `/studio/intent/edit/id=${registry.publicCopyDocumentId(scope)};type=publicPageCopy;path=${encodeURIComponent(path)}` });
+    assert.deepEqual(editTarget(value), { origin: 'sanity.io', href: `/studio/intent/edit/id=${registry.publicCopyDocumentId(scope)};type=publicPageCopy;path=${encodeURIComponent(path)}`, baseUrl: '/studio', id: registry.publicCopyDocumentId(scope), type: 'publicPageCopy', path });
   }
 }
 const syntheticArticles = Array.from({length: 8}, (_, i) => ({id:`fixture-${i}`, slug:`fixture-${i}`, title:`บทความ ${i}`, excerpt:`รายละเอียด ${i}`, category:'การเงินส่วนบุคคล', categorySlug:'personal-finance', status:'published', publishedAt:'2026-10-01T00:00:00Z', updatedAt:'2026-10-02T00:00:00Z', tags:[], body:[]}));
 const files = {
-  home:'features/home/website-43/Website43Home.tsx',
+  home:'features/home/v5/V5Home.tsx',
   ci:'features/ci-planning/page.tsx',
   fhc:'features/financial-health-check/page.tsx',
   blog:'features/blog/pages/BlogArchivePage.tsx',
   privacy:'features/legal/pages/PrivacyPage.tsx',
   cookies:'features/legal/pages/CookiePolicyPage.tsx',
   moneyStory:'features/money-story/page.tsx',
-  site:'components/layout/website-43/Website43Shared.tsx',
+  site:'components/layout/v5/V5Footer.tsx',
 };
-const serverNames = new Set(['Website43Home','HomeFooter','Website43Footer','Website43Blog','renderWebsite43Blog','Website43Article','Website43ArticleToc','ClientFHC','Website43Navbar','Website43ToolHero','Website43Brand']);
+const serverNames = new Set(['V5Privacy','V5CookiePolicy','V5BlogIndex','V5PhillipAccount','V5Home','V5CiPlanning','V5Fhc','V5MoneyStory','V5Page','V5Header','V5Footer','V5ChatDockServer','V5Article','Website43Home','HomeFooter','Website43Footer','Website43Blog','renderWebsite43Blog','Website43Article','Website43ArticleToc','ClientFHC','Website43Navbar','Website43ToolHero','Website43Brand']);
 async function resolveServer(node) {
   if (Array.isArray(node)) return Promise.all(node.map(resolveServer));
   if (!React.isValidElement(node)) return node;
@@ -58,6 +60,8 @@ export async function renderFixture(scope, props = {}, {sources = new Map(), ove
     ['@/lib/content/provider',{getContentProvider:()=>({listArticles:async()=>syntheticArticles})}],
     ['@/lib/content/category-registry-sanity',{listCategoryRegistry:async()=>({entries:[]})}],
     ['@/lib/content/blog-featured-sanity',{listBlogFeaturedArticleIds:async()=>null}],
+    ['@/components/layout/v5/shell-data',{getPublishedArticles:async()=>syntheticArticles,getPublishedCategoryRegistry:async()=>({available:false,entries:[]}),getShellTopics:async()=>[]}],
+    ['@/lib/content/line-chat-config',{getLineChatConfig:async()=>({config:loadFixtureModule('lib/line/chat-panel.ts').LINE_CHAT_DEFAULTS})}],
     ['@/lib/deployment-environment',{IS_REVIEW_ENVIRONMENT:false,IS_DRAFT_PREVIEW_ALLOWED:false}],
     ['@/lib/seo/page-seo',{resolvePageSeoMetadata:async(_pathname,defaults)=>defaults}],
     ['@/lib/analytics',{trackEvent:()=>assert.fail('render must not emit analytics')}],
@@ -68,6 +72,7 @@ export async function renderFixture(scope, props = {}, {sources = new Map(), ove
   // Existing fixture loader intentionally does not load assets. Stable named CSS
   // projections retain class identity so a layout change changes these goldens.
   const allFiles = [...new Set([...Object.values(files),'features/ci-planning/components/CILandingIntro.tsx','features/financial-health-check/components/FHCLandingIntro.tsx','features/financial-health-check/components/ClientFHC.tsx','features/home/website-43/Website43HomeStatic.tsx','features/blog/website-43/Website43Blog.tsx','features/blog/website-43/Website43BlogInteractive.tsx','features/blog/website-43/Website43Article.tsx','features/blog/website-43/Website43ArticleBody.tsx','features/money-story/components/MoneyStoryGame.tsx','features/money-story/components/MoneyStoryScreens.tsx','features/money-story/components/MoneyStoryStatusSidebar.tsx','features/ci-planning/components/CIWizard.tsx','features/financial-health-check/components/LifeCoverageWizard.tsx'])];
+  for (const directory of ['components/layout/v5','features/home/v5','features/blog/v5','features/ci-planning/v5','features/financial-health-check/v5','features/money-story/v5']) for(const file of readdirSync(directory)) if(/\.tsx?$/.test(file)) allFiles.push(directory+'/'+file);
   for (const file of allFiles) {
     const source = sources.get(file) ?? readFileSync(file,'utf8');
     for (const [,id] of source.matchAll(/from ['"]([^'"]+\.(?:css|svg))['"]/g)) {
@@ -75,10 +80,10 @@ export async function renderFixture(scope, props = {}, {sources = new Map(), ove
       else mocks.set(id,{__esModule:true,default:{src:id,width:32,height:32}});
     }
   }
-  const path = article ? 'features/blog/website-43/Website43Article.tsx' : files[scope];
+  const path = article ? 'features/blog/v5/V5Article.tsx' : files[scope];
   const fixtureModule = loadFixtureModule(path,{sources,mocks});
-  const render = scope === 'site' ? fixtureModule.Website43Footer : fixtureModule.default;
-  const tree = await render(article ? {article,...props} : scope === 'home' ? {copy:overrides,...props} : props);
+  const render = fixtureModule.default;
+  const tree = await render(article ? {article,...props} : scope === 'home' ? {copy:overrides,...props} : scope === 'site' ? {siteCopy:overrides,...props} : props);
   const Provider = copyProvider.PublicCopyProvider;
   return renderToStaticMarkup(React.createElement(Provider, {values:{...registry.parsePublicCopy("site",null),...registry.parsePublicCopy(scope,null),...overrides}}, await resolveServer(tree)));
 }
@@ -97,6 +102,28 @@ const baseline = {
   "9": "805ccb282a0fae7795b81a28c04a3a098744c1abd59a6357f9c9cf1d2cb1240e",
   "10": "87de95089e85cfe42c209b663df714630386c79dccfea4f80e62e08465e3b717"
 };
+// Exact reviewed v5 render successors. The original b871 baseline objects above/below
+// remain unchanged; current whole markup and explicit native behavior are both checked.
+const v5RenderedSuccessors = {"0":"a8feb94069e1184d2ea0a4c04f200751b6f692bb339afc41b2673fdbe61b5125","1":"ef77f79390fec88209062c5a76337699eef4578aad2e0621c982a19151beda2f","2":"aca68559a8a5cf2af643725e2cdf7873a33966cf4150875187d24e0b42f8b533","3":"eae0842602adf95b953a905c33ddfa1a878ddf14598ecb8cd342fe17bb2eb1e2","4":"644e9fba525a75b33502408017c99cac47492a4e083e1671d8fc4569b241981c","5":"399d81734771d189395551f14fe0f5507a0a78101193ff3ca388c52752593d0f","6":"519fb7da2caead2a84adf901fbe890a05781df0c1b62068cc9bd8a425940217d","7":"399d81734771d189395551f14fe0f5507a0a78101193ff3ca388c52752593d0f","8":"08b9300cc5c5b51679b4d84226ba4c38acfd8d828038075eff7305ca32c68aa9","9":"231b2b6046782bb3884a0b71fe61b2e25100626cd9715c84b08246f28c9c741e","10":"2bf59bfae172ff890bfe37ad2ae96824976f3c3e1261135d77cacc4f782083b8"};
+const v5ArticleRenderedSuccessors = ["742e90f86e2f5d50b55b9a6e6d5f0cc683552fce3e9e82586db6d24329c3c087","7342de015035776d62d6945ee042be0dddf9723608b9ac9ac6acef9e2aba6e6e","b28a8630377f3bbfd76f041402be58076ad6e3ae05333f290eac3068f76cc2c9"];
+function nativeRenderPredecessor(index, html, article = false) {
+  if (!article && [1, 2].includes(index)) {
+    let heroes = 0;
+    html = html.replace(/<section\b[^>]*id="home"[^>]*>[\s\S]*?<\/section>/g, hero => {
+      heroes++;
+      const current = 'class="buttonOutline" href="/about/"';
+      assert.equal(hero.split(current).length - 1, 1, 'one reviewed Home hero About destination');
+      return hero.replace(current, 'class="buttonOutline" href="#about-ccpun"');
+    });
+    assert.equal(heroes, 1, 'inverse confined to the original Home hero');
+  }
+  // Owner-approved 31 Oct Safari review: Home has no Start Here section at any breakpoint.
+  // Historical v5 goldens above remain frozen; the exact successor digest still rejects drift.
+  const ownerSafariHome = { 1: 'f143af81c4cddfb64657e49ce97f491dffe846975877107c60548a2df58865c9', 2: '214263603336972b9217812d97c113b9a21632eff9ba5b54c7c04071db95a6a4' };
+  const current = article ? v5ArticleRenderedSuccessors[index] : ownerSafariHome[index] ?? v5RenderedSuccessors[index];
+  assert.equal(digest(html),current,'exact reviewed native markup '+(article?'article:':'page:')+index);
+  return article ? articleBaseline[index] : baseline[index];
+}
 // Inverse only reviewed canonical href attributes inside their original shell slots.
 function inverseCanonicalShellLinks(html, scope) {
   const counts = { nav: 0, footer: 0, learning: 0, breadcrumb: 0 };
@@ -153,21 +180,34 @@ const cases = [
   ['blog',{searchParams:Promise.resolve({q:'ไม่มีผล'})}],['blog',{searchParams:Promise.resolve({page:'2'})}],
   ['privacy',{}],['cookies',{}],['moneyStory',{}],
 ];
-test('eight original scopes retain exact b871 public HTML, current design and six-card archive',async()=>{
-  assert.deepEqual(Object.keys(registry.PUBLIC_COPY_SCOPES),['site','home','ci','fhc','blog','privacy','cookies','moneyStory']);
+test('native page successors preserve frozen historical goldens and render complete current content',async()=>{
+  assert.deepEqual(Object.keys(registry.PUBLIC_COPY_SCOPES).sort(),['site','home','ci','fhc','blog','privacy','cookies','moneyStory','about','toolsHub'].sort());
   for (const [index,[scope,props]] of cases.entries()) {
-    let html = await renderFixture(scope,props);
-    if (scope === 'blog') {
-      const hint = '<link rel="preload" href="/assets/blog-migration/aia-health-happy-describe/featured-01-AIA-Health-Happy-article.lossless.webp" as="image" fetchPriority="high"/>';
-      const heroHint = '<link rel="preload" as="image" href="/assets/website-43/blog-hero.png" imageSizes="(max-width: 639px) 100vw, 60vw" fetchPriority="high"/>';
-      assert.ok(html.startsWith(heroHint + hint), 'Blog retains its Hero hint before the exact approved artwork hint');
-      assert.equal(html.split(hint).length, 2, 'Blog emits the approved hint exactly once');
-      html = html.replace(hint, '');
+    const html=await renderFixture(scope,props);
+    assert.equal(nativeRenderPredecessor(index,html),baseline[index]);
+    assert.throws(()=>nativeRenderPredecessor(index,html+'<p>unreviewed markup</p>'));
+    if(scope==='home'){
+      const heroCta='class="buttonOutline" href="/about/"';
+      for(const changed of [html.replace(heroCta,'class="buttonOutline" href="/unowned/"'),html.replace(heroCta,heroCta+'><span>duplicate</span></a><a '+heroCta)]){
+        assert.notEqual(changed,html);assert.throws(()=>nativeRenderPredecessor(index,changed));
+      }
     }
-    html = inverseCanonicalShellLinks(html, scope);
-    assert.equal(digest(html),baseline[index],`${index}:${scope}`);
+    const doc=new (require('jsdom').JSDOM)(html).window.document;
+    assert.equal(doc.querySelectorAll('footer').length,1,scope+': one shared footer');
+    if(scope!=='site'){
+      assert.equal(doc.querySelectorAll('main#main-content').length,1,scope+': one focusable main');
+      assert.equal(doc.querySelectorAll('h1').length,1,scope+': one complete heading');
+    }
+    if(scope==='blog'){
+      const cards=doc.querySelectorAll('[id^="v5-group-"] > [data-v5-search]');
+      assert.equal(cards.length,8,'all eight articles remain in server HTML');
+      for(const article of syntheticArticles)assert.ok([...cards].some(card=>card.textContent.includes(article.title)));
+      assert.ok(doc.querySelector('[data-v5-pager] button'),'paging controls render over the complete group');
+      assert.equal(doc.querySelectorAll('a[href*="?page="]').length,0,'no additional canonical page owner');
+    }
+    if(index===2){assert.ok(doc.body.textContent.includes('เจ้าของโปรไฟล์'));assert.ok(doc.body.textContent.includes('CFP'));}
   }
-  assert.equal((await renderFixture('blog',{})).match(/class="articleCard"/g)?.length,6);
+  assert.throws(()=>inverseCanonicalShellLinks('','article'),'the historical shell inverse still rejects missing original blocks');
 });
 test('seven original metadata objects preserve every field in ordinary and review lanes',async()=>{
   for (const scope of Object.keys(files).filter(scope=>scope!=='site')) for (const review of [false,true]) assert.equal(digest(JSON.stringify(await metadataFixture(scope,review))),metadataBaseline[scope+':'+review]);
@@ -178,7 +218,7 @@ test('each scoped CMS edit reaches existing UI while destinations and formulas r
     assert.ok(Object.hasOwn(registry.PUBLIC_COPY_SCOPES[scope].defaults,key),key);
     const value=`ข้อความเจ้าของ ${scope}`;
     const parsed=registry.parsePublicCopy(scope,{_id:registry.publicCopyDocumentId(scope),_type:'publicPageCopy',scope,locale:'th',entries:[{key,text:value}]});
-    const html=await renderFixture(scope,{}, {overrides:parsed});assert.ok(html.includes(value),key);
+    let html;try { html=await renderFixture(scope,{}, {overrides:parsed}); } catch(error) { error.message=scope+': '+error.message;throw error; }assert.ok(html.includes(value),key);
     const before=await renderFixture(scope,{});assert.deepEqual([...html.matchAll(/(?:href|action)="([^"]*)"/g)].map(m=>m[0]),[...before.matchAll(/(?:href|action)="([^"]*)"/g)].map(m=>m[0]),key);
   }
 });
@@ -255,11 +295,15 @@ test('original article fallback and managed author branches retain complete b871
   const articles=[base,{...base,authorName:'ผู้เขียนภายนอก'},{...base,author:{name:'ผู้เขียนจัดการ',professionalQualifications:[{shortName:'CFP',identifier:'123'}],profileRole:'บทบาท',profileBio:'ประวัติ',profileCtaLabel:'อ่านประวัติ',profileCtaUrl:'#about-ccpun',profileAvatar:{src:'/assets/ccpun.webp',alt:'ชื่อผู้เขียน',width:96,height:96}}}];
   for(const[index,article]of articles.entries()) {
     const html = await renderFixture('blog',{preview:index===2},{article});
-    assert.equal(digest(inverseCanonicalShellLinks(html,'article')),articleBaseline[index]);
+    assert.equal(nativeRenderPredecessor(index,html,true),articleBaseline[index]);
+    assert.throws(()=>nativeRenderPredecessor(index,html+'<p>unreviewed</p>',true));
+    assert.ok(html.includes('เนื้อหา'),'full article body remains rendered');
+    if(index===1)assert.ok(html.includes('ผู้เขียนภายนอก'));
+    if(index===2){assert.ok(html.includes('ผู้เขียนจัดการ'));assert.ok(html.includes('CFP'));assert.ok(html.includes('href="/#about-ccpun"'));}
     if(index===0){
       const breadcrumb=html.match(/<nav\b[^>]*class="breadcrumbs"[^>]*>[\s\S]*?<\/nav>/g);assert.equal(breadcrumb?.length,1);
       assert.equal(breadcrumb[0].split('href="/blog/"').length-1,1,'actual Article breadcrumb links directly to canonical Blog URL');
-      for(const mutant of ['',breadcrumb[0].replace('href="/blog/"','href="https://foreign.invalid/blog/"')])assert.throws(()=>inverseCanonicalShellLinks(html.replace(breadcrumb[0],mutant),'article'));
+      for(const mutant of ['',breadcrumb[0].replace('href="/blog/"','href="https://foreign.invalid/blog/"')])assert.throws(()=>nativeRenderPredecessor(index,html.replace(breadcrumb[0],mutant),true));
     }
   }
 });
@@ -281,9 +325,9 @@ test('public reader transmits only validated published edits independently of dr
 
 test('fixed SEO singleton drafts initialize their read-only pathname without a Production seed migration',()=>{
   const schema=loadFixtureModule('cms/sanity/schema/documents/page-seo.ts',{mocks:new Map([['sanity',{defineType:value=>value,defineField:value=>value}]])}).pageSeo;
-  const pages=loadFixtureModule('lib/content/page-seo-registry.ts').PAGE_SEO_PAGES;assert.equal(pages.length,7);
+  const pages=loadFixtureModule('lib/content/page-seo-registry.ts').PAGE_SEO_PAGES;assert.equal(pages.length,19);
   for(const page of pages)assert.deepEqual(schema.initialValue({pathname:page.pathname}),{pathname:page.pathname});
-  assert.deepEqual(schema.initialValue({pathname:'/tools/investment-allocation/'}),{});assert.deepEqual(schema.initialValue({}),{});
+  assert.deepEqual(schema.initialValue({pathname:'/tools/unknown/'}),{});assert.deepEqual(schema.initialValue({}),{});
   assert.equal(schema.fields.find(field=>field.name==='pathname').readOnly,true);
   assert.ok(readFileSync('cms/sanity/config/structure.ts','utf8').includes('.documentId(page.documentId).initialValueTemplate("pageSeo", { pathname: page.pathname })'));
 });
@@ -292,6 +336,9 @@ test('protected preview page cannot start its author query before scoped authori
     ['@/lib/admin/public-copy-preview',{getPublicCopyPreview:async()=>{throw new Error('fixture-denied');}}],
     ['@/lib/content/sanity',{getPrimaryAuthorPreviewProfile:async()=>{authorReads++;return null;}}],
     ['@/features/home/website-43/Website43Home',{__esModule:true,default:()=>null}],
+    ['@/features/home/v5/V5Home',{__esModule:true,default:()=>null}],
+    ['@/features/about/page',{renderAboutPage:()=>null}],
+    ['@/features/tools-hub/page',{renderToolsHubPage:()=>null}],
     ['@/features/ci-planning/page',{renderCiPlanningPage:()=>null}],
     ['@/features/financial-health-check/page',{renderFinancialHealthCheckPage:()=>null}],
     ['@/features/blog/pages/BlogArchivePage',{renderBlogPage:()=>null}],
@@ -360,7 +407,8 @@ test('native Presentation mutation refresh remains preview-only and starts on th
   for(const path of ['lib/content/sanity-fetch.ts','lib/content/public-copy.ts','apps/web/app/layout.tsx'])assert.ok(!/LiveVisualEditing|next-sanity\/visual-editing/.test(readFileSync(path,'utf8')),path);
 });
 test('all original fully populated SEO records preserve original sharing fields including deliberately absent images',async()=>{
-  const pages=loadFixtureModule('lib/content/page-seo-registry.ts').PAGE_SEO_PAGES;
+  const pages=loadFixtureModule('lib/content/page-seo-registry.ts').PAGE_SEO_PAGES.filter(page=>Object.keys(files).some(scope=>scope!=='site'&&registry.PUBLIC_COPY_SCOPES[scope].pathname===page.pathname));
+  assert.equal(pages.length,7,'every original metadata owner retains its full-field comparison');
   const root=await metadataFixture('home');
   for(const page of pages){
     const scope=Object.entries(registry.PUBLIC_COPY_SCOPES).find(([s,p])=>s!=='site'&&p.pathname===page.pathname)[0];
@@ -393,7 +441,7 @@ test('Production page actions admit only the fixed original singleton IDs and le
   const pages=loadFixtureModule('lib/content/page-seo-registry.ts').PAGE_SEO_PAGES;
   for(const[type,ids]of [['publicPageCopy',Object.keys(registry.PUBLIC_COPY_SCOPES).map(registry.publicCopyDocumentId)],['pageSeo',pages.map(p=>p.documentId)]]){
     for(const id of ids)for(const prefix of ['', 'drafts.'])assert.deepEqual(policy.filterStudioDocumentActions(actions,'production','production-admin',type,'kyfxgjnq',prefix+id).map(a=>a.action),['publish','discardChanges','restore']);
-    for(const id of [undefined,'unknown','publicPageCopy-investment-th','pageSeo-investment-allocation','versions.release.publicPageCopy-home-th',type==='publicPageCopy'?'pageSeo-home':'publicPageCopy-home-th'])assert.deepEqual(policy.filterStudioDocumentActions(actions,'production','production-admin',type,'kyfxgjnq',id),[]);
+    for(const id of [undefined,'unknown','publicPageCopy-investment-th','pageSeo-unknown','versions.release.publicPageCopy-home-th',type==='publicPageCopy'?'pageSeo-home':'publicPageCopy-home-th'])assert.deepEqual(policy.filterStudioDocumentActions(actions,'production','production-admin',type,'kyfxgjnq',id),[]);
   }
   assert.deepEqual(policy.filterStudioDocumentActions(actions,'production','production-admin','article','kyfxgjnq','existing-article').map(a=>a.action),['publish','delete','unpublish','discardChanges','restore']);
   assert.deepEqual(policy.filterStudioDocumentActions(actions,'production','production-admin','author','kyfxgjnq','ccpun-author-ccpun-profile').map(a=>a.action),['publish','discardChanges','restore']);
@@ -423,10 +471,18 @@ test('native Presentation selects the exact page copy or SEO form for every priv
   }
   assert.deepEqual(resolve({params:{scope:'author-home'}}),{filter:'_type == "author" && _id in ["ccpun-author-ccpun-profile", "ccpun-prod-mirror-author-ccpun"]'});
   for(const id of ['ccpun-author-ccpun-profile','ccpun-prod-mirror-author-ccpun'])for(const prefix of ['', 'drafts.'])assert.equal(plugin.resolve.locations.author.resolve({id:prefix+id}).locations[0].href,'/content/website-preview/author-home/');assert.deepEqual(plugin.resolve.locations.author.resolve({id:'unowned-author'}).locations,[]);
-  for(const scope of ['investment','seo-investment','unknown','home/evil','seo-site'])assert.equal(resolve({params:{scope}}),undefined);
+  for(const scope of ['investment','seo-unknown','unknown','home/evil','seo-site'])assert.equal(resolve({params:{scope}}),undefined);
+  assert.deepEqual(resolve({params:{scope:'seo-investment'}}),{filter:'_id == $id && _type == $type',params:{id:'pageSeo-investment-allocation',type:'pageSeo'}});
   const route=loadFixtureModule('apps/admin/app/(control-plane)/content/website-preview/[scope]/page.tsx',{mocks:new Map([['next/navigation',{notFound:()=>{throw Error('fixture404')}}],['../page',{__esModule:true,default:()=>null}]])}).default;
   const authorRoute=await route({params:Promise.resolve({scope:'author-home'})});assert.equal((await authorRoute.props.searchParams).scope,'home');
   for(const requested of ['home','ci','site','seo-home','seo-moneyStory'])assert.equal((await(await route({params:Promise.resolve({scope:requested})})).props.searchParams).scope,requested.replace(/^seo-/,''));
   const filtered=await route({params:Promise.resolve({scope:'blog'}),searchParams:Promise.resolve({scope:'investment',q:'คำค้น',page:'2'})});assert.deepEqual(await filtered.props.searchParams,{scope:'blog',q:'คำค้น',page:'2'});
   for(const requested of ['investment','seo-site','unknown','home/evil'])await assert.rejects(route({params:Promise.resolve({scope:requested})}),/fixture404/);
+});
+
+
+test('Website5 Studio human title admits only the exact Production label while retaining UAT and machine configuration',async()=>{
+ const {assertProductionCmsOwner}=await import('../qa/production-cms-source-proof.mjs');const file='sanity.config.ts',source=readFileSync(file,'utf8');assert.equal(assertProductionCmsOwner(file,source),true);
+ for(const mutant of [source.replace('Website5 · เว็บไซต์จริง','Website5'),source.replace('CCPun Website UAT CMS','Website5 UAT'),source.replace('projectId && dataset && studioAllowed','projectId && dataset'),source+'\n']){assert.notEqual(mutant,source);assert.throws(()=>assertProductionCmsOwner(file,mutant));}
+ assert.throws(()=>assertProductionCmsOwner('unknown/sanity.config.ts',source));
 });

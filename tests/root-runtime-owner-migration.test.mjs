@@ -6,6 +6,8 @@ import test from 'node:test';
 import { createHash } from 'node:crypto';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { createElement } from 'react';
+import { JSDOM } from 'jsdom';
 
 const root = resolve(import.meta.dirname, '..');
 const read = (file) => readFileSync(resolve(root, file), 'utf8');
@@ -34,7 +36,7 @@ test('seven duplicate public routes retain frozen canonical bodies, export ident
     if(!cmsSource) assert.equal(createHash('sha256').update(canonicalSource).digest('hex'), reviewed?.candidateSha256 ?? productionProof.protected[canonical], canonical);
     const dynamic = read(canonical).match(/^export const dynamic = (.+);$/m)?.[1];
     const owner = '@/' + canonical.replace(/\.[^.]+$/, '');
-    const metadataExport = canonical.endsWith('/privacy/page.tsx') || canonical.endsWith('/cookie-policy/page.tsx') ? 'generateMetadata' : 'metadata';
+    const metadataExport = canonical.endsWith('/privacy/page.tsx') || canonical.endsWith('/cookie-policy/page.tsx') || canonical.endsWith('/not-found.tsx') ? 'generateMetadata' : 'metadata';
     assert.equal(source, (dynamic ? `export const dynamic = ${dynamic};\n` : '') + `export { ${dynamic ? 'GET' : 'default, '+metadataExport} } from "${owner}";\n`);
     const sentinel = { __esModule: true, default: () => null, metadata: { title: 'fixture' }, generateMetadata: async()=>({title:'fixture'}), GET: () => new Response('fixture') };
     const candidate = loadFixtureModule(file, { sources: new Map([[file, source]]), mocks: new Map([[owner, sentinel]]) });
@@ -46,27 +48,38 @@ test('seven duplicate public routes retain frozen canonical bodies, export ident
   assert.throws(() => verify(routes[0], read('app/' + routes[0]).replace('default, generateMetadata', 'default')));
   assert.throws(() => verify(routes[2], read('app/' + routes[2]).replace('force-static', 'force-dynamic')));
   assert.throws(() => verify(routes[1], read('app/' + routes[1]).replace('@/apps/web/', '@/apps/admin/')));
-  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('min(292px, 100%)', 'min(293px, 100%)')));
+  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('className={shell.buttonRow}', 'className={shell.inner}')));
   assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('site.extra.blogRecovery', 'site.extra.primaryButton')));
-  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace("flexWrap: 'wrap'", "flexWrap: 'nowrap'")));
-  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('1 1 124px', '1 1 125px')));
+  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace("justifyContent: 'center'", "justifyContent: 'left'")));
+  assert.throws(() => verify(routes[1], undefined, read('apps/web/app/not-found.tsx').replace('<V5Page>', '<V5Page current="/unapproved/">')));
 });
 
-test('compiled root and Web 404 recovery retain centered bounded buttons, copy, href and metadata', async () => {
-  const shared = { Website43Navbar: () => null, Website43Footer: () => null };
-  const mocks = new Map([['@/components/layout/website-43/Website43Shared', shared], ['@/lib/content/public-copy', {getPublicCopy: async scope => loadFixtureModule('lib/content/public-copy-registry.ts').parsePublicCopy(scope,null)}]]);
-  const legacy = loadFixtureModule('app/not-found.tsx', { mocks });
-  const canonical = loadFixtureModule('apps/web/app/not-found.tsx', { mocks });
-  assert.deepEqual(legacy.metadata, canonical.metadata);
-  for (const page of [legacy, canonical]) {
-    const html = renderToStaticMarkup(await page.default());
-    assert.match(html, /style="flex-direction:row;flex-wrap:wrap;width:min\(292px, 100%\);gap:12px;justify-content:center;margin-inline:auto"/);
-    const links = [...html.matchAll(/<a style="([^"]+)" href="(\/|\/blog\/)">([^<]+)<\/a>/g)];
-    assert.deepEqual(links.map(([, , href, text]) => [href, text]), [['/', 'กลับหน้าแรก'], ['/blog/', 'ดูบทความ']]);
-    assert.equal(links[0][1], 'flex:1 1 124px;width:auto;min-width:0;min-height:48px;height:auto');
-    assert.equal(links[1][1], links[0][1] + ';justify-content:center');
-    assert.match(html, /<h1>ไม่พบหน้าที่คุณกำลังหา<\/h1>/);
+test('compiled root and Web native 404 preserve recovery, touch targets, editable metadata and no canonical owner', async () => {
+  const css={__esModule:true,default:new Proxy({},{get:(_,key)=>String(key)})};
+  const mocks=new Map([
+    ['@/components/layout/v5/V5Page',{__esModule:true,default:({children})=>createElement('main',null,children)}],
+    ['@/components/layout/v5/V5.module.css',css],['./V5.module.css',css],
+    ['@/components/layout/v5/shell-data',{getPublishedArticles:async()=>[]}],
+    ['@/lib/content/public-copy',{getPublicCopy:async scope=>loadFixtureModule('lib/content/public-copy-registry.ts').parsePublicCopy(scope,null)}],
+    ['@/lib/seo/page-seo',{resolvePageSeoMetadata:async(path,defaults)=>{assert.equal(path,'__not_found__');return{...defaults,title:'Owner 404 title',description:'Owner 404 description'};}}],
+  ]);
+  const legacy=loadFixtureModule('app/not-found.tsx',{mocks});
+  const canonical=loadFixtureModule('apps/web/app/not-found.tsx',{mocks});
+  const expected=await canonical.generateMetadata({},Promise.resolve({}));
+  assert.deepEqual(await legacy.generateMetadata({},Promise.resolve({})),expected);
+  assert.equal(expected.title,'Owner 404 title');assert.equal(expected.description,'Owner 404 description');assert.equal(expected.alternates.canonical,null);
+  for(const page of [legacy,canonical]){
+    const tree=await page.default();const html=renderToStaticMarkup(tree);
+    const doc=new JSDOM(html).window.document;
+    const row=doc.querySelector('section[aria-labelledby="not-found-title"] .buttonRow');
+    assert.equal(row.style.justifyContent,'center');
+    assert.deepEqual([...row.querySelectorAll('a')].map(a=>[a.getAttribute('href'),a.textContent,a.className]),[['/','กลับหน้าแรก','button'],['/blog/','ดูบทความ','buttonOutline']]);
+    assert.equal(doc.querySelector('h1').textContent,'ไม่พบหน้าที่คุณกำลังหา');
+    assert.deepEqual([...doc.querySelectorAll('#not-found-tools+nav a, [aria-labelledby="not-found-tools"] nav a')].map(a=>a.getAttribute('href')),['/play/money-story/','/tools/financial-health-check/','/ci-planning/']);
   }
+  const cssSource=read('components/layout/v5/V5.module.css');
+  assert.match(cssSource,/\.buttonRow \{ display: flex; flex-wrap: wrap; gap: 12px/);
+  assert.match(cssSource,/min-height: 48px; padding: 12px 28px/);
 });
 
 test('root compatibility routes delegate implementations to their canonical app owners', () => {
