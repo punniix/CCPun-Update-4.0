@@ -3,8 +3,59 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { loadFixtureModule } from '../qa/phase1-fixture-loader.mjs';
-import { productionCmsOwners, assertProductionCmsOwner, productionCmsDisplaySource, cmsSha, v5ProductionSourceSuccessors, v5ProductionSourcePredecessor } from '../qa/production-cms-source-proof.mjs';
+import { productionCmsOwners, assertProductionCmsOwner, ciPlanningConcurrentReadPredecessor, productionCmsDisplaySource, cmsSha, v5ProductionSourceSuccessors, v5ProductionSourcePredecessor } from '../qa/production-cms-source-proof.mjs';
 const read=file=>readFileSync(file,'utf8');
+
+test('reviewed CI route concurrency preserves frozen CMS/SEO identity and rejects unapproved alterations', () => {
+  const file = 'apps/web/app/ci-planning/page.tsx';
+  const source = read(file);
+  assert.equal(cmsSha(source), 'b99435df268ddda1a88081454e33c50997241e2729f5e3bf3b88b6db181d78e6');
+  const predecessor = ciPlanningConcurrentReadPredecessor(source);
+  assert.equal(cmsSha(predecessor), '6bdc2925143bda8a2d2d687e69312faa737e2b25618bce6e67f7a4bd28a7462a');
+  assertProductionCmsOwner(file, source);
+  for (const [from, to] of [
+    ['getPublicCopy("blog")', 'getPublicCopy("site")'],
+    ['getPublishedArticles()', 'Promise.resolve([])'],
+    ['getShellTopics()', 'Promise.resolve([])'],
+    ['Promise.allSettled([', 'Promise.all(['],
+    ['getPublicCopy("ci")', 'getPublicCopy("home")'],
+    ['return <PublicCopyProvider values={copy}>', 'return <PublicCopyProvider values={{}}>'],
+  ]) {
+    const mutant = source.replace(from, to);
+    assert.notEqual(mutant, source);
+    assert.throws(() => assertProductionCmsOwner(file, mutant), 'unreviewed reader or SEO/UI alteration must fail');
+  }
+  assert.throws(() => assertProductionCmsOwner(file, predecessor), 'old route cannot silently replace approved successor');
+});
+
+test('CI route starts all independent CMS reads before CI copy resolves, with unchanged provider and SEO', async () => {
+  let resolveCi;
+  const waitForCi = new Promise(resolve => { resolveCi = resolve; });
+  const calls = [];
+  const ciValues = { 'ci.example': 'validated value' };
+  const mocks = new Map([
+    ['@/features/ci-planning/page', { __esModule: true, default: () => null, metadata: { title: 'Same CI title' } }],
+    ['@/lib/seo/page-seo', { resolvePageSeoMetadata: () => ({ title: 'Same CI title' }) }],
+    ['@/lib/content/public-copy', {
+      getPublicCopy: scope => {
+        calls.push('copy:' + scope);
+        return scope === 'ci' ? waitForCi : Promise.resolve({});
+      },
+    }],
+    ['@/components/layout/v5/shell-data', {
+      getPublishedArticles: () => { calls.push('articles'); return Promise.resolve([]); },
+      getShellTopics: () => { calls.push('topics'); return Promise.resolve([]); },
+    }],
+    ['@/components/ui/PublicCopyProvider', { PublicCopyProvider: ({ children }) => children }],
+  ]);
+  const { default: Page, generateMetadata } = loadFixtureModule('apps/web/app/ci-planning/page.tsx', { mocks });
+  const rendering = Page();
+  assert.deepEqual(calls, ['copy:ci', 'copy:blog', 'articles', 'topics'], 'parallel requests start without awaiting CI copy');
+  resolveCi(ciValues);
+  const result = await rendering;
+  assert.deepEqual(result.props.values, ciValues, 'original validated CI provider values retained');
+  assert.deepEqual(generateMetadata(undefined, null), { title: 'Same CI title' }, 'original SEO delegation retained');
+});
 
 test('same-word CMS admission rejects every unknown or modified source, including attempted pin reseal elsewhere',()=>{
   assert.equal(Object.keys(productionCmsOwners).length,74);

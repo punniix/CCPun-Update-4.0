@@ -262,6 +262,31 @@ export function v5ProductionSourcePredecessor(file, source) {
   assert.equal(cmsSha(source), entry.before, file + ': complete preserved Production predecessor');
   return source;
 }
+// CI Planning 2026-10-31: an exact performance-only successor. Keep every earlier
+// CMS, route, SEO and UAT/Production identity hash immutable. This narrow inverse
+// admits only the measured request-scoped concurrent-read addition.
+export function ciPlanningConcurrentReadPredecessor(source) {
+  assert.equal(cmsSha(source), 'b99435df268ddda1a88081454e33c50997241e2729f5e3bf3b88b6db181d78e6', 'exact reviewed CI Planning concurrent-read source');
+  const importLine = 'import { getPublishedArticles, getShellTopics } from "@/components/layout/v5/shell-data";\n';
+  assert.equal(source.split(importLine).length, 2, 'one approved read-only import');
+  source = source.replace(importLine, '');
+  const concurrent = [
+    '  // Begin independent per-request Sanity reads with CI copy; the renderer,',
+    '  // header and footer reuse the same React cache entries once they render.',
+    '  // No cross-request cache or change to published content visibility.',
+    '  const ciCopy = getPublicCopy("ci");',
+    '  void Promise.allSettled([',
+    '    getPublicCopy("blog"),',
+    '    getPublishedArticles(),',
+    '    getShellTopics(),',
+    '  ]);',
+    '  const copy = await ciCopy;',
+  ].join('\n');
+  assert.equal(source.split(concurrent).length, 2, 'one exact CI-only read scheduling transition');
+  source = source.replace(concurrent, '  const copy = await getPublicCopy("ci");');
+  assert.equal(cmsSha(source), '6bdc2925143bda8a2d2d687e69312faa737e2b25618bce6e67f7a4bd28a7462a', 'unchanged reviewed CI route and SEO owner');
+  return source;
+}
 export function assertProductionCmsOwner(file, source = read(file)) {
   if (file === 'sanity.config.ts' && cmsSha(source) === 'fcd2a0a5fca8ff3aea117a30881bf9a0036236b76d48163039178bd279492d20') {
     const title = 'const studioTitle = isProductionCms ? "Website5 · เว็บไซต์จริง" : "CCPun Website UAT CMS";';
@@ -270,6 +295,7 @@ export function assertProductionCmsOwner(file, source = read(file)) {
     assert.equal(cmsSha(source), '25dc55df26c71146de1a8fa6517ae4526dda23f6531ce54d272aa61c41a1a25f', 'complete existing Studio machine IDs, authorization and UAT title retained');
     assert.equal(adminPhase1PredecessorDigest(file, source), 'ca8fa14a21e771ffe17df1f8896497a7033cd0b095af6ed4b067da2a077b617a', 'existing Admin quick-win predecessor remains chained');
   }
+  if (file === 'apps/web/app/ci-planning/page.tsx') source = ciPlanningConcurrentReadPredecessor(source);
   source = v5ProductionSourcePredecessor(file, source);
   assert.equal(cmsSha(JSON.stringify(productionCmsOwners)), '1205b8e92dafafacff0a2ff3421f3acf7ff87e4d70c65a54a4ae5540aeb269fe', 'frozen CMS identities');
   assert.ok(hasProductionCmsOwner(file), 'Unknown CMS source owner: '+file);
