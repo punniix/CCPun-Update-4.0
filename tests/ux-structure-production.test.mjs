@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { reviewedCoreSitemapBaseline, CORE_ROUTE } from '../qa/seo-core-sitemap-review.mjs';
+import { assertMetaPixelRuntimeRetirement, META_PIXEL_WIDGETS } from '../qa/meta-pixel-runtime-retirement.mjs';
 import { createRequire } from 'node:module';
 import { resolve, dirname, relative } from 'node:path';
 const require = createRequire(resolve('package.json'));
@@ -344,6 +345,7 @@ test('Production providers, metadata, models, engines, tracking, consent storage
       : file === webDriverPath ? '629f77a0037613a9acb7cdf5e28cd141c6bdb2c921a7ecee79dceca0d07092a4'
       : file === webConfigPath ? 'd4cf8aa0725fdf58263e3f68776db192fa39bfa1e7578b8cb7f715a7e5face9f' : digest;
     if(hasProductionCmsOwner(file)) { assertProductionCmsOwner(file,read(file)); continue; }
+    if(file === META_PIXEL_WIDGETS) { assertMetaPixelRuntimeRetirement(file, read(file), reviewedDigest); continue; }
     const source = file === 'package.json' ? packageBeforePostPublishScripts(read(file)) : file === 'package-lock.json' ? lockBeforeAiSdk(read(file)) : read(file);
     assert.equal(file === CORE_ROUTE ? reviewedCoreSitemapBaseline(file, source, reviewedDigest)
       : hasReviewedV5Successor(file) ? reviewedV5PredecessorDigest(file, source, reviewedDigest) : sha(source), reviewedDigest, file);
