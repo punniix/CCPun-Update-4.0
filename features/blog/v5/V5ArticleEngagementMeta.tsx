@@ -20,15 +20,16 @@ export default function V5ArticleEngagementMeta() {
   const [error, setError] = useState(false);
   const views = metrics.available ? displayedViews(metrics.views) : null;
   const hearts = metrics.available ? displayedHearts(metrics.hearts) : null;
+  const heartsUnknown = metrics.available && hearts === null;
   return (
     <span className={styles.articleMetrics}>
-      <button type="button" className={styles.heart} disabled={heartPending} aria-pressed={metrics.liked} aria-describedby={hearts ? describedBy : undefined}
+      <button type="button" className={styles.heart} disabled={heartPending} aria-pressed={metrics.liked} aria-describedby={hearts !== null || heartsUnknown ? describedBy : undefined}
         aria-label={metrics.liked ? text("blog.articleCardEngagementControlsText") : text("blog.articleCardEngagementControlsText2")}
         onClick={async () => { setError(false); if (!await record("heart", !metrics.liked)) setError(true); }}>
         <Heart aria-hidden="true" size={18} fill={metrics.liked ? "currentColor" : "none"} />
-        <span className={styles.heartCount} aria-hidden="true">{hearts ?? ""}</span>
+        <span className={styles.heartCount} aria-hidden="true" title={heartsUnknown ? "ยังไม่มีข้อมูลยอดหัวใจย้อนหลังที่ยืนยันได้" : undefined}>{hearts ?? (heartsUnknown ? "—" : "")}</span>
       </button>
-      {hearts && <span id={describedBy} className={styles.srOnly}>{text("blog.engagement.hearts").replaceAll("{0}", hearts)}</span>}
+      {(hearts !== null || heartsUnknown) && <span id={describedBy} className={styles.srOnly}>{heartsUnknown ? "ยังไม่มีข้อมูลยอดหัวใจย้อนหลังที่ยืนยันได้" : text("blog.engagement.hearts").replaceAll("{0}", hearts!)}</span>}
       <span className={styles.views} role={views ? "img" : undefined} aria-label={views ? text("blog.dynamic1").replaceAll("{0}", views) : undefined}>
         {views && <><Eye aria-hidden="true" size={16} /><span aria-hidden="true">{views}</span></>}
       </span>
