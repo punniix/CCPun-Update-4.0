@@ -286,3 +286,19 @@
 /* The tablet light-theme token rule has higher specificity than .painIcon. */
 :global(html[data-theme="light"]) .painIcon,
 :global(html[data-theme="dark"]) .painIcon { background: #352727; }
+
+
+/* 2026-10-31 homepage FigCraft fidelity hotfix:
+   Home desktop/tablet frame has three icon cards WITHOUT generated 01/02/03.
+   Bring mobile in line with the approved cards instead of the old numbered list. */
+.cards3 { grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 32px; counter-reset: none; }
+.painCard, .painCard:first-child {
+  display: grid; align-content: start; justify-items: start; gap: 16px;
+  padding: 20px; border: 0; border-radius: 24px;
+  background: var(--v5-card);
+  counter-increment: none;
+}
+.painCard::before, .painCard:first-child::before { content: none !important; display: none !important; }
+.painCard h3 { margin: 0; line-height: 1.4; }
+.painCard p { margin: 0; line-height: 1.75; }
+@media (min-width: 768px) { .cards3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; } }

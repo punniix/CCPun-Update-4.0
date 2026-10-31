@@ -10,7 +10,7 @@ assert.match(hero, /<section id="home"[^>]*aria-labelledby="home-hero-title"/);
 assert.match(hero, /<h1 id="home-hero-title"[^>]*>/);
 assert.match(hero, /<div class="V5Home_portrait__[^"]+">/);
 assert.match(hero, /home-hero-white-outline-bottom-flush-f548ab58\.png/);
-assert.match(hero, /alt="CCPun กำลังนั่งทำงานพร้อมคอมพิวเตอร์โน้ตบุ๊ก"/);
+assert.match(hero, /alt="ภาพถ่ายครึ่งตัวของที่ปรึกษาการเงิน CCPun สวมเสื้อสูทสีเข้มและแว่นตา"/);
 assert.doesNotMatch(hero, /home-hero-desktop/, "obsolete 4.x hero must not return");
 assert.match(hero, /loading="eager"/);
 assert.match(hero, /fetchPriority="high"|fetchpriority="high"/);

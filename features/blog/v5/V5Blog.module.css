@@ -591,3 +591,10 @@
     min-width: 0;
   }
 }
+
+
+/* TOC caption aligned with approved article headline instead of sitting
+   66px to its left when the desktop reading column exceeds title width. */
+@media (min-width: 1280px) {
+  .tocAside { padding-inline-start: 66px; box-sizing: border-box; }
+}

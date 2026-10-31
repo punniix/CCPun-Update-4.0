@@ -117,3 +117,33 @@
   .splitDigits:is([data-campaign-placement="home"], [data-campaign-placement="blog"], [data-campaign-placement="article"]) .timeLabel { font-size: 18px; line-height: 1.5; }
   .splitDigits:is([data-campaign-placement="home"], [data-campaign-placement="blog"], [data-campaign-placement="article"]) .actions { width: min(620px, calc(100% - 80px)); max-width: 100%; margin-inline: auto; padding-inline-end: 0; justify-self: center; }
 }
+
+
+/* FigCraft Home countdown alignment 2026-10-31:
+   Native 390/820/1440 frames have explicit min heights, even digit wells,
+   centered bounded CTA widths, and still use the one existing ticking timer. */
+@media (max-width: 650px) {
+  .splitDigits[data-campaign-placement="home"] .frame { min-height: 432px; padding: 16px; gap: 16px; }
+  .splitDigits[data-campaign-placement="home"] .info { min-height: 123px; }
+  .splitDigits[data-campaign-placement="home"] .timer { min-height: 111px; gap: 4px; padding: 16px 8px; }
+  .splitDigits[data-campaign-placement="home"] .numeral { font-size: clamp(20px, 8vw, 32px); }
+  .splitDigits[data-campaign-placement="home"] .timeLabel { font-size: 14px; }
+  .splitDigits[data-campaign-placement="home"] .actions { justify-items: center; gap: 8px; padding-inline-end: 0; }
+  .splitDigits[data-campaign-placement="home"] .actions a { width: min(214px, 100%); min-height: 50px; padding-inline: 10px; }
+  .splitDigits[data-campaign-placement="home"] .actions a:last-child { min-height: 74px; }
+  .splitDigits[data-campaign-placement="home"].outside { padding-block: 16px; }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .splitDigits[data-campaign-placement="home"] .frame { min-height: 385px; }
+  .splitDigits[data-campaign-placement="home"] .info { min-height: 101px; }
+  .splitDigits[data-campaign-placement="home"] .timer { min-height: 152px; padding: 16px; }
+  .splitDigits[data-campaign-placement="home"] .actions { width: 100%; max-width: 100%; grid-template-columns: repeat(2,minmax(0,315px)); justify-content: center; }
+  .splitDigits[data-campaign-placement="home"] .actions a { min-height: 50px; }
+}
+@media (min-width: 1280px) {
+  .splitDigits[data-campaign-placement="home"] .frame { min-height: 227px; }
+  .splitDigits[data-campaign-placement="home"] .info { min-height: 107px; }
+  .splitDigits[data-campaign-placement="home"] .timer { min-height: 111px; }
+  .splitDigits[data-campaign-placement="home"] .actions { grid-template-columns: repeat(2,minmax(0,441px)); justify-content: center; padding-inline-end: 0; }
+  .splitDigits[data-campaign-placement="home"] .actions a { min-height: 50px; }
+}

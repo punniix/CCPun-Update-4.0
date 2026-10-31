@@ -81,8 +81,8 @@ export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: Public
         <section className={`${styles.nativeBand} ${styles.nativeHero}`} aria-labelledby="about-title">
           <div className={`${shell.inner} ${styles.nativeHeroGrid}`}>
             <div className={`${styles.portraitFrame} ${styles.nativePortraitFrame}`}>
-              <Image className={`${styles.portrait} ${styles.portraitDark}`} src={PORTRAIT_DARK} alt={home("home.website43Homealt8")} width={1248} height={1872} sizes="(max-width: 899px) calc(100vw - 40px), 544px" fetchPriority="high" />
-              <Image className={`${styles.portrait} ${styles.portraitLight}`} src={PORTRAIT_LIGHT} alt={home("home.website43Homealt8")} width={1248} height={1872} sizes="(max-width: 899px) calc(100vw - 40px), 544px" fetchPriority="high" />
+              <Image className={`${styles.portrait} ${styles.portraitDark}`} src={PORTRAIT_DARK} alt="ภาพถ่ายที่ปรึกษาการเงิน CCPun สวมเสื้อสูทสีเข้มและแว่นตา" width={1248} height={1872} sizes="(max-width: 899px) calc(100vw - 40px), 544px" fetchPriority="high" />
+              <Image className={`${styles.portrait} ${styles.portraitLight}`} src={PORTRAIT_LIGHT} alt="ภาพถ่ายที่ปรึกษาการเงิน CCPun สวมเสื้อสูทสีเข้มและแว่นตา" width={1248} height={1872} sizes="(max-width: 899px) calc(100vw - 40px), 544px" fetchPriority="high" />
             </div>
             <div className={styles.nativeHeroCopy}>
               <h1 id="about-title">{aboutWords(text.node("about.hero.heading"))}</h1>
@@ -113,7 +113,7 @@ export async function renderAboutPage(copy?: PublicCopyValues, siteCopy?: Public
           <ul className={`${styles.partners} ${styles.nativePartnerTiles}`}>
             {partners.map((partner) => (
               <li className={styles.partner} key={partner.name}>
-                <Image src={partner.src} alt={partner.name} width={partner.width} height={partner.height} sizes="120px" loading="lazy" />
+                <Image src={partner.src} alt="" width={partner.width} height={partner.height} sizes="120px" loading="lazy" />
                 <span className={styles.accessibleOnly}>{aboutWords(partner.role)}</span>
               </li>
             ))}
