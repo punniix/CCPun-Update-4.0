@@ -391,6 +391,7 @@ execFileSync(process.execPath, ['--test', fileURLToPath(new URL('./health-happy-
  const media = props(fullCover + ' > :is(img, span[aria-hidden])');
  assert.equal(media.height, '100%');assert.equal(media['object-fit'], 'contain', 'preserve the full cover lettering and embedded logo');
  assert.equal(media['align-self'], 'stretch');
+ assert.equal(media.background, 'var(--v5-surface)', 'tinted cover well matches the native Light/Dark card');
  assert.equal(props('.tocAside').display,'none');assert.equal(props('.tocMobileSheet').display,'block');assert.equal(props('.tocTrigger')['min-height'],'48px');assert.equal(props('.tocSheet')['max-width'],'640px');assert.equal(props('.metaDates')['flex-basis'],'100%');assert.equal(props('.metaRow > .shareSlot')['flex-basis'],'100%');
  for(const media of groups)media.walkRules(rule=>assert.doesNotMatch(rule.selector,/dialog\[open\]|dialog:not|dialog\[aria-hidden/,'CSS never forces a closed/inert dialog visible'));
  const controller=readFileSync('features/blog/v5/V5ArticleMobileToc.tsx','utf8');assert.match(controller,/showModal/);assert.match(controller,/<dialog[^>]+onClose=\{closed\}/);assert.doesNotMatch(controller,/onCancel=.*preventDefault/);

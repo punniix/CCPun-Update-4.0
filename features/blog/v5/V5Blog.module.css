@@ -333,7 +333,7 @@
   /* Owner acceptance 2026-10-31: an editorial image column fills the whole card height.
      Keep the entire 16:9 original including embedded titles/logos visible; do not crop. */
   .categoryGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .categoryCard { display: grid; grid-template-columns: 45% minmax(0, 1fr); align-items: stretch; }
-  .categoryGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .categoryCard > :is(img, span[aria-hidden]) { display: block; width: 100%; height: 100%; min-height: 0; aspect-ratio: auto; object-fit: contain; align-self: stretch; background: var(--v5-card-alt); border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius); }
+  .categoryGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .categoryCard > :is(img, span[aria-hidden]) { display: block; width: 100%; height: 100%; min-height: 0; aspect-ratio: auto; object-fit: contain; align-self: stretch; background: var(--v5-surface); border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius); }
   .toolsCard { grid-template-columns: minmax(0, 1fr); gap: 24px; }
 }
 
