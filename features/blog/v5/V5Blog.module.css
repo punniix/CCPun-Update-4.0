@@ -369,7 +369,7 @@
     align-self: stretch;
     height: auto;
     aspect-ratio: auto;
-    object-fit: cover;
+    object-fit: contain;
     object-position: center;
     border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius);
   }
@@ -382,8 +382,96 @@
     align-self: stretch;
     height: auto;
     aspect-ratio: auto;
-    object-fit: cover;
+    object-fit: contain;
     object-position: center;
     border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius);
+  }
+}
+
+
+/* Owner 31 Oct final card decision: ONE full-bleed media treatment for every
+   horizontal editorial card. Compact phone rows used to reserve 12px around
+   96x53 thumbnails, unlike the tablet/desktop feature image. Use the same
+   edge-to-edge media column and no nested beige frame, even for a fallback
+   without a cover. Stacked/carousel cards keep their full-width 1200:630 image.
+   Recheck covers with embedded lettering before acceptance. */
+@media (max-width: 639px) {
+  .nativeBlog .groupGrid .compactCard,
+  .categoryGrid > :not([data-pager-hidden]) ~ :not([data-pager-hidden]) > .categoryCard {
+    display: grid;
+    grid-template-columns: minmax(105px, 38%) minmax(0, 1fr);
+    align-items: stretch;
+    padding: 0;
+    gap: 0;
+  }
+  .nativeBlog .groupGrid .compactCard > :is(img, span[aria-hidden]),
+  .categoryGrid > :not([data-pager-hidden]) ~ :not([data-pager-hidden]) > .categoryCard > :is(img, span[aria-hidden]) {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    aspect-ratio: auto;
+    object-fit: contain;
+    object-position: center;
+    align-self: stretch;
+    border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius);
+    /* Visual fill with no duplicate image download; the complete source
+       remains legible in front of this fixed brand-tone background. */
+    background: linear-gradient(155deg, #251818, #4a3a3a 52%, #251818);
+  }
+  .nativeBlog .groupGrid .compactCard > div,
+  .categoryGrid > :not([data-pager-hidden]) ~ :not([data-pager-hidden]) > .categoryCard > div {
+    padding: 12px;
+    min-width: 0;
+  }
+}
+
+/* On tablet's single-row category layout, the image column follows the same
+   full-height treatment; avoid the old contain-mode letterboxing. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .categoryGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .categoryCard > :is(img, span[aria-hidden]) {
+    object-fit: contain;
+    object-position: center;
+    background: linear-gradient(155deg, #251818, #4a3a3a 52%, #251818);
+  }
+}
+
+
+/* 1024–1279px: the prior stacked small featured cards contradicted the 820px
+   and 1440px horizontal editorial treatment. Use complete, readable full-width
+   rows instead of compressing two cards into half columns. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .nativeBlog .featuredGrid { grid-template-columns: minmax(0, 1fr); }
+  /* The articleCard classes originate in the shared V5 CSS Module, so use
+     page-scoped semantic article selectors instead of locally hashed names. */
+  .nativeBlog .featuredGrid article {
+    flex-direction: row;
+    align-items: stretch;
+    --v5-card-meta-top: 0;
+  }
+  .nativeBlog .featuredGrid article > :is(img, span[aria-hidden]) {
+    flex: 0 0 38%;
+    width: 38%;
+    min-width: 0;
+    height: auto;
+    align-self: stretch;
+    aspect-ratio: auto;
+    object-fit: contain;
+    border-radius: var(--v5-card-image-radius) 0 0 var(--v5-card-image-radius);
+  }
+  .nativeBlog .featuredGrid article > div {
+    min-width: 0;
+    padding: 24px;
+    justify-content: center;
+  }
+}
+
+
+/* Fixed brand-tone media backing, not a second image fetch. Only horizontal
+   featured cards need the fill: vertically stacked cards keep their unaltered
+   intrinsic 1200:630 cover and full headline beneath it. */
+@media (min-width: 768px) {
+  .nativeBlog .featuredGrid article > :is(img, span[aria-hidden]) {
+    background: linear-gradient(155deg, #251818, #4a3a3a 52%, #251818);
   }
 }

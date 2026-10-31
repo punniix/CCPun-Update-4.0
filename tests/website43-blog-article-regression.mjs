@@ -363,7 +363,7 @@ execFileSync(process.execPath, ['--test', fileURLToPath(new URL('./health-happy-
 // Native Tablet Blog keeps the actual route data and all original phone/desktop styles.
 {
  const css=readFileSync('features/blog/v5/V5Blog.module.css','utf8');let tablet;
- postcss.parse(css).walkAtRules('media',media=>{if(media.nodes.some(n=>n.type==='rule'&&n.selector==='.nativeBlog .featuredGrid'))tablet=media;});
+ postcss.parse(css).walkAtRules('media',media=>{if(media.params==='(min-width: 768px) and (max-width: 1023px)'&&media.nodes.some(n=>n.type==='rule'&&n.selector==='.nativeBlog .featuredGrid'))tablet=media;});
  assert.ok(tablet);assert.equal(tablet.params,'(min-width: 768px) and (max-width: 1023px)');
  const rules={};tablet.walkRules(rule=>{rules[rule.selector]=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(d=>[d.prop,d.value]));});
  assert.equal(rules['.nativeBlog .featuredGrid']['grid-template-columns'],'minmax(0, 1fr)');
@@ -381,17 +381,47 @@ execFileSync(process.execPath, ['--test', fileURLToPath(new URL('./health-happy-
  assert.equal(props['.splitDigits[data-campaign-placement="blog"] .actions']['padding-inline-end'],'64px');
 }
 
+// Owner Safari card treatment: the media slot is edge-to-edge on phone,
+// iPad and narrow desktop, but the embedded text in the source image stays
+// complete (contain). The fallback span shares that same media well.
+{
+ const css=readFileSync('features/blog/v5/V5Blog.module.css','utf8');
+ const styles=postcss.parse(css);
+ const rulesFor=(mediaParams,selector)=>{
+   const declarations={};
+   styles.walkAtRules('media',media=>{
+     if(media.params!==mediaParams)return;
+     media.walkRules(rule=>{
+       if(rule.selector.includes(selector))for(const d of rule.nodes.filter(n=>n.type==='decl'))declarations[d.prop]=d.value;
+     });
+   });
+   return declarations;
+ };
+ const phone=rulesFor('(max-width: 639px)', '.nativeBlog .groupGrid .compactCard > :is(img, span[aria-hidden])');
+ assert.equal(phone['height'],'100%');
+ assert.equal(phone['object-fit'],'contain');
+ assert.match(phone.background,/linear-gradient/);
+ const tablet=rulesFor('(min-width: 768px) and (max-width: 1023px)', '.nativeBlog .featuredGrid article > :is(img, span[aria-hidden])');
+ assert.equal(tablet['object-fit'],'contain');
+ const intermediate=rulesFor('(min-width: 1024px) and (max-width: 1279px)', '.nativeBlog .featuredGrid article');
+ assert.equal(intermediate['flex-direction'],'row','1024–1279 does not unexpectedly stack the shorter featured cards');
+ const intermediateImage=rulesFor('(min-width: 1024px) and (max-width: 1279px)', '.nativeBlog .featuredGrid article > :is(img, span[aria-hidden])');
+ assert.equal(intermediateImage['object-fit'],'contain');
+ assert.equal(intermediateImage['align-self'],'stretch');
+ assert.doesNotMatch(css,/background-image:\s*url\(/,'media well cannot double-load the cover image');
+}
+
 // Category real odd counts and Article collapsed contents share the approved 640px reader.
 {
  const source=readFileSync('features/blog/v5/V5Blog.module.css','utf8');const groups=[];postcss.parse(source).walkAtRules('media',m=>{if(m.params==='(min-width: 768px) and (max-width: 1023px)')groups.push(m);});
- const props=selector=>{let value;for(const media of groups)media.walkRules(rule=>{if(rule.selector===selector)value=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(d=>[d.prop,d.value]));});assert.ok(value,selector);return value;};
+ const props=selector=>{let value;for(const media of groups)media.walkRules(rule=>{if(rule.selector===selector)value={...(value??{}),...Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(d=>[d.prop,d.value]))};});assert.ok(value,selector);return value;};
  assert.equal(props('.categoryHero .chipRow > ul')['flex-wrap'],'wrap');assert.equal(props('.introCopy')['line-height'],'1.75');assert.equal(props('.categoryCard h3')['font-size'],'22px');assert.equal(props('.categoryCard p')['-webkit-line-clamp'],'unset');
  const fullCover = '.categoryGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .categoryCard';
  assert.equal(props(fullCover)['grid-template-columns'], '45% minmax(0, 1fr)', 'the 820px image gets a full-height column');
  const media = props(fullCover + ' > :is(img, span[aria-hidden])');
  assert.equal(media.height, '100%');assert.equal(media['object-fit'], 'contain', 'preserve the full cover lettering and embedded logo');
  assert.equal(media['align-self'], 'stretch');
- assert.equal(media.background, 'var(--v5-surface)', 'tinted cover well matches the native Light/Dark card');
+ assert.equal(media.background, 'linear-gradient(155deg, #251818, #4a3a3a 52%, #251818)', 'unified non-cropping media fill does not request a second image asset');
  assert.equal(props('.tocAside').display,'none');assert.equal(props('.tocMobileSheet').display,'block');assert.equal(props('.tocTrigger')['min-height'],'48px');assert.equal(props('.tocSheet')['max-width'],'640px');assert.equal(props('.metaDates')['flex-basis'],'100%');assert.equal(props('.metaRow > .shareSlot')['flex-basis'],'100%');
  for(const media of groups)media.walkRules(rule=>assert.doesNotMatch(rule.selector,/dialog\[open\]|dialog:not|dialog\[aria-hidden/,'CSS never forces a closed/inert dialog visible'));
  const controller=readFileSync('features/blog/v5/V5ArticleMobileToc.tsx','utf8');assert.match(controller,/showModal/);assert.match(controller,/<dialog[^>]+onClose=\{closed\}/);assert.doesNotMatch(controller,/onCancel=.*preventDefault/);
