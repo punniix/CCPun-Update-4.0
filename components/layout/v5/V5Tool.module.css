@@ -22,7 +22,8 @@
 .heroSubtitle { font-size: clamp(20px, 3vw, 28px); line-height: 1.4; margin-top: 12px; }
 /* 17px on phones (design QA 2026-10-25): easier Thai reading, and on short heroes such as /tools/ the
    lead stays the largest early paint, so the later cookie notice never becomes the LCP element. */
-.heroLead { color: var(--v5-muted); font-size: clamp(17px, 1.7vw, 19px); line-height: 1.75; margin-top: 16px; max-width: 760px; }
+/* CI's longer description must wrap inside the desktop 5fr column, never clip at the viewport edge. */
+.heroLead { color: var(--v5-muted); font-size: clamp(17px, 1.7vw, 19px); line-height: 1.75; margin-top: 16px; max-width: 760px; min-width: 0; overflow-wrap: anywhere; }
 /* Phones (UAT 2026-10-26): 18px with a 2.0 line height, so on /ci-planning/, FHC and /tools/ the hero lead
    paints a larger box than the cookie notice description (about 32.8-34.6k vs 31.3k px2 at 390, 30.6k+ vs
    27.7k at 360) and the notice no longer becomes LCP. The line height holds that margin whichever font paints first. */

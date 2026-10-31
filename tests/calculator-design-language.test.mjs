@@ -100,6 +100,16 @@ test('narrow desktop titles keep Thai words intact in 7:5 tool hero layout', () 
   assert.equal(properties['overflow-wrap'], 'break-word');
 });
 
+test('CI tool hero lead text stays inside the right desktop column', () => {
+  const css = postcss.parse(readFileSync('components/layout/v5/V5Tool.module.css', 'utf8'));
+  let lead;
+  css.walkRules(rule => { if (rule.selector === '.heroLead' && rule.parent.type === 'root') lead = rule; });
+  assert.ok(lead);
+  const props = Object.fromEntries(lead.nodes.filter(node => node.type === 'decl').map(node => [node.prop, node.value]));
+  assert.equal(props['min-width'], '0');
+  assert.equal(props['overflow-wrap'], 'anywhere');
+});
+
 test('FHC and CI result states keep the same Production Website 4.3 visual language', () => {
   assert.match(fhcWizard, /ccpun-calculator-result/);
   assert.match(fhcWizard, /ccpun-calculator-result-lead/);
