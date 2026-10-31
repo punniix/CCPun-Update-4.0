@@ -5,7 +5,7 @@ import { assertPhase3AdminNativeBoundaries } from '../qa/phase3-admin-native-bou
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { reviewedCoreSitemapBaseline, CORE_ROUTE } from '../qa/seo-core-sitemap-review.mjs';
-import { assertMetaPixelRuntimeRetirement, META_PIXEL_WIDGETS } from '../qa/meta-pixel-runtime-retirement.mjs';
+import { assertMetaPixelRuntimeRetirement, META_PIXEL_WIDGETS, RETIRED_META_PIXEL_SOURCE, assertMetaPixelSourceRemoved } from '../qa/meta-pixel-runtime-retirement.mjs';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
@@ -138,6 +138,7 @@ test('reviewed UX release preserves original Production canonical/tracking/SEO/a
   for (const [file, digest] of Object.entries({ ...proof.canonical, ...proof.protected })) {
     if(hasProductionCmsOwner(file)) {assertProductionCmsOwner(file,read(file)); continue;}
     if(file === META_PIXEL_WIDGETS) { assertMetaPixelRuntimeRetirement(file,read(file),digest); continue; }
+    if(file === RETIRED_META_PIXEL_SOURCE) { assertMetaPixelSourceRemoved(file,digest,existsSync(resolve(root,file))); continue; }
     if (lineCopyOriginRoutes.includes(file)) assertReviewedLineCopyOrigin(file, digest, read(file));
     else if (Object.hasOwn(googleRoutePins, file)) assertReviewedGoogleRoute(file, digest, read(file));
     else if (file === 'features/blog/website-43/blogData.ts') assert.equal(sha(reviewedArticleCardProjection(file, read(file))), digest, 'only actual Article ID added to card data');

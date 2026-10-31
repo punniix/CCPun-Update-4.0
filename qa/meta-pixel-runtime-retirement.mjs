@@ -31,3 +31,13 @@ export function assertMetaPixelRuntimeRetirement(file, source, digest = META_PIX
     "all previous routes, HTML, consent, GTM and GA4 are byte-for-byte preserved");
   return digest;
 }
+
+// The original legacy module is retired rather than merely left as an orphan.
+export const RETIRED_META_PIXEL_SOURCE = "features/analytics/components/MetaPixel.tsx";
+export const RETIRED_META_PIXEL_SHA = "a1c57275db8692a6487b08ad0a291742d11b1209070461f7b433e7086713a6ea";
+export function assertMetaPixelSourceRemoved(file, baselineDigest, exists) {
+  assert.equal(file, RETIRED_META_PIXEL_SOURCE, "only the archived direct Meta Pixel source may be retired");
+  assert.equal(baselineDigest, RETIRED_META_PIXEL_SHA, "old verified source identity is pinned");
+  assert.equal(exists, false, "retired source must not be present in the repository");
+  return baselineDigest;
+}
