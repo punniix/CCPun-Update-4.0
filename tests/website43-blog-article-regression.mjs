@@ -397,18 +397,16 @@ execFileSync(process.execPath, ['--test', fileURLToPath(new URL('./health-happy-
    });
    return declarations;
  };
- const phone=rulesFor('(max-width: 639px)', '.nativeBlog .groupGrid .compactCard > :is(img, span[aria-hidden])');
- assert.equal(phone['height'],'100%');
- assert.equal(phone['object-fit'],'contain');
- assert.match(phone.background,/linear-gradient/);
- const tablet=rulesFor('(min-width: 768px) and (max-width: 1023px)', '.nativeBlog .featuredGrid article > :is(img, span[aria-hidden])');
- assert.equal(tablet['object-fit'],'contain');
- const intermediate=rulesFor('(min-width: 1024px) and (max-width: 1279px)', '.nativeBlog .featuredGrid article');
- assert.equal(intermediate['flex-direction'],'row','1024–1279 does not unexpectedly stack the shorter featured cards');
- const intermediateImage=rulesFor('(min-width: 1024px) and (max-width: 1279px)', '.nativeBlog .featuredGrid article > :is(img, span[aria-hidden])');
- assert.equal(intermediateImage['object-fit'],'contain');
- assert.equal(intermediateImage['align-self'],'stretch');
- assert.doesNotMatch(css,/background-image:\s*url\(/,'media well cannot double-load the cover image');
+ const stack=rulesFor('(max-width: 1279px)', '.nativeBlog .featuredGrid article');
+ assert.equal(stack['flex-direction'],'column','Featured images keep full source ratio and text below on narrow viewports');
+ const img=rulesFor('(max-width: 1279px)', '.nativeBlog .featuredGrid article > :is(img, span[aria-hidden])');
+ assert.equal(img.width,'100%');assert.equal(img.height,'auto');assert.equal(img['object-fit'],'contain');
+ assert.equal(img.background,'transparent','no fake upper or lower bands');
+ const category=rulesFor('(max-width: 1279px)', '.categoryGrid > :not([data-pager-hidden]) ~ :not([data-pager-hidden]) > .categoryCard');
+ assert.equal(category['flex-direction'],'column','Category compact cards match the image-top treatment');
+ const compact=rulesFor('(max-width: 1279px)', '.nativeBlog .groupGrid .compactCard');
+ assert.equal(compact['flex-direction'],'column','Blog compact cards match the image-top treatment');
+ assert.doesNotMatch(css,/background-image:\s*url\(/,'no extra image downloads');
 }
 
 // Category real odd counts and Article collapsed contents share the approved 640px reader.

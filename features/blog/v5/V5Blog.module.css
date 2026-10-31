@@ -475,3 +475,119 @@
     background: linear-gradient(155deg, #251818, #4a3a3a 52%, #251818);
   }
 }
+
+
+/* 2026-10-31 final Safari acceptance: a real source cover with baked-in
+   lettering must NOT be cropped, stretched or surrounded by fake bands.
+   Cards with a taller text column use an image-top editorial layout. Images
+   take their full source ratio (no media letterbox) and titles/dates stay below.
+   Only the large desktop lead card retains a true side-by-side design where
+   its ~2:1 image matches the card's ~2:1 physical media slot. */
+@media (max-width: 1279px) {
+  .nativeBlog .featuredGrid article,
+  .nativeBlog .featuredGrid .featuredLead,
+  .nativeBlog .groupGrid .compactCard,
+  .categoryGrid .categoryCard,
+  .categoryGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .categoryCard {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+  }
+  .nativeBlog .featuredGrid article > :is(img, span[aria-hidden]),
+  .nativeBlog .groupGrid .compactCard > :is(img, span[aria-hidden]),
+  .categoryGrid .categoryCard > :is(img, span[aria-hidden]),
+  .categoryGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .categoryCard > :is(img, span[aria-hidden]) {
+    display: block;
+    width: 100%;
+    max-width: none;
+    flex: none;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: auto;
+    align-self: stretch;
+    object-fit: contain;
+    object-position: center;
+    background: transparent;
+    border-radius: var(--v5-card-image-radius) var(--v5-card-image-radius) 0 0;
+  }
+  .nativeBlog .groupGrid .compactCard > div,
+  .categoryGrid .categoryCard > div {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 16px 20px 20px;
+  }
+  .nativeBlog .featuredGrid article > div,
+  .nativeBlog .featuredGrid .featuredLead > div {
+    padding: 20px;
+    justify-content: flex-start;
+  }
+  /* A missing article image takes the same natural-ratio top media slot. */
+  .nativeBlog .groupGrid .compactCard > span[aria-hidden],
+  .categoryGrid .categoryCard > span[aria-hidden] {
+    aspect-ratio: 1200 / 630;
+    background: var(--v5-surface);
+  }
+}
+@media (min-width: 1280px) {
+  /* Two compact featured siblings use clean stacked media rather than a
+     2:1 cover inside a card much taller than the picture. */
+  .nativeBlog .featuredGrid article:not(.featuredLead) {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .nativeBlog .featuredGrid article:not(.featuredLead) > :is(img, span[aria-hidden]) {
+    display: block;
+    width: 100%;
+    height: auto;
+    flex: none;
+    aspect-ratio: auto;
+    align-self: stretch;
+    object-fit: contain;
+    background: transparent;
+    border-radius: var(--v5-card-image-radius) var(--v5-card-image-radius) 0 0;
+  }
+}
+
+
+/* Owner zero-band fix: override the earlier higher-specificity 820 featured lead
+   and category compact rules, which otherwise leave a 280px image in a stacked card. */
+@media (max-width: 1279px) {
+  .nativeBlog .featuredGrid .featuredLead > :is(img, span[aria-hidden]),
+  .nativeBlog .featuredGrid article > :is(img, span[aria-hidden]) {
+    width: 100%;
+    height: auto;
+    flex: none;
+    align-self: stretch;
+    aspect-ratio: auto;
+    background: transparent;
+    object-fit: contain;
+    border-radius: var(--v5-card-image-radius) var(--v5-card-image-radius) 0 0;
+  }
+  .categoryGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .categoryCard,
+  .categoryGrid > :not([data-pager-hidden]) ~ :not([data-pager-hidden]) > .categoryCard {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+  }
+  .categoryGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .categoryCard > :is(img, span[aria-hidden]),
+  .categoryGrid > :not([data-pager-hidden]) ~ :not([data-pager-hidden]) > .categoryCard > :is(img, span[aria-hidden]) {
+    display: block;
+    width: 100%;
+    height: auto;
+    flex: none;
+    aspect-ratio: auto;
+    object-fit: contain;
+    background: transparent;
+    border-radius: var(--v5-card-image-radius) var(--v5-card-image-radius) 0 0;
+  }
+  .categoryGrid:has(> div:not([data-pager-hidden]):last-child:nth-child(odd)) .categoryCard > div,
+  .categoryGrid > :not([data-pager-hidden]) ~ :not([data-pager-hidden]) > .categoryCard > div {
+    padding: 16px 20px 20px;
+    min-width: 0;
+  }
+}
